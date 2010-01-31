@@ -33,7 +33,15 @@ Function GetSongListFromFeed(feed_url) As Object
 End Function
 
 Function newMediaFromXML(http As Object, xml As Object) As Object
-    item = {http:http, xml:xml, GetTitle:itemGetTitle, GetMedia:itemGetMedia, GetPlayable:itemGetPlayable}
+    item = {
+        http:http,
+        xml:xml,
+        GetTitle:itemGetTitle,
+        GetMedia:itemGetMedia,
+        GetPlayable:itemGetPlayable,
+        GetPosterItem:itemGetPosterItem,
+        GetDescription:itemGetDescription }
+
     return item
 End Function
 
@@ -45,9 +53,59 @@ Function itemGetMedia()
     return m.xml.link.GetText()
 End Function
 
+Function itemGetDescription()
+    return m.xml.description.GetText()
+End Function
+
 Function itemGetPlayable()
     print "getting playable for ";m.GetMedia()
     return { Url: m.GetMedia(), StreamFormat: "mp3" }
+End Function
+
+Function itemGetPosterItem()
+    return {
+        ShortDescriptionLine1: m.GetTitle(),
+        ShortDescriptionLine2: m.GetDescription(),
+        HDPosterUrl: "pkg:/images/music.jpg",
+        SDPosterUrl: "pkg:/images/music.jpg",
+        item: m }
+End Function
+
+Function makePosterScreen(items) As Object
+
+    screen=CreateObject("roPosterScreen")
+    port=CreateObject("roMessagePort")
+
+    screen.SetMessagePort(port)
+    screen.SetListStyle("flat-episodic")
+    screen.SetListDisplayMode("best-fit")
+    screen.SetFocusedListItem(0)
+    screen.SetIconArray(items)
+
+    return {
+        screen: screen,
+        port: port,
+        GetSelection: psGetSelection }
+
+End Function
+
+Function psGetSelection(timeout)
+    print "psGetSelection"
+    m.screen.Show()
+
+    while true
+        msg = wait(timeout, m.screen.GetMessagePort())
+        print "psGetSelection typemsg = "; type(msg)
+
+        if msg.isScreenClosed() then return -1
+
+        if type(msg) = "roPosterScreenEvent" then
+            if msg.isListItemSelected() then
+                print "psGetSelection got: " + Stri(msg.GetIndex())
+                return msg.GetIndex()
+            endif
+        endif
+    end while
 End Function
 
 Function CreateVideoItem(desc as object)
@@ -84,28 +142,47 @@ Sub Main()
     end if
     pl=rss.GetSongListFromFeed("http://buster:8001/feed")
 
+
+
+    posters=CreateObject("roList")
     audio = CreateObject("roAudioPlayer")
     for each song in pl
         audio.AddContent(song.GetPlayable())
+        posters.Push(song.GetPosterItem())
     next
-    audio.SetLoop(true)
+    audio.SetLoop(false)
     audio.Play()
 
     desc = invalid
     item = CreateVideoItem(desc)
     
-    showSpringboardScreen(item)
+    pscr = makePosterScreen(posters)
+    
+    while true
+        song = pscr.GetSelection(0)
+        if song = -1 then
+            return
+        endif
+        item = posters[song].item
+        audio.Stop()
+        audio.ClearContent()
+        audio.AddContent(item.GetPlayable())
+        audio.Play()
+        print item.GetTitle()
+    end while
+
+    'showSpringboardScreen(item)'
     
     'exit the app gently so that the screen doesnt flash to black'
     screenFacade.showMessage("")
     sleep(25)
 End Sub
 
-'*************************************************************
-'** Set the configurable theme attributes for the application
-'** 
-'** Configure the custom overhang and Logo attributes
-'*************************************************************
+'*************************************************************'
+'** Set the configurable theme attributes for the application'
+'** '
+'** Configure the custom overhang and Logo attributes'
+'*************************************************************'
 
 Sub initTheme()
 
@@ -127,9 +204,9 @@ Sub initTheme()
 End Sub
 
 
-'*************************************************************
-'** showSpringboardScreen()
-'*************************************************************
+'*************************************************************'
+'** showSpringboardScreen()'
+'*************************************************************'
 
 Function showSpringboardScreen(item as object) As Boolean
     port = CreateObject("roMessagePort")
@@ -184,9 +261,9 @@ Function showSpringboardScreen(item as object) As Boolean
 End Function
 
 
-'*************************************************************
-'** displayVideo()
-'*************************************************************
+'*************************************************************'
+'** displayVideo()'
+'*************************************************************'
 
 Function displayVideo()
     print "Displaying video: "
@@ -194,15 +271,15 @@ Function displayVideo()
     video = CreateObject("roVideoScreen")
     video.setMessagePort(p)
 
-    'bitrates  = [0]          ' 0 = no dots
-    'bitrates  = [348000]    ' <500 Kbps = 1 dot
-    'bitrates  = [664000]    ' <800 Kbps = 2 dots
-    'bitrates  = [996000]    ' <1.1Mbps  = 3 dots
-    'bitrates  = [2048000]    ' >=1.1Mbps = 4 dots
+    'bitrates  = [0]'          ' 0 = no dots'
+    'bitrates  = [348000]'    ' <500 Kbps = 1 dot'
+    'bitrates  = [664000]'    ' <800 Kbps = 2 dots'
+    'bitrates  = [996000]'    ' <1.1Mbps  = 3 dots'
+    'bitrates  = [2048000]'    ' >=1.1Mbps = 4 dots'
     bitrates  = [1500]    
     urls = ["http://video.ted.com/talks/podcast/DanGilbert_2004_480.mp4"]
     qualities = ["SD"]
-    'qualities = ["HD"]
+    'qualities = ["HD"]'
     
     videoclip = CreateObject("roAssociativeArray")
     videoclip.StreamBitrates = bitrates
@@ -211,13 +288,13 @@ Function displayVideo()
     videoclip.StreamFormat = "mp4"
     videoclip.Title = "Dan Gilbert asks, Why are we happy?"
 
-    'videoclip.StreamFormat = "wmv"
+    'videoclip.StreamFormat = "wmv"'
  
     video.SetContent(videoclip)
     video.show()
 
     lastSavedPos   = 0
-    statusInterval = 10 'position must change by more than this number of seconds before saving
+    statusInterval = 10 'position must change by more than this number of seconds before saving'
 
     while true
         msg = wait(0, video.GetMessagePort())
