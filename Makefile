@@ -49,6 +49,7 @@ simplevideoplayer:
 	then \
 		(zip -9 -r "$(ZIPREL)/$(APPNAME).zip" .); \
 		(zip -d "$(ZIPREL)/$(APPNAME).zip" Makefile); \
+		(zip -d -r "$(ZIPREL)/$(APPNAME).zip" .git); \
 	else \
 		echo "Source for $(APPNAME) not found at $(SOURCEREL)/$(APPNAME)"; \
 	fi

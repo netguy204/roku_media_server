@@ -1,75 +1,7 @@
-' ********************************************************************
-' **  Sample PlayVideo App
-' **  Copyright (c) 2009 Roku Inc. All Rights Reserved.
-' ********************************************************************
-
-Function CreateMediaRSSConnection()As Object
-	rss = {
-		port: CreateObject("roMessagePort"),
-		http: CreateObject("roUrlTransfer"),
-
-		GetSongListFromFeed: GetSongListFromFeed,
-		}
-
-	return rss
-End Function
-
-Function GetSongListFromFeed(feed_url) As Object
-    print "GetSongListFromFeed"
-
-    m.http.SetUrl(feed_url)
-    xml = m.http.GetToString()
-    rss=CreateObject("roXMLElement")
-    if not rss.Parse(xml) then stop
-    print "rss@verion=";rss@version
-
-    pl=CreateObject("roList")
-    for each item in rss.channel.item
-        pl.Push(newMediaFromXML(m.http, item))
-        print "got media item";pl.Peek().GetTitle()
-    next
-
-    return pl
-End Function
-
-Function newMediaFromXML(http As Object, xml As Object) As Object
-    item = {
-        http:http,
-        xml:xml,
-        GetTitle:itemGetTitle,
-        GetMedia:itemGetMedia,
-        GetPlayable:itemGetPlayable,
-        GetPosterItem:itemGetPosterItem,
-        GetDescription:itemGetDescription }
-
-    return item
-End Function
-
-Function itemGetTitle()
-    return m.xml.title.GetText()
-End Function
-
-Function itemGetMedia()
-    return m.xml.link.GetText()
-End Function
-
-Function itemGetDescription()
-    return m.xml.description.GetText()
-End Function
-
-Function itemGetPlayable()
-    print "getting playable for ";m.GetMedia()
-    return { Url: m.GetMedia(), StreamFormat: "mp3" }
-End Function
-
-Function itemGetPosterItem()
-    return {
-        ShortDescriptionLine1: m.GetTitle(),
-        ShortDescriptionLine2: m.GetDescription(),
-        HDPosterUrl: "pkg:/images/music.jpg",
-        SDPosterUrl: "pkg:/images/music.jpg",
-        item: m }
-End Function
+' ********************************************************************'
+' **  Sample PlayVideo App'
+' **  Copyright (c) 2009 Roku Inc. All Rights Reserved.'
+' ********************************************************************'
 
 Function makePosterScreen(items) As Object
 
@@ -142,33 +74,62 @@ Sub Main()
     end if
     pl=rss.GetSongListFromFeed("http://buster:8001/feed")
 
-
-
     posters=CreateObject("roList")
     audio = CreateObject("roAudioPlayer")
     for each song in pl
-        audio.AddContent(song.GetPlayable())
         posters.Push(song.GetPosterItem())
     next
-    audio.SetLoop(false)
-    audio.Play()
-
-    desc = invalid
-    item = CreateVideoItem(desc)
-    
     pscr = makePosterScreen(posters)
+    audio.SetMessagePort(pscr.port)
+    audio.SetLoop(false)
+    currentBaseSong = 0
+    pscr.screen.Show()
     
     while true
-        song = pscr.GetSelection(0)
-        if song = -1 then
-            return
+        msg = wait(0, pscr.port)
+        print "mainloop msg = "; type(msg)
+
+        if msg.isScreenClosed() then return
+
+        if type(msg) = "roPosterScreenEvent" then
+            if msg.isListItemSelected() then
+                song = msg.GetIndex()
+                audio.Stop()
+                audio.ClearContent()
+
+                item = posters[song].item
+
+                if item.IsPlayable() then
+                    'play the selected song'
+
+                    audio.AddContent(item.GetPlayable())
+                    print item.GetTitle()
+                    currentBaseSong = song
+                    print "current base song ";Stri(song)
+                    audio.Play()
+                else
+                    'load the sub items and display those'
+                endif
+            endif
+        elseif type(msg) = "roAudioPlayerEvent" then
+            if msg.isRequestSucceeded() then
+                print "audio isRequestSucceeded"
+
+                'queue the next song'
+                song = currentBaseSong + 1
+                if song > posters.Count() - 1
+                    song = 0
+                endif
+
+                audio.Stop()
+                audio.ClearContent()
+                item = posters[song].item
+                audio.AddContent(item.GetPlayable())
+                audio.Play()
+                pscr.screen.SetFocusedListItem(song)
+                currentBaseSong = song
+            endif
         endif
-        item = posters[song].item
-        audio.Stop()
-        audio.ClearContent()
-        audio.AddContent(item.GetPlayable())
-        audio.Play()
-        print item.GetTitle()
     end while
 
     'showSpringboardScreen(item)'
@@ -299,7 +260,7 @@ Function displayVideo()
     while true
         msg = wait(0, video.GetMessagePort())
         if type(msg) = "roVideoScreenEvent"
-            if msg.isScreenClosed() then 'ScreenClosed event
+            if msg.isScreenClosed() then 'ScreenClosed event'
                 print "Closing video screen"
                 exit while
             else if msg.isPlaybackPosition() then
