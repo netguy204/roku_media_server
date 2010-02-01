@@ -3,7 +3,7 @@
 ' **  Copyright (c) 2009 Roku Inc. All Rights Reserved.'
 ' ********************************************************************'
 
-Function makePosterScreen(items) As Object
+Function makePosterScreen() As Object
 
     screen=CreateObject("roPosterScreen")
     port=CreateObject("roMessagePort")
@@ -11,14 +11,29 @@ Function makePosterScreen(items) As Object
     screen.SetMessagePort(port)
     screen.SetListStyle("flat-episodic")
     screen.SetListDisplayMode("best-fit")
-    screen.SetFocusedListItem(0)
-    screen.SetIconArray(items)
 
     return {
         screen: screen,
         port: port,
-        GetSelection: psGetSelection }
+        GetSelection: psGetSelection,
+        SetPlayList: psSetPlayList,
+        GetPosters: psGetPosters,
+        posters: []}
+End Function
 
+Function psGetPosters()
+    return m.posters
+End Function
+
+Function psSetPlayList(pl)
+    posters=CreateObject("roList")
+    for each song in pl
+        posters.Push(song.GetPosterItem())
+    next
+
+    m.posters = posters
+    m.screen.SetIconArray(posters)
+    m.screen.SetFocusedListItem(0)
 End Function
 
 Function psGetSelection(timeout)
@@ -72,16 +87,14 @@ Sub Main()
     if rss=invalid then
         print "unexpected error in CreateMediaRSSConnection"
     end if
-    pl=rss.GetSongListFromFeed("http://buster:8001/feed")
-
-    posters=CreateObject("roList")
+    pscr = makePosterScreen()
     audio = CreateObject("roAudioPlayer")
-    for each song in pl
-        posters.Push(song.GetPosterItem())
-    next
-    pscr = makePosterScreen(posters)
     audio.SetMessagePort(pscr.port)
     audio.SetLoop(false)
+
+    pl=rss.GetSongListFromFeed("http://buster:8001/feed")
+    pscr.SetPlayList(pl)
+
     currentBaseSong = 0
     pscr.screen.Show()
     
@@ -97,6 +110,7 @@ Sub Main()
                 audio.Stop()
                 audio.ClearContent()
 
+                posters = pscr.GetPosters()
                 item = posters[song].item
 
                 if item.IsPlayable() then
@@ -109,6 +123,9 @@ Sub Main()
                     audio.Play()
                 else
                     'load the sub items and display those'
+
+                    pscr.SetPlayList(item.GetSubItems())
+                    currentBaseSong = 0
                 endif
             endif
         elseif type(msg) = "roAudioPlayerEvent" then
@@ -116,6 +133,7 @@ Sub Main()
                 print "audio isRequestSucceeded"
 
                 'queue the next song'
+                posters = pscr.GetPosters()
                 song = currentBaseSong + 1
                 if song > posters.Count() - 1
                     song = 0
