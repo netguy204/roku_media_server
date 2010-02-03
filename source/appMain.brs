@@ -101,6 +101,7 @@ Sub Main()
     while true
         msg = wait(0, pscr.port)
         print "mainloop msg = "; type(msg)
+        print "type = ";msg.GetType()
 
         if msg.isScreenClosed() then return
 
@@ -129,15 +130,23 @@ Sub Main()
                 endif
             endif
         elseif type(msg) = "roAudioPlayerEvent" then
+            if msg.isStatusMessage() then
+                print "audio status: ";msg.GetMessage()
+            endif
             if msg.isRequestSucceeded() then
                 print "audio isRequestSucceeded"
 
                 'queue the next song'
                 posters = pscr.GetPosters()
                 song = currentBaseSong + 1
-                if song > posters.Count() - 1
+                maxsong = posters.Count() - 1
+
+                if song > maxsong
                     song = 0
                 endif
+
+                print "song: ";Stri(song)
+                print "max song: ";Stri(maxsong)
 
                 audio.Stop()
                 audio.ClearContent()
@@ -147,6 +156,17 @@ Sub Main()
                 pscr.screen.SetFocusedListItem(song)
                 currentBaseSong = song
             endif
+            if msg.isPartialResult() then
+                print "audio partial result"
+            endif
+            if msg.isRequestFailed() then
+                print "audio request failed: ";msg.GetMessage()
+                print "error code: ";Stri(msg.GetIndex())
+            endif
+            if msg.isFullResult() then
+                print "isFullResult"
+            endif
+            print "end roAudioPlayerEvent"
         endif
     end while
 

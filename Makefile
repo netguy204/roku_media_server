@@ -15,15 +15,15 @@
 #    address of your Roku box. (e.g. export ROKU_DEV_TARGET=192.168.1.1.
 #    Set in your this variable in your shell startup (e.g. .bashrc)
 ##########################################################################  
-PKGREL = ../../packages
-ZIPREL = ../../zips
+PKGREL = ../packages
+ZIPREL = ../zips
 SOURCEREL = ..
-APPNAME = simplevideoplayer
+APPNAME = rssplayer
 VERSION = 1.0
 
-.PHONY: all simplevideoplayer
+.PHONY: all rssplayer
 
-simplevideoplayer: 
+rssplayer:
 	@echo "*** Creating $(APPNAME).zip ***"
 
 	@echo "  >> removing old application zip $(ZIPREL)/$(APPNAME).zip"
@@ -56,7 +56,7 @@ simplevideoplayer:
 
 	@echo "*** developer zip  $(APPNAME) complete ***"
 
-install: simplevideoplayer
+install: rssplayer
 	@echo "Installing $(APPNAME) to host $(ROKU_DEV_TARGET)"
 	@curl -s -S -F "mysubmit=Install" -F "archive=@$(ZIPREL)/$(APPNAME).zip" -F "passwd=" http://$(ROKU_DEV_TARGET)/plugin_install | grep "<font color" | sed "s/<font color=\"red\">//"
 
