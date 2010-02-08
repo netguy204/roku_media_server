@@ -1,4 +1,9 @@
 ' ********************************************************************'
+' **  RssPlayer'
+' **  Brian Taylor el.wubo@gmail.com'
+' **  Copyright (c) 2010'
+' **'
+' **  This code was derived from:'
 ' **  Sample PlayVideo App'
 ' **  Copyright (c) 2009 Roku Inc. All Rights Reserved.'
 ' ********************************************************************'
@@ -55,6 +60,7 @@ Function psGetSelection(timeout)
     end while
 End Function
 
+' still here so i can maybe do video stuff later... '
 Function CreateVideoItem(desc as object)
     item = {   ContentType:"episode"
                SDPosterUrl:"file://pkg:/images/DanGilbert.jpg"

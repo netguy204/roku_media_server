@@ -1,4 +1,8 @@
-' Copyright (c) 2010 Brian Taylor'
+' ********************************************************************'
+' **  RssPlayer'
+' **  Brian Taylor el.wubo@gmail.com'
+' **  Copyright (c) 2010'
+' ********************************************************************'
 
 Function CreateMediaRSSConnection() As Object
 	rss = {
