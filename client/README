@@ -1,0 +1,30 @@
+This media player is derived from the simplevideoplayer example
+that comes with the Roku SDK. The code is barely recognizable as
+being from there but that's where I started and they deserve
+credit for providing a great example.
+
+Music related icons are licensed under the creative commons.
+
+Theme related icons and images came from the example. I
+haven't bothered changing them because I don't really care
+about the branding / look of this player. It does what I want
+it to do and that's good enough.
+
+No warranties. If your house burns down it's not my fault.
+
+
+License Stuff
+=============
+
+Let's pretend that I licensed this GPL... unless you happen to be
+Roku. If you're Roku then let's pretend that I licensed this MIT.
+
+Rational:
+If you're Roku then my SDK license agreement with you says that I
+can't force you to redistribute your modifications to this source.
+Since I don't really care what you guys need to be able to do with
+this code, you get it under MIT. Do whatever you gotta do.
+
+If you're not Roku: I'd really like your contributions to help make
+this player better. I won't force you to share (how could I?) but
+I definitely want you to share any and all improvements.
