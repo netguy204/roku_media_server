@@ -2,8 +2,13 @@
 # Copyright 2009, Brian Taylor
 # Distributed under the GNU General Public License
 
-# main webapp
+# these are the variables you should configure to your
+# liking.
+portno = 8001
+hostname = "http://your_servers_ip_or_hostname:%d" % portno
+musicdir = "/where/your/music/lives"
 
+# main webapp
 import os
 import subprocess
 import tornado.httpserver
@@ -16,12 +21,6 @@ from PyRSS2Gen import *
 import eyeD3
 import urllib
 
-portno = 8001
-hostname = "http://buster:%d" % portno
-stddesc = "a song"
-
-testsong = "testsng.mp3"
-testmusic = "/home/asunbeam/dropbox/roku/"
 
 def file2item(fname):
   tag = eyeD3.Tag()
@@ -73,9 +72,9 @@ def getdoc(path, recurse=False):
       items.append(file2item(os.path.join(base,file)))
 
   doc = RSS2(
-      title="my test feed",
-      link="http://wubo.org/tf.xml",
-      description="stuff",
+      title="A Personal Music Feed",
+      link="%s/feed?dir=%s" % (hostname,path),
+      description="My music.",
       lastBuildDate=datetime.datetime.now(),
       items = items )
 
@@ -99,7 +98,7 @@ class RssHandler(tornado.web.RequestHandler):
     if feed:
       self.write(getdoc(feed, True).to_xml())
     else:
-      self.write(getdoc(testmusic).to_xml())
+      self.write(getdoc(musicdir).to_xml())
 
 application = tornado.web.Application([
     (r"/feed", RssHandler),
