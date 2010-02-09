@@ -28,6 +28,10 @@ or 10.*.*.* -- for the love of your data, PLEASE don't run the server.
 
 END BIG WARNING
 
+DISCLAMER: I don't think it will happen but following these instructions
+could break your computer or your Roku. Don't hold me responsible if they
+do. If this breaks something for you, I'm sorry, and if you ask nice I
+may try to help you. No promises, no warranty, good luck.
 
 INSTALLATION
 ============
@@ -87,7 +91,7 @@ scroll up, make the edits under the heading rss_server.py and try again.
 If you see nothing, dunno what happened. Maybe firewall badness? Email
 me if you're stumped.
 
-**Install CLient: All Users**
+**Install Client: All Users**
 
 Here's some more legal hairy-ness. Based on the SDK agreement with
 Roku, I'm not sure what I'm allowed to tell you here... so you'll
