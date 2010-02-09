@@ -104,7 +104,7 @@ Search the web for "roku SDK" and hit the first link (the roku developers site.)
 
 h3. Option 1: Copy the prebuilt version
 
-In the zips folder you'll find client.zip. Using the instructions you found in the developers guide, upload this file to your player using the web interface described in the developers guide. Note: If you want to participate in the development of this player you'll have to figure out how to build these zip files yourself for your platform. Linux users can follow the instructions in option 2.
+In the zips folder you'll find client.zip. Open this file and perform the source edits described above for appMain.brs. Zip this back up and, using the instructions you found in the developers guide, upload this file to your player using the web interface described in the developers guide. Note: If you want to participate in the development of this player you'll have to figure out how to build these zip files yourself for your platform. Linux users can follow the instructions in option 2.
 
 h3. Option 2: Build it yourself
 
