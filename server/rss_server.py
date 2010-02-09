@@ -1,6 +1,7 @@
 #!/usr/bin/env python
-# Copyright 2009, Brian Taylor
-# Distributed under the GNU General Public License
+# Copyright 2010, Brian Taylor
+# Distribute under the terms of the GNU General Public License
+# Version 2 or better
 
 # these are the variables you should configure to your
 # liking.

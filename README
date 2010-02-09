@@ -1,0 +1,78 @@
+RssServer/Client
+Brian Taylor (el.wubo@gmail.com)
+Copyright 2010
+================================
+
+A simple rss media server and a client designed for the
+Roku set-top box.
+
+The server code in this package is to be distributed under
+the terms of the GPL. The client code is also GPL but with
+a special exception for the Roku business entity (per their
+SDK license agreement.)
+
+Some third party code is also included in the tornado,
+simplejson, and eyeD3 folders. Each of these are distributed
+under their author's origin license (look in their source to
+see what they are.)
+
+BEGIN BIG WARNING
+
+The way the server works essentially exposes all of the mp3's on
+your computer to an outside user with intimate knowledge of this program.
+Definitely don't run this unless your local network is somehow
+isolated from the internet at large -- ie, you're behind a router.
+
+In other words: If you're IP address isn't something like 192.*.*.*
+or 10.*.*.* -- for the love of your data, PLEASE don't run the server.
+
+END BIG WARNING
+
+
+INSTALLATION
+============
+
+**All users**
+Modify the following files to match your configuration:
+
+server/rss_server.py
+====================
+Search for hostname and musicdir and set those
+variables to match your configuration. For example, if your
+server IP address is 192.168.2.100 and your music lives in
+/home/user/Music --
+
+hostname = "http://192.168.2.100:%d" % portno
+musicdir = "/home/user/Music"
+
+client/source/appMain.brs
+=========================
+Search for the word "buster" and replace that with the
+ip address of your server. If your IP address is
+192.168.2.100 then the line should read:
+
+    pl=rss.GetSongListFromFeed("http://192.168.2.100:8001/feed")
+
+
+**Dependencies: Linux Users**
+Install python (you probably already have it)
+Ubuntu users: sudo aptitude install python
+
+**Dependencies: Windows Users**
+Install python
+Go to http://www.python.org/download and select
+the Windows installer that suits your platform
+(32 or 64 bit.) Run it, accept all the defaults,
+
+*All Users*
+Start the server by moving into the directory and
+running rss_server.py. It's important that server be the
+current working directory. In linux this means cd to that
+directory and then type
+python rss_server.py
+
+In windows... not sure yet. Someone should tell me.
+
+This is a work in progress. I welcome feedback from your
+experiences. Let's make this readme file much better.
+path set to server.
