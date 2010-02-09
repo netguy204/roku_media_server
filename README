@@ -23,7 +23,7 @@ your computer to an outside user with intimate knowledge of this program.
 Definitely don't run this unless your local network is somehow
 isolated from the internet at large -- ie, you're behind a router.
 
-In other words: If you're IP address isn't something like 192.*.*.*
+In other words: If your IP address isn't something like 192.*.*.*
 or 10.*.*.* -- for the love of your data, PLEASE don't run the server.
 
 END BIG WARNING
