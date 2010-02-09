@@ -11,13 +11,7 @@ musicdir = "/where/your/music/lives"
 
 # main webapp
 import os
-import subprocess
-import tornado.httpserver
-import tornado.ioloop
-import tornado.web
-import tornado.escape
-import re
-import math
+import web
 from PyRSS2Gen import *
 import eyeD3
 import urllib
@@ -82,31 +76,33 @@ def getdoc(path, recurse=False):
   print doc.to_xml()
   return doc
 
-class SongHandler(tornado.web.RequestHandler):
-  def get(self):
-    song = self.get_argument('name', None)
-    if not song:
+class SongHandler:
+  def GET(self):
+    song = web.input(name = None)
+    if not song.name:
       return
 
-    self.set_header("Content-Type", "audio/mpeg")
-    self.write(open(song).read())
+    web.header("Content-Type", "audio/mpeg")
+    return open(song.name).read()
 
-class RssHandler(tornado.web.RequestHandler):
-  def get(self):
+class RssHandler:
+  def GET(self):
     "retrieve a specific feed"
 
-    feed = self.get_argument('dir', None)
-    if feed:
-      self.write(getdoc(feed, True).to_xml())
+    web.header("Content-Type", "application/rss+xml")
+    feed = web.input(dir = None)
+    if feed.dir:
+      return getdoc(feed.dir, True).to_xml()
     else:
-      self.write(getdoc(musicdir).to_xml())
+      return getdoc(musicdir).to_xml()
 
-application = tornado.web.Application([
-    (r"/feed", RssHandler),
-    (r"/song", SongHandler),
-])
+urls = (
+    '/feed', 'RssHandler',
+    '/song', 'SongHandler')
+
+app = web.application(urls, globals())
 
 if __name__ == "__main__":
-  http_server = tornado.httpserver.HTTPServer(application)
-  http_server.listen(portno)
-  tornado.ioloop.IOLoop.instance().start()
+  import sys
+  sys.argv.append("%d"%portno)
+  app.run()
