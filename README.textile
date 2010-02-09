@@ -120,5 +120,7 @@ Good luck!!
 
 h2. Epilogue
 
-This is a work in progress. I welcome feedback from your experiences. Let's make this readme file much better.  path set to server.
+This is a work in progress. I welcome feedback from your experiences. Let's make this readme file much better.
+
+-B
 
