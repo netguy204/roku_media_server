@@ -71,17 +71,24 @@ the Windows installer that suits your platform
 **Start Server: All Users**
 Start the server by moving into the directory and
 running rss_server.py. It's important that server be the
-current working directory. In linux this means cd to that
-directory and then type
+current working directory.
+
+**Start Server: Linux**
+cd where/you/installed/roku_media_player/server
 python rss_server.py
 
-In windows... not sure yet. Someone should tell me.
+**Start Server: Windows**
+Start | Programs | Python | IDLE
+Menu: File | Open
+Navigate to where you put roku_media_player
+Open rss_server.py
+Menu: Run | Run Module (or press F5)
 
 **Testing: All Users**
 
 Test the server by pointing your browser at it. If you're
 on your sever right now go to:
-http://localhost:8001 (assuming you didn't change the port number)
+http://localhost:8001/feed (assuming you didn't change the port number)
 
 If you see a list of songs and collections you did everything right
 and are ready to install the client on your Roku box. If you see
