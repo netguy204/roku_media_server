@@ -82,8 +82,20 @@ class SongHandler:
     if not song.name:
       return
 
+    size = os.stat(song.name).st_size
+
     web.header("Content-Type", "audio/mpeg")
-    return open(song.name).read()
+    web.header("Content-Length", "%d" % size)
+    web.header("Transfer-Encoding", "chunked")
+
+    # pump out the data 1K at a time
+    f = open(song.name)
+    bytes = f.read(1024)
+    while bytes != "":
+      yield bytes
+      bytes = f.read(1024)
+    
+    f.close()
 
 class RssHandler:
   def GET(self):
