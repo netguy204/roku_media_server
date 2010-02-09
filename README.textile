@@ -63,7 +63,7 @@ pre. sudo aptitude install python
 
 h3. Windows Users
 
-Go to http://www.python.org/download and select the Windows installer that suits your platform (32 or 64 bit.) Run it, accept all the defaults,
+Go to "http://www.python.org/download":http://www.python.org/download and select the Windows installer that suits your platform (32 or 64 bit.) Run it, accept all the defaults,
 
 h2. Start Server
 
