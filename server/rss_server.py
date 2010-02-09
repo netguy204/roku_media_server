@@ -76,6 +76,12 @@ def getdoc(path, recurse=False):
 
   return doc
 
+def doc2m3u(doc):
+  lines = []
+  for item in doc.items:
+    lines.append(item.link)
+  return "\n".join(lines)
+
 class SongHandler:
   def GET(self):
     song = web.input(name = None)
@@ -86,7 +92,7 @@ class SongHandler:
 
     web.header("Content-Type", "audio/mpeg")
     web.header("Content-Length", "%d" % size)
-    f = open(song.name)
+    f = open(song.name, "rb")
 
     # is this a range request?
     # looks like: 'HTTP_RANGE': 'bytes=41017-'
@@ -111,9 +117,21 @@ class RssHandler:
     else:
       return getdoc(musicdir).to_xml()
 
+class M3UHandler:
+  def GET(self):
+    "retrieve a feed in m3u format"
+
+    web.header("Content-Type", "text/plain")
+    feed = web.input(dir = None)
+    if feed.dir:
+      return doc2m3u(getdoc(feed.dir, True))
+    else:
+      return doc2m3u(getdoc(musicdir, True))
+
 urls = (
     '/feed', 'RssHandler',
-    '/song', 'SongHandler')
+    '/song', 'SongHandler',
+    '/m3u', 'M3UHandler')
 
 app = web.application(urls, globals())
 
