@@ -64,7 +64,7 @@ Go to http://www.python.org/download and select
 the Windows installer that suits your platform
 (32 or 64 bit.) Run it, accept all the defaults,
 
-*All Users*
+**Start Server: All Users**
 Start the server by moving into the directory and
 running rss_server.py. It's important that server be the
 current working directory. In linux this means cd to that
@@ -73,6 +73,62 @@ python rss_server.py
 
 In windows... not sure yet. Someone should tell me.
 
+**Testing: All Users**
+
+Test the server by pointing your browser at it. If you're
+on your sever right now go to:
+http://localhost:8001 (assuming you didn't change the port number)
+
+If you see a list of songs and collections you did everything right
+and are ready to install the client on your Roku box. If you see
+Something that looks like an empty RSS feed then you did everything
+but configure your music directory in the server. Kill the server,
+scroll up, make the edits under the heading rss_server.py and try again.
+If you see nothing, dunno what happened. Maybe firewall badness? Email
+me if you're stumped.
+
+**Install CLient: All Users**
+
+Here's some more legal hairy-ness. Based on the SDK agreement with
+Roku, I'm not sure what I'm allowed to tell you here... so you'll
+have to discover it for yourself.
+
+Search the web for "roku SDK" and hit the first link (the roku
+developers site.) Agree to everything, download the sdk, and in the
+documentation directory you'll find a document called the developers
+guide which starts out with instructions for putting your player into
+development mode. Do that stuff. Write down the IP address of your
+player.
+
+Now, set the environment variable ROKU_DEV_TARGET to the IP address you
+wrote down, go into the client directory, and type:
+make install
+
+If you're a windows user, you'll find some instructions in the Roku
+Developers guide for how to upload apps to your player via the web interface.
+You'll want to zip up everything in the client directory (except Makefile
+and the .git subdirectory if you got this using git) and upload that to
+your player. I've never done this so I can't elucidate further. Please give
+me feedback on how this works.
+
+**Finally: All Users**
+Fire up the client. It should very quickly give you a listing of the mp3's
+and the subdirectories in the music directory you configured. Navigate,
+hit enter, and you're off.
+
+If it doesn't, you may have forgotten to set the host name in either the
+client code or the server code. Do the server test above. If that works,
+try it again from another computer (if you can.) If that doesn't work then
+you probably have a firewall problem. If you can get to your server from
+another computer then you probably didn't set the host correctly when you
+edited the source code to the client. Go back and try again.
+
+Still having problems? Email me and I may be able to help.
+
+
+Good luck!!
+
 This is a work in progress. I welcome feedback from your
 experiences. Let's make this readme file much better.
 path set to server.
+
