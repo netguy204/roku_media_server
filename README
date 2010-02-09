@@ -49,6 +49,10 @@ server IP address is 192.168.2.100 and your music lives in
 hostname = "http://192.168.2.100:%d" % portno
 musicdir = "/home/user/Music"
 
+*windows users*
+Your musicdir variable will likely look like this:
+musicdir = "c:\music"
+
 client/source/appMain.brs
 =========================
 Search for the word "buster" and replace that with the
