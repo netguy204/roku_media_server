@@ -11,6 +11,7 @@ musicdir = "/where/your/music/lives"
 
 # main webapp
 import os
+import re
 import web
 from PyRSS2Gen import *
 import eyeD3
@@ -73,7 +74,6 @@ def getdoc(path, recurse=False):
       lastBuildDate=datetime.datetime.now(),
       items = items )
 
-  print doc.to_xml()
   return doc
 
 class SongHandler:
@@ -82,8 +82,23 @@ class SongHandler:
     if not song.name:
       return
 
+    size = os.stat(song.name).st_size
+
     web.header("Content-Type", "audio/mpeg")
-    return open(song.name).read()
+    web.header("Content-Length", "%d" % size)
+    f = open(song.name)
+
+    # is this a range request?
+    # looks like: 'HTTP_RANGE': 'bytes=41017-'
+    if 'HTTP_RANGE' in web.ctx.environ:
+      regex = re.compile('bytes=(\d+)-$')
+      start = int(regex.match(web.ctx.environ['HTTP_RANGE']).group(1))
+      print "player issued range request starting at %d" % start
+      f.seek(start)
+      return f.read()
+    else:
+      # write the whole thing
+      return f.read()
 
 class RssHandler:
   def GET(self):
