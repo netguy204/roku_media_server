@@ -5,9 +5,9 @@
 
 # these are the variables you should configure to your
 # liking.
-portno = 8001
-hostname = "http://your_servers_ip_or_hostname:%d" % portno
-musicdir = "/where/your/music/lives"
+portno = 8002
+hostname = "http://buster:%d" % portno
+musicdir = "/home/asunbeam/dropbox/roku"
 
 # main webapp
 import os

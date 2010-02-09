@@ -18,12 +18,12 @@
 PKGREL = ../packages
 ZIPREL = ../zips
 SOURCEREL = ..
-APPNAME = rssplayer
+APPNAME = client
 VERSION = 1.0
 
-.PHONY: all rssplayer
+.PHONY: all client
 
-rssplayer:
+client:
 	@echo "*** Creating $(APPNAME).zip ***"
 
 	@echo "  >> removing old application zip $(ZIPREL)/$(APPNAME).zip"
@@ -49,14 +49,13 @@ rssplayer:
 	then \
 		(zip -9 -r "$(ZIPREL)/$(APPNAME).zip" .); \
 		(zip -d "$(ZIPREL)/$(APPNAME).zip" Makefile); \
-		(zip -d -r "$(ZIPREL)/$(APPNAME).zip" .git); \
 	else \
 		echo "Source for $(APPNAME) not found at $(SOURCEREL)/$(APPNAME)"; \
 	fi
 
 	@echo "*** developer zip  $(APPNAME) complete ***"
 
-install: rssplayer
+install: client
 	@echo "Installing $(APPNAME) to host $(ROKU_DEV_TARGET)"
 	@curl -s -S -F "mysubmit=Install" -F "archive=@$(ZIPREL)/$(APPNAME).zip" -F "passwd=" http://$(ROKU_DEV_TARGET)/plugin_install | grep "<font color" | sed "s/<font color=\"red\">//"
 
