@@ -48,6 +48,10 @@ def file2item(fname, config, image=None):
 
   print link
 
+  description = tag.getArtist()
+  if image:
+    description += "<img src=\"%s\" />" % image
+
   return RSSImageItem(
       title=tag.getTitle() or "none",
       link = link,
@@ -55,38 +59,54 @@ def file2item(fname, config, image=None):
         url = link,
         length = size,
         type = "audio/mpeg"),
-      description=tag.getArtist(),
+      description=description,
       guid = Guid(link, isPermaLink=0),
       pubDate = datetime.datetime.now(),
       image = image)
 
-def dir2item(dname, config):
+def dir2item(dname, config, image):
   link = "%s/feed?%s" % (common.server_base(config), urllib.urlencode({'dir':dname}))
   name = os.path.split(dname)[1]
 
-  return RSSItem(
+  if image:
+    image = "%s/image?%s" % (common.server_base(config), urllib.urlencode({'name':image}))
+
+  description = "Folder"
+  if image:
+    description += "<img src=\"%s\" />" % image
+
+  return RSSImageItem(
       title = name,
       link = link,
-      description = "Folder",
+      description = description,
       guid = Guid(link, isPermaLink=0),
-      pubDate = datetime.datetime.now())
+      pubDate = datetime.datetime.now(),
+      image = image)
+
+def getart(path):
+  curr_image = None
+  img_re = re.compile(".jpg|.jpeg|.png")
+
+  for base, dirs, files in os.walk(path):
+    for file in files:
+      ext = os.path.splitext(file)[1]
+      if ext and img_re.match(ext):
+        curr_image = os.path.join(base,file)
+
+  return curr_image
 
 def getdoc(path, config, recurse=False):
   items = []
   for base, dirs, files in os.walk(path):
     if not recurse:
       for dir in dirs:
-        items.append(dir2item(os.path.join(base,dir), config))
+        subdir = os.path.join(base,dir)
+        items.append(dir2item(subdir, config, getart(subdir)))
 
       del dirs[:]
 
     # first pass to find images
-    curr_image = None
-    img_re = re.compile(".jpg|.jpeg|.png")
-    for file in files:
-      ext = os.path.splitext(file)[1]
-      if ext and img_re.match(ext):
-        curr_image = os.path.join(base,file)
+    curr_image = getart(base)
 
     for file in files:
       if not os.path.splitext(file)[1].lower() == ".mp3":

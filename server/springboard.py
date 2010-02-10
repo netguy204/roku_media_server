@@ -178,7 +178,7 @@ class ServerPanel:
 
   def stop_server(self):
     print "stopping server"
-    if sys.version_info[0:2] >= (1,6):
+    if sys.version_info[0:2] >= (2,6):
       self.server.kill()
     else:
       terminate(self.server)
@@ -189,5 +189,5 @@ root = Tk()
 panel = ConfigPanel(root)
 root.mainloop()
 
-print "terminated"
+print "Springboard Terminating"
 
