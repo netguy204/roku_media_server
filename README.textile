@@ -1,3 +1,7 @@
+h1. Roku-Box Media Server / Client
+
+A simple rss media server and a client designed for the Roku set-top box.
+
 Brian Taylor (el.wubo@gmail.com)
 Copyright 2010
 
@@ -5,11 +9,6 @@ Copyright 2010
 
 _umbighouse_ - helping debug the windows client and providing excellent beta testing feedback
 
-<hr/>
-
-h1. Roku-Box Media Server / Client
-
-A simple rss media server and a client designed for the Roku set-top box.
 
 h2. License
 
@@ -17,7 +16,7 @@ The server code in this package is to be distributed under the terms of the GPL.
 
 Some third party code is also included in the web, simplejson, and eyeD3 folders. Each of these are distributed under their author's original license (look in their source to see what they are.)
 
-h2. Security Warnings
+h2. Security Warning
 
 The way the server works essentially exposes all of the mp3's on your computer to an outside user with intimate knowledge of this program.  Definitely don't run this unless your local network is somehow isolated from the internet at large -- ie, you're behind a router.  
 
