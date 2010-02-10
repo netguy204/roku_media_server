@@ -17,8 +17,24 @@ from PyRSS2Gen import *
 import eyeD3
 import urllib
 
+class RSSImageItem(RSSItem):
+  "extending rss items to support a per item image"
+  def __init__(self, **kwargs):
+    if 'image' in kwargs:
+      self.image = kwargs['image']
+      del kwargs['image']
+    else:
+      self.image = None
 
-def file2item(fname):
+    RSSItem.__init__(self, **kwargs)
+
+  def publish_extensions(self, handler):
+    if self.image:
+      handler.startElement('image', {})
+      handler.characters(self.image)
+      handler.endElement('image')
+
+def file2item(fname, image=None):
   tag = eyeD3.Tag()
   if not tag.link(fname):
     return None
@@ -26,10 +42,13 @@ def file2item(fname):
   size = os.stat(fname).st_size
 
   link="%s/song?%s" % (hostname, urllib.urlencode({'name':fname}))
+  
+  if image:
+    image = "%s/image?%s" % (hostname, urllib.urlencode({'name':image}))
 
   print link
 
-  return RSSItem(
+  return RSSImageItem(
       title=tag.getTitle() or "none",
       link = link,
       enclosure = Enclosure(
@@ -38,7 +57,8 @@ def file2item(fname):
         type = "audio/mpeg"),
       description=tag.getArtist(),
       guid = Guid(link, isPermaLink=0),
-      pubDate = datetime.datetime.now())
+      pubDate = datetime.datetime.now(),
+      image = image)
 
 def dir2item(dname):
   link = "%s/feed?%s" % (hostname, urllib.urlencode({'dir':dname}))
@@ -60,12 +80,20 @@ def getdoc(path, recurse=False):
 
       del dirs[:]
 
+    # first pass to find images
+    curr_image = None
+    img_re = re.compile(".jpg|.jpeg|.png")
+    for file in files:
+      ext = os.path.splitext(file)[1]
+      if ext and img_re.match(ext):
+        curr_image = os.path.join(base,file)
+
     for file in files:
       if not os.path.splitext(file)[1].lower() == ".mp3":
         print "rejecting %s" % file
         continue
 
-      items.append(file2item(os.path.join(base,file)))
+      items.append(file2item(os.path.join(base,file), curr_image))
 
   doc = RSS2(
       title="A Personal Music Feed",
@@ -82,29 +110,51 @@ def doc2m3u(doc):
     lines.append(item.link)
   return "\n".join(lines)
 
+def range_handler(fname):
+  f = open(fname, "rb")
+
+  bytes = None
+
+  # is this a range request?
+  # looks like: 'HTTP_RANGE': 'bytes=41017-'
+  if 'HTTP_RANGE' in web.ctx.environ:
+    regex = re.compile('bytes=(\d+)-$')
+    start = int(regex.match(web.ctx.environ['HTTP_RANGE']).group(1))
+    print "player issued range request starting at %d" % start
+    f.seek(start)
+    bytes = f.read()
+  else:
+    # write the whole thing
+    bytes = f.read()
+  
+  f.close()
+  return bytes
+
 class SongHandler:
+  "retrieve a song"
+
   def GET(self):
     song = web.input(name = None)
     if not song.name:
       return
 
     size = os.stat(song.name).st_size
-
     web.header("Content-Type", "audio/mpeg")
     web.header("Content-Length", "%d" % size)
-    f = open(song.name, "rb")
+    return range_handler(song.name)
 
-    # is this a range request?
-    # looks like: 'HTTP_RANGE': 'bytes=41017-'
-    if 'HTTP_RANGE' in web.ctx.environ:
-      regex = re.compile('bytes=(\d+)-$')
-      start = int(regex.match(web.ctx.environ['HTTP_RANGE']).group(1))
-      print "player issued range request starting at %d" % start
-      f.seek(start)
-      return f.read()
-    else:
-      # write the whole thing
-      return f.read()
+class ImageHandler:
+  "retrieve album art"
+
+  def GET(self):
+    img = web.input(name = None)
+    if not img.name:
+      return
+
+    size = os.stat(img.name).st_size
+    web.header("Content-Type", "image/jpeg")
+    web.header("Content-Length", "%d" % size)
+    return range_handler(img.name)
 
 class RssHandler:
   def GET(self):
@@ -131,7 +181,8 @@ class M3UHandler:
 urls = (
     '/feed', 'RssHandler',
     '/song', 'SongHandler',
-    '/m3u', 'M3UHandler')
+    '/m3u', 'M3UHandler',
+    '/image', 'ImageHandler')
 
 app = web.application(urls, globals())
 
