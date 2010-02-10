@@ -3,11 +3,9 @@
 # Distribute under the terms of the GNU General Public License
 # Version 2 or better
 
-# these are the variables you should configure to your
-# liking.
-portno = 8001
-hostname = "http://your_servers_ip_or_hostname:%d" % portno
-musicdir = "/where/your/music/lives"
+
+# this file contains the configurable variables
+config_file = "config.ini"
 
 # main webapp
 import os
@@ -16,6 +14,13 @@ import web
 from PyRSS2Gen import *
 import eyeD3
 import urllib
+import ConfigParser
+
+def parse_config(cfile):
+  c = ConfigParser.ConfigParser({})
+  c.read(cfile)
+
+  return dict(c.items("DEFAULT"))
 
 class RSSImageItem(RSSItem):
   "extending rss items to support a per item image"
@@ -34,17 +39,17 @@ class RSSImageItem(RSSItem):
       handler.characters(self.image)
       handler.endElement('image')
 
-def file2item(fname, image=None):
+def file2item(fname, config, image=None):
   tag = eyeD3.Tag()
   if not tag.link(fname):
     return None
 
   size = os.stat(fname).st_size
 
-  link="%s/song?%s" % (hostname, urllib.urlencode({'name':fname}))
+  link="%s/song?%s" % (config['server_base'], urllib.urlencode({'name':fname}))
   
   if image:
-    image = "%s/image?%s" % (hostname, urllib.urlencode({'name':image}))
+    image = "%s/image?%s" % (config['server_base'], urllib.urlencode({'name':image}))
 
   print link
 
@@ -60,8 +65,8 @@ def file2item(fname, image=None):
       pubDate = datetime.datetime.now(),
       image = image)
 
-def dir2item(dname):
-  link = "%s/feed?%s" % (hostname, urllib.urlencode({'dir':dname}))
+def dir2item(dname, config):
+  link = "%s/feed?%s" % (config['server_base'], urllib.urlencode({'dir':dname}))
   name = os.path.split(dname)[1]
 
   return RSSItem(
@@ -71,12 +76,12 @@ def dir2item(dname):
       guid = Guid(link, isPermaLink=0),
       pubDate = datetime.datetime.now())
 
-def getdoc(path, recurse=False):
+def getdoc(path, config, recurse=False):
   items = []
   for base, dirs, files in os.walk(path):
     if not recurse:
       for dir in dirs:
-        items.append(dir2item(os.path.join(base,dir)))
+        items.append(dir2item(os.path.join(base,dir), config))
 
       del dirs[:]
 
@@ -93,11 +98,11 @@ def getdoc(path, recurse=False):
         print "rejecting %s" % file
         continue
 
-      items.append(file2item(os.path.join(base,file), curr_image))
+      items.append(file2item(os.path.join(base,file), config, curr_image))
 
   doc = RSS2(
       title="A Personal Music Feed",
-      link="%s/feed?dir=%s" % (hostname,path),
+      link="%s/feed?dir=%s" % (config['server_base'], path),
       description="My music.",
       lastBuildDate=datetime.datetime.now(),
       items = items )
@@ -160,23 +165,28 @@ class RssHandler:
   def GET(self):
     "retrieve a specific feed"
 
+    config = parse_config(config_file)
+    collapse_collections = config["collapse_collections"].lower() == "true"
+
     web.header("Content-Type", "application/rss+xml")
     feed = web.input(dir = None)
     if feed.dir:
-      return getdoc(feed.dir, True).to_xml()
+      return getdoc(feed.dir, config, collapse_collections).to_xml()
     else:
-      return getdoc(musicdir).to_xml()
+      return getdoc(config['music_dir'], config).to_xml()
 
 class M3UHandler:
   def GET(self):
     "retrieve a feed in m3u format"
 
+    config = parse_config(config_file)
+
     web.header("Content-Type", "text/plain")
     feed = web.input(dir = None)
     if feed.dir:
-      return doc2m3u(getdoc(feed.dir, True))
+      return doc2m3u(getdoc(feed.dir, config, True))
     else:
-      return doc2m3u(getdoc(musicdir, True))
+      return doc2m3u(getdoc(config['music_dir'], config, True))
 
 urls = (
     '/feed', 'RssHandler',
@@ -188,5 +198,8 @@ app = web.application(urls, globals())
 
 if __name__ == "__main__":
   import sys
-  sys.argv.append("%d"%portno)
+
+  config = parse_config(config_file)
+
+  sys.argv.append(config["server_port"])
   app.run()
