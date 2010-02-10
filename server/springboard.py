@@ -68,11 +68,12 @@ def build_client_zip(config, client_path, target_zip):
 
       fullpath = os.path.join(base, file)
 
-      fname = fullpath
-      tf = tempfile.NamedTemporaryFile(mode="w")
-
+      f = None
+      
       if os.path.splitext(fullpath)[1] == ".brs":
         print "rewriting %s" % fullpath
+        tf = tempfile.TemporaryFile()
+
         # rewrite doing the necessary substitutions
         f = open(fullpath)
         for ln in f:
@@ -80,11 +81,14 @@ def build_client_zip(config, client_path, target_zip):
           nln = re.sub('SERVER_NAME', url, ln)
           tf.write(nln)
 
-        tf.flush()
-        fname = tf.name
-
+        tf.seek(0)
+        f = tf
+      else:
+        f = open(fullpath)
+        
       relpath = relpath26(fullpath, client_path)
-      zip.write(fname, arcname=relpath)
+      zip.writestr(relpath, f.read())
+      f.close()
       print "added %s to zip as %s" % (fullpath, relpath)
 
   zip.close()
@@ -174,8 +178,11 @@ class ServerPanel:
 
   def stop_server(self):
     print "stopping server"
-    terminate(self.server)
-    os.waitpid(self.server.pid, 0)
+    if sys.version_info[0:2] >= (1,6):
+      self.server.kill()
+    else:
+      terminate(self.server)
+      os.waitpid(self.server.pid, 0)
     self.root.destroy()
 
 root = Tk()
