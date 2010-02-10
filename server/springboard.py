@@ -84,7 +84,7 @@ def build_client_zip(config, client_path, target_zip):
         tf.seek(0)
         f = tf
       else:
-        f = open(fullpath)
+        f = open(fullpath, 'rb')
         
       relpath = relpath26(fullpath, client_path)
       zip.writestr(relpath, f.read())
