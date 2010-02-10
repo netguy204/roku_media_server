@@ -4,7 +4,7 @@ import ConfigParser
 import httplib, mimetypes
 
 def server_base(config):
-  return "http://%s:%s" % (config.get("DEFAULT", "server_ip"), config.get("DEFAULT", "server_port"))
+  return "http://%s:%s" % (config.get("config", "server_ip"), config.get("config", "server_port"))
 
 def parse_config(cfile):
   c = ConfigParser.ConfigParser({})

@@ -19,12 +19,12 @@ config = ConfigParser.ConfigParser({})
 if os.path.exists(config_file):
   config.read(config_file)
 else:
-  config.add_section("DEFAULT")
+  config.add_section("config")
 
 # ensure that everything we expect is at least get'able
 def ensure(varname, default):
-  if not config.has_option("DEFAULT", varname):
-    config.set("DEFAULT", varname, default)
+  if not config.has_option("config", varname):
+    config.set("config", varname, default)
 
 ensure("roku_ip", "ROKU IP ADDRESS")
 ensure("server_ip", "SERVER IP ADDRESS")
@@ -42,7 +42,7 @@ def upload_client_zip(config, the_zip):
   files = [
       ('archive', the_zip, open(the_zip, 'rb').read())]
 
-  roku_ip = "%s:80" % config.get("DEFAULT", "roku_ip")
+  roku_ip = "%s:80" % config.get("config", "roku_ip")
 
   print "uploading %s to http://%s/plugin_install" % (the_zip, roku_ip)
   post_multipart(roku_ip, "/plugin_install", fields, files)
@@ -103,7 +103,7 @@ class ConfigPanel:
     w.grid(row=0, columnspan=2, sticky=NSEW)
     self.row_num = 1
 
-    for item in config.items("DEFAULT"):
+    for item in config.items("config"):
       self._make_entry(self.frame, item[0], item[1])
 
     self.launch_server = Button(self.frame, \
@@ -134,7 +134,7 @@ class ConfigPanel:
   def ensure_config(self):
     print "writing configuration"
     for name, w in self.configvars.items():
-      config.set("DEFAULT", name, w.get())
+      config.set("config", name, w.get())
     write_config(config_file, config)
 
   def launch_server(self):
@@ -157,7 +157,7 @@ class ConfigPanel:
 
   def spawn_server(self):
     import subprocess
-    cmd = "%s rss_server.py" % config.get("DEFAULT", "python_path")
+    cmd = "%s rss_server.py" % config.get("config", "python_path")
     return subprocess.Popen([cmd], shell=True)
 
 

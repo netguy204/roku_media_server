@@ -161,14 +161,14 @@ class RssHandler:
     "retrieve a specific feed"
 
     config = common.parse_config(config_file)
-    collapse_collections = config.get("DEFAULT", "collapse_collections").lower() == "true"
+    collapse_collections = config.get("config", "collapse_collections").lower() == "true"
 
     web.header("Content-Type", "application/rss+xml")
     feed = web.input(dir = None)
     if feed.dir:
       return getdoc(feed.dir, config, collapse_collections).to_xml()
     else:
-      return getdoc(config.get("DEFAULT", 'music_dir'), config).to_xml()
+      return getdoc(config.get("config", 'music_dir'), config).to_xml()
 
 class M3UHandler:
   def GET(self):
@@ -181,7 +181,7 @@ class M3UHandler:
     if feed.dir:
       return doc2m3u(getdoc(feed.dir, config, True))
     else:
-      return doc2m3u(getdoc(config.get("DEFAULT", 'music_dir'), config, True))
+      return doc2m3u(getdoc(config.get("config", 'music_dir'), config, True))
 
 urls = (
     '/feed', 'RssHandler',
@@ -196,5 +196,5 @@ if __name__ == "__main__":
 
   config = common.parse_config(config_file)
 
-  sys.argv.append(config.get("DEFAULT","server_port"))
+  sys.argv.append(config.get("config","server_port"))
   app.run()
