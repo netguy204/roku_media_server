@@ -49,8 +49,8 @@ def file2item(fname, config, image=None):
   print link
 
   description = tag.getArtist()
-  if image:
-    description += "<img src=\"%s\" />" % image
+  #if image:
+  #  description += "<img src=\"%s\" />" % image
 
   return RSSImageItem(
       title=tag.getTitle() or "none",
@@ -72,8 +72,8 @@ def dir2item(dname, config, image):
     image = "%s/image?%s" % (common.server_base(config), urllib.urlencode({'name':image}))
 
   description = "Folder"
-  if image:
-    description += "<img src=\"%s\" />" % image
+  #if image:
+  #  description += "<img src=\"%s\" />" % image
 
   return RSSImageItem(
       title = name,

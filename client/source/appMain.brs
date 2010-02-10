@@ -8,7 +8,7 @@
 ' **  Copyright (c) 2009 Roku Inc. All Rights Reserved.'
 ' ********************************************************************'
 
-Function makePosterScreen(port, pl) As Object
+Function makePosterScreen(port) As Object
 
     screen=CreateObject("roPosterScreen")
 
@@ -16,16 +16,13 @@ Function makePosterScreen(port, pl) As Object
     screen.SetListStyle("flat-category")
     screen.SetListDisplayMode("best-fit")
 
-    self = {
+    return {
         screen: screen,
         port: port,
         GetSelection: psGetSelection,
         SetPlayList: psSetPlayList,
         GetPosters: psGetPosters,
         posters: []}
-
-    self.SetPlayList(pl)
-    return self
 
 End Function
 
@@ -83,10 +80,10 @@ Function CreateVideoItem(desc as object)
 End Function
 
 Sub Main()
+    print "hello world"
+
     'initialize theme attributes like titles, logos and overhang color'
     initTheme()
-
-    print "hello world"
 
     'display a fake screen while the real one initializes. this screen'
     'has to live for the duration of the whole app to prevent flashing'
@@ -101,7 +98,8 @@ Sub Main()
 
     port = CreateObject("roMessagePort")
     pl = rss.GetSongListFromFeed("SERVER_NAME/feed")
-    pscr = makePosterScreen(port, pl)
+    pscr = makePosterScreen(port)
+    pscr.SetPlayList(pl)
 
     audio = CreateObject("roAudioPlayer")
     audio.SetMessagePort(port)
@@ -119,14 +117,15 @@ Sub Main()
         print "type = ";msg.GetType()
 
         if msg.isScreenClosed() then
-            if layers.Count() == 0 then
+            if layers.Count() = 0 then
                 return
             endif
 
             pscr = layers.GetTail()
             layers.RemoveTail()
-            pscr.Show()
-        elseif type(msg) = "roPosterScreenEvent" then
+            pscr.screen.Show()
+
+        else if type(msg) = "roPosterScreenEvent" then
             if msg.isListItemSelected() then
                 song = msg.GetIndex()
                 audio.Stop()
@@ -147,13 +146,15 @@ Sub Main()
                     'load the sub items and display those'
 
                     pl = item.GetSubItems()
-                    pscr = makePosterScreen(port, pl)
+                    pscr = makePosterScreen(port)
+                    pscr.SetPlayList(pl)
+
                     layers.AddTail(pscr)
-                    pscr.Show()
+                    pscr.screen.Show()
                     currentBaseSong = 0
                 endif
             endif
-        elseif type(msg) = "roAudioPlayerEvent" then
+        else if type(msg) = "roAudioPlayerEvent" then
             if msg.isStatusMessage() then
                 print "audio status: ";msg.GetMessage()
             endif
