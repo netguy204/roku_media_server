@@ -15,12 +15,7 @@ from PyRSS2Gen import *
 import eyeD3
 import urllib
 import ConfigParser
-
-def parse_config(cfile):
-  c = ConfigParser.ConfigParser({})
-  c.read(cfile)
-
-  return dict(c.items("DEFAULT"))
+import common
 
 class RSSImageItem(RSSItem):
   "extending rss items to support a per item image"
@@ -46,10 +41,10 @@ def file2item(fname, config, image=None):
 
   size = os.stat(fname).st_size
 
-  link="%s/song?%s" % (config['server_base'], urllib.urlencode({'name':fname}))
+  link="%s/song?%s" % (common.server_base(config), urllib.urlencode({'name':fname}))
   
   if image:
-    image = "%s/image?%s" % (config['server_base'], urllib.urlencode({'name':image}))
+    image = "%s/image?%s" % (common.server_base(config), urllib.urlencode({'name':image}))
 
   print link
 
@@ -66,7 +61,7 @@ def file2item(fname, config, image=None):
       image = image)
 
 def dir2item(dname, config):
-  link = "%s/feed?%s" % (config['server_base'], urllib.urlencode({'dir':dname}))
+  link = "%s/feed?%s" % (common.server_base(config), urllib.urlencode({'dir':dname}))
   name = os.path.split(dname)[1]
 
   return RSSItem(
@@ -102,7 +97,7 @@ def getdoc(path, config, recurse=False):
 
   doc = RSS2(
       title="A Personal Music Feed",
-      link="%s/feed?dir=%s" % (config['server_base'], path),
+      link="%s/feed?dir=%s" % (common.server_base(config), path),
       description="My music.",
       lastBuildDate=datetime.datetime.now(),
       items = items )
@@ -165,28 +160,28 @@ class RssHandler:
   def GET(self):
     "retrieve a specific feed"
 
-    config = parse_config(config_file)
-    collapse_collections = config["collapse_collections"].lower() == "true"
+    config = common.parse_config(config_file)
+    collapse_collections = config.get("DEFAULT", "collapse_collections").lower() == "true"
 
     web.header("Content-Type", "application/rss+xml")
     feed = web.input(dir = None)
     if feed.dir:
       return getdoc(feed.dir, config, collapse_collections).to_xml()
     else:
-      return getdoc(config['music_dir'], config).to_xml()
+      return getdoc(config.get("DEFAULT", 'music_dir'), config).to_xml()
 
 class M3UHandler:
   def GET(self):
     "retrieve a feed in m3u format"
 
-    config = parse_config(config_file)
+    config = common.parse_config(config_file)
 
     web.header("Content-Type", "text/plain")
     feed = web.input(dir = None)
     if feed.dir:
       return doc2m3u(getdoc(feed.dir, config, True))
     else:
-      return doc2m3u(getdoc(config['music_dir'], config, True))
+      return doc2m3u(getdoc(config.get("DEFAULT", 'music_dir'), config, True))
 
 urls = (
     '/feed', 'RssHandler',
@@ -199,7 +194,7 @@ app = web.application(urls, globals())
 if __name__ == "__main__":
   import sys
 
-  config = parse_config(config_file)
+  config = common.parse_config(config_file)
 
-  sys.argv.append(config["server_port"])
+  sys.argv.append(config.get("DEFAULT","server_port"))
   app.run()

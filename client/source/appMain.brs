@@ -98,7 +98,7 @@ Sub Main()
     audio.SetMessagePort(pscr.port)
     audio.SetLoop(false)
 
-    pl=rss.GetSongListFromFeed("http://buster:8001/feed")
+    pl=rss.GetSongListFromFeed("SERVER_NAME/feed")
     pscr.SetPlayList(pl)
 
     currentBaseSong = 0
