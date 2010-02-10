@@ -107,7 +107,7 @@ Sub Main()
 
     currentBaseSong = 0
     layers = CreateObject("roList")
-    layers.Push(pscr)
+    layers.AddTail(pl)
 
     pscr.screen.Show()
     
@@ -117,12 +117,17 @@ Sub Main()
         print "type = ";msg.GetType()
 
         if msg.isScreenClosed() then
-            if layers.Count() = 0 then
-                return
-            endif
+            print "isScreenClosed()"
+            if layers.Count() = 1 then return
 
-            pscr = layers.GetTail()
+            'recreate the pscr since it just got closed'
+            print "fetching old pl"
+
+            pscr = makePosterScreen(port)
             layers.RemoveTail()
+            pl = layers.GetTail()
+
+            pscr.SetPlayList(pl)
             pscr.screen.Show()
 
         else if type(msg) = "roPosterScreenEvent" then
@@ -145,12 +150,10 @@ Sub Main()
                 else
                     'load the sub items and display those'
 
+                    print "loading subitems for "; song
                     pl = item.GetSubItems()
-                    pscr = makePosterScreen(port)
+                    layers.AddTail(pl)
                     pscr.SetPlayList(pl)
-
-                    layers.AddTail(pscr)
-                    pscr.screen.Show()
                     currentBaseSong = 0
                 endif
             endif
