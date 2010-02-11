@@ -42,6 +42,7 @@ Function newMediaFromXML(rss As Object, xml As Object) As Object
         GetPlayable:itemGetPlayable,
         GetPosterItem:itemGetPosterItem,
         GetDescription:itemGetDescription,
+        GetType:itemGetType,
         IsPlayable:itemIsPlayable,
         GetSubItems:itemGetSubItems }
 
@@ -60,9 +61,13 @@ Function itemGetDescription()
     return m.xml.description.GetText()
 End Function
 
+Function itemGetType()
+    return m.xml.filetype.GetText()
+End Function
+
 Function itemGetPlayable()
     print "getting playable for ";m.GetMedia()
-    return { Url: m.GetMedia(), StreamFormat: "mp3" }
+    return { Url: m.GetMedia(), StreamFormat: m.GetType() }
 End Function
 
 Function itemGetPosterItem()

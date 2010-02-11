@@ -18,51 +18,81 @@ import ConfigParser
 import common
 
 class RSSImageItem(RSSItem):
-  "extending rss items to support a per item image"
+  "extending rss items to support our extended tags"
+  TAGS = ('image', 'filetype')
   def __init__(self, **kwargs):
-    if 'image' in kwargs:
-      self.image = kwargs['image']
-      del kwargs['image']
-    else:
-      self.image = None
+    for name in RSSImageItem.TAGS:
+      if name in kwargs:
+        setattr(self, name, kwargs[name])
+        del kwargs[name]
+      else:
+        setattr(self, name, None)
 
     RSSItem.__init__(self, **kwargs)
 
   def publish_extensions(self, handler):
-    if self.image:
-      handler.startElement('image', {})
-      handler.characters(self.image)
-      handler.endElement('image')
+    for name in RSSImageItem.TAGS:
+      val = getattr(self, name)
+      if val:
+        handler.startElement(name, {})
+        handler.characters(val)
+        handler.endElement(name)
 
 def file2item(fname, config, image=None):
-  tag = eyeD3.Tag()
-  if not tag.link(fname):
+  # guess the filetype based on the extension
+  ext = os.path.splitext(fname)[1].lower()
+
+  title = "None"
+  description = "None"
+  filetype = None
+  mimetype = None
+
+  if ext == ".mp3":
+    # use the ID3 tags to fill out the mp3 data
+
+    tag = eyeD3.Tag()
+    if not tag.link(fname):
+      return None
+
+    title = tag.getTitle()
+    description = tag.getArtist()
+    filetype = "mp3"
+    mimetype = "audio/mpeg"
+
+  elif ext == ".wma":
+    # use the filename as the title
+
+    basename = os.path.split(fname)[1]
+    title = os.path.splitext(basename)[0]
+    description = ""
+    filetype = "wma"
+    mimetype = "audio/x-ms-wma"
+
+  else:
+    # don't know what this is
+
     return None
 
   size = os.stat(fname).st_size
-
   link="%s/song?%s" % (common.server_base(config), urllib.urlencode({'name':fname}))
-  
+
   if image:
     image = "%s/image?%s" % (common.server_base(config), urllib.urlencode({'name':image}))
 
   print link
 
-  description = tag.getArtist()
-  #if image:
-  #  description += "<img src=\"%s\" />" % image
-
   return RSSImageItem(
-      title=tag.getTitle() or "none",
+      title = title,
       link = link,
       enclosure = Enclosure(
         url = link,
         length = size,
-        type = "audio/mpeg"),
-      description=description,
+        type = mimetype),
+      description = description,
       guid = Guid(link, isPermaLink=0),
       pubDate = datetime.datetime.now(),
-      image = image)
+      image = image,
+      filetype = filetype)
 
 def dir2item(dname, config, image):
   link = "%s/feed?%s" % (common.server_base(config), urllib.urlencode({'dir':dname}))
@@ -101,6 +131,8 @@ def getart(path):
 
 def getdoc(path, config, recurse=False):
   items = []
+  music_re = re.compile("\.mp3|\.wma")
+
   for base, dirs, files in os.walk(path):
     if not recurse:
       for dir in dirs:
@@ -113,7 +145,7 @@ def getdoc(path, config, recurse=False):
     curr_image = getart(base)
 
     for file in files:
-      if not os.path.splitext(file)[1].lower() == ".mp3":
+      if not music_re.match(os.path.splitext(file)[1].lower()):
         print "rejecting %s" % file
         continue
 
