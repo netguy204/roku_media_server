@@ -31,7 +31,7 @@ h1. INSTALLATION
 
 # Download and install python for your platform
 # Put your Roku into developer mode
-# Run springboard.py to install the channel on your Roku and start the server
+# Run springboard.vbs to install the channel on your Roku and start the server
 
 h2. Details
 
@@ -86,6 +86,7 @@ You're done!
 
 h1. Troubleshooting
 
+* If springboard.vbs doesn't start try running springboard_debug.bat. If you recognize any errors then fix them and let us know what you did so we can help others. If a window opens and closes immediately then you probably didn't install python at it's standard location (c:\python26). Either edit the .bat to point at where you installed it or go through the alternate procedure of starting springboard through IDLE.
 * Make sure you can get to your server from your server. Point a browser at "http://localhost:8001/feed":http://localhost:8001/feed . If you changed the port number in your configuration then adjust the link appropriately. If this doesn't work then the server probably isn't running. Did you start it from springboard? If so, you should see a Tk window with a big button saying "Stop Server." If you started it using the included launch_server.vbs script then press alt+ctrl+delete and make sure python is under the process tab.
 * Make sure you can get to your server from another computer. Change localhost in the link above to the ip address of your server. If this doesn't work then you almost definitely have a firewall in the way.
 * Make sure the new channel appears on your home screen. If it doesn't you may not have installed the client from springboard.
