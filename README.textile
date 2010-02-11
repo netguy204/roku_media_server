@@ -97,11 +97,7 @@ There's an active and growing community of users eager to help you. Drop by the 
 
 h1. Usage
 
-Fire up the client. You should find it on your home channel listing. It's called "Music Player" and has the subtitle "Play music from your local network." It should very quickly give you a listing of the mp3's and the subdirectories in the music directory you configured. Navigate, hit enter, and you're off.
-
-If it doesn't, you may have forgotten to set the host name in either the client code or the server code. Do the server test above. If that works, try it again from another computer (if you can.) If that doesn't work then you probably have a firewall problem. If you can get to your server from another computer then you probably didn't set the host correctly when you edited the source code to the client. Go back and try again.  
-
-Still having problems? Email me and I may be able to help.
+Fire up your personal music channel. You should find it on your home channel listing. The new channel is called "Music Player" and has the subtitle "Play music from your local network." It should very quickly give you a listing of the mp3's and the subdirectories in the music directory you configured. Navigate your collection using the arrow keys and the enter button and press enter to start a song. The up arrow will take you up one level in your collection and the Home button will exit the channel.
 
 Good luck!!
 
