@@ -7,7 +7,7 @@ Copyright 2010
 
 *Special Thanks To:*
 
-_umbighouse_ - helping debug the windows client and providing excellent beta testing feedback
+_umbighouse_ - helping debug the windows client and providing excellent beta testing feedback. Windows installation tips and scripts. Channel icon.
 
 
 h2. License
