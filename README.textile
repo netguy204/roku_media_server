@@ -28,9 +28,17 @@ I don't think it will happen but following these instructions could break your c
 
 h1. INSTALLATION
 
-h2. Install Python
+# Download and install python for your platform
 
-h3. Linux Users
+# Put your Roku into developer mode
+
+# Run springboard.py to install the channel on your Roku and start the server
+
+h2. Details
+
+h3. Download and install python for your platform
+
+h4. Linux Users
 
 You probably already have it. Type python and if it starts up press Ctrl+D to quit and skip this section.
 
@@ -38,20 +46,30 @@ Ubuntu users:
 
 pre. sudo aptitude install python
 
-h3. Windows Users
+h4. Windows Users
 
 Go to "http://www.python.org/download":http://www.python.org/download and select the Windows installer that suits your platform (32 or 64 bit.) Run it, accept all the defaults,
 
-h1. Automated Installation
+h3. Put your Roku into developer mode
+
+Here's some more legal hairy-ness. Based on the SDK agreement with Roku, I'm not sure what I'm allowed to tell you here... so you'll have to discover it for yourself.
+
+Search the web for "roku SDK" and hit the first link (the roku developers site.) Agree to everything, download the sdk, and in the documentation directory you'll find a document called the developers guide which starts out with instructions for putting your player into development mode. Do that stuff. Write down the IP address of your player.
+
+h3. Run springboard.py to install...
 
 Run the automated client/server installation tool.
 
-h2. Linux
+h4. Linux
 
 pre. cd server
 python springboard.py
 
-h2. Windows
+h4. Windows
+
+Double click on springboard.vbs or springboard_debug.bat.
+
+Or, if that doesn't work (because you put python somewhere weird):
 
 Start | Programs | Python | IDLE
 
@@ -63,71 +81,11 @@ Open springboard.py
 
 Menu: Run | Run Module (or press F5)
 
-h2. All Users
+h4. All Users
 
 Set all configuration variables in the tool. Click on "Install Client" to update your Roku (at the IP address you specified) and click on "Start Server" to start the server. Note that sometimes the Roku will automatically launch the client after you upload it. If this happens you'll need to go back to the home screen and then launch it again after you've started the server.
 
 You're done!
-
-h1. Manual Installation
-
-h2. Ip Address Config
-
-Modify the server/config.ini file to match your configuration. server/sample_config.ini is a good starting point
-
-h2. Start Server
-
-Start the server by moving into the directory and running rss_server.py. It's important that server be the current working directory.
-
-h3. Linux Users
-
-pre. cd where/you/installed/roku_media_player/server
-python rss_server.py
-
-h3. Windows Users
-
-Start | Programs | Python | IDLE
-
-Menu: File | Open
-
-Navigate to where you put roku_media_player
-
-Open rss_server.py
-
-Menu: Run | Run Module (or press F5)
-
-h2. Test The Server
-
-Test the server by pointing your browser at it. If you're on your sever right now go to:
-
-"http://localhost:8001/feed":http://localhost:8001/feed
-
-(assuming you didn't change the port number)
-
-If you see a list of songs and collections you did everything right and are ready to install the client on your Roku box. If you see Something that looks like an empty RSS feed then you did everything but configure your music directory in the server. Kill the server, scroll up, make the edits under the heading rss_server.py and try again.  If you see nothing, dunno what happened. Maybe firewall badness? Email me if you're stumped.
-
-h2. Install the Client
-
-Here's some more legal hairy-ness. Based on the SDK agreement with Roku, I'm not sure what I'm allowed to tell you here... so you'll have to discover it for yourself.
-
-Search the web for "roku SDK" and hit the first link (the roku developers site.) Agree to everything, download the sdk, and in the documentation directory you'll find a document called the developers guide which starts out with instructions for putting your player into development mode. Do that stuff. Write down the IP address of your player.
-
-h3. Option 1: Copy the prebuilt version
-
-In the zips folder you'll find client.zip. Open this file and perform the source edits described above for appMain.brs. Zip this back up and, using the instructions you found in the developers guide, upload this file to your player using the web interface described in the developers guide. Note: If you want to participate in the development of this player you'll have to figure out how to build these zip files yourself for your platform. Linux users can follow the instructions in option 2.
-
-h3. Option 2: Build it yourself
-
-h4. Linux Users
-
-Set the environment variable ROKU_DEV_TARGET to the IP address you wrote down, go into the client directory, and type:
-
-pre. export ROKU_DEV_TARGET=yourRokuIpAddress
-make install
-
-h4. Windows Users
-
-If you're a windows user, you'll find some instructions in the Roku Developers guide for how to build apps for your player.  Somehow you'll want to zip up everything in the client directory (except Makefile) and upload that to your player. I've never done this so I can't elucidate further. Please give me feedback on how this works.
 
 h1. Usage
 
