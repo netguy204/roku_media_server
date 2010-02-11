@@ -88,10 +88,14 @@ def getart(path):
   img_re = re.compile(".jpg|.jpeg|.png")
 
   for base, dirs, files in os.walk(path):
+    # don't recurse when searching for artwork
+    del dirs[:]
+
     for file in files:
       ext = os.path.splitext(file)[1]
       if ext and img_re.match(ext):
         curr_image = os.path.join(base,file)
+        break
 
   return curr_image
 
@@ -125,12 +129,31 @@ def getdoc(path, config, recurse=False):
   return doc
 
 def doc2m3u(doc):
+  "convert an rss feed document into an m3u playlist"
+
   lines = []
   for item in doc.items:
     lines.append(item.link)
   return "\n".join(lines)
 
+def get_entropy(entries):
+  "return an xml document full of random numbers since roku can't make them itself"
+  import xml.dom.minidom as dom
+  import random
+
+  impl = dom.getDOMImplementation()
+  doc = impl.createDocument(None, "entropy", None)
+  top = doc.documentElement
+
+  for ii in range(entries):
+    el = dom.Element("entry")
+    el.setAttribute("value", str(random.randrange(0,1000000)))
+    top.appendChild(el)
+
+  return doc
+
 def range_handler(fname):
+  "return all or part of the bytes of a fyle depending on whether we were called with the HTTP_RANGE header set"
   f = open(fname, "rb")
 
   bytes = None
