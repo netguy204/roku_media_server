@@ -226,11 +226,18 @@ class M3UHandler:
     else:
       return doc2m3u(getdoc(config.get("config", 'music_dir'), config, True))
 
+class EntropyHandler:
+  def GET(self):
+    "get an xml document full of random integers"
+
+    return get_entropy(100).toxml()
+
 urls = (
     '/feed', 'RssHandler',
     '/song', 'SongHandler',
     '/m3u', 'M3UHandler',
-    '/image', 'ImageHandler')
+    '/image', 'ImageHandler',
+    '/entropy', 'EntropyHandler')
 
 app = web.application(urls, globals())
 
