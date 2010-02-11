@@ -100,6 +100,7 @@ def getart(path):
   return curr_image
 
 def getdoc(path, config, recurse=False):
+  print "getdoc(%s, ...)" % path
   items = []
   for base, dirs, files in os.walk(path):
     if not recurse:
@@ -208,10 +209,14 @@ class RssHandler:
 
     web.header("Content-Type", "application/rss+xml")
     feed = web.input(dir = None)
+    doc = None
     if feed.dir:
-      return getdoc(feed.dir, config, collapse_collections).to_xml()
+      doc = getdoc(feed.dir, config, collapse_collections).to_xml()
     else:
-      return getdoc(config.get("config", 'music_dir'), config).to_xml()
+      doc = getdoc(config.get("config", 'music_dir'), config).to_xml()
+
+    print doc
+    return doc
 
 class M3UHandler:
   def GET(self):
