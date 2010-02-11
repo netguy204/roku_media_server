@@ -87,6 +87,18 @@ Set all configuration variables in the tool. Click on "Install Client" to update
 
 You're done!
 
+h1. Troubleshooting
+
+Make sure you can get to your server from your server. Point a browser at "http://localhost:8001/feed":http://localhost:8001/feed . If you changed the port number in your configuration then adjust the link appropriately. If this doesn't work then the server probably isn't running. Did you start it from springboard? If so, you should see a Tk window with a big button saying "Stop Server." If you started it using the included launch_server.vbs script then press alt+ctrl+delete and make sure python is under the process tab.
+
+Make sure you can get to your server from another computer. Change localhost in the link above to the ip address of your server. If this doesn't work then you almost definitely have a firewall in the way.
+
+Make sure the new channel appears on your home screen. If it doesn't you may not have installed the client from springboard.
+
+If the client seems to hang on a loading screen you probably didn't set the IP address of your server correctly in springboard. Also verify that a firewall isn't blocking the port you selected.
+
+There's an active and growing community of users eager to help you. Drop by the forum "http://forums.rokulabs.com/viewtopic.php?p=159473":http://forums.rokulabs.com/viewtopic.php?p=159473 or shoot me an email and hopefully we can work through whatever ails you.
+
 h1. Usage
 
 Fire up the client. You should find it on your home channel listing. It's called "Music Player" and has the subtitle "Play music from your local network." It should very quickly give you a listing of the mp3's and the subdirectories in the music directory you configured. Navigate, hit enter, and you're off.
