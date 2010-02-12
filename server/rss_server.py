@@ -62,7 +62,10 @@ def file2item(fname, config, image=None):
     title = tag.getTitle()
     description = tag.getArtist()
     
-    tracknum = str(tag.getTrackNum()[0])
+    tracknum = tag.getTrackNum()[0]
+    if tracknum:
+      tracknum = str(tracknum)
+
 
     filetype = "mp3"
     mimetype = "audio/mpeg"
