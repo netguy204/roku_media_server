@@ -159,9 +159,9 @@ def item_sorter(lhs, rhs):
 
   # if both have a track number, sort on that
   if lhs.tracknum and rhs.tracknum:
-    if lhs.tracknum < rhs.tracknum:
+    if int(lhs.tracknum) < int(rhs.tracknum):
       return -1
-    elif lhs.tracknum > rhs.tracknum:
+    elif int(lhs.tracknum) > int(rhs.tracknum):
       return 1
   
   # if the track numbers are the same or both don't
