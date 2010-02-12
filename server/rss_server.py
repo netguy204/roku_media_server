@@ -50,8 +50,12 @@ def file2item(fname, config, image=None):
   if ext == ".mp3":
     # use the ID3 tags to fill out the mp3 data
 
-    tag = eyeD3.Tag()
-    if not tag.link(fname):
+    try:
+      tag = eyeD3.Tag()
+      if not tag.link(fname):
+        return None
+    except:
+      print "library failed to parse ID3 tags for %s. Skipping." % fname
       return None
 
     title = tag.getTitle()
@@ -148,8 +152,10 @@ def getdoc(path, config, recurse=False):
       if not music_re.match(os.path.splitext(file)[1].lower()):
         print "rejecting %s" % file
         continue
-
-      items.append(file2item(os.path.join(base,file), config, curr_image))
+      
+      item = file2item(os.path.join(base,file), config, curr_image)
+      if item:
+        items.append(item)
 
   doc = RSS2(
       title="A Personal Music Feed",
