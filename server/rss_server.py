@@ -19,7 +19,7 @@ import common
 
 class RSSImageItem(RSSItem):
   "extending rss items to support our extended tags"
-  TAGS = ('image', 'filetype')
+  TAGS = ('image', 'filetype', 'tracknum')
   def __init__(self, **kwargs):
     for name in RSSImageItem.TAGS:
       if name in kwargs:
@@ -46,6 +46,7 @@ def file2item(fname, config, image=None):
   description = "None"
   filetype = None
   mimetype = None
+  tracknum = None
 
   if ext == ".mp3":
     # use the ID3 tags to fill out the mp3 data
@@ -60,6 +61,9 @@ def file2item(fname, config, image=None):
 
     title = tag.getTitle()
     description = tag.getArtist()
+    
+    tracknum = str(tag.getTrackNum()[0])
+
     filetype = "mp3"
     mimetype = "audio/mpeg"
 
@@ -96,7 +100,8 @@ def file2item(fname, config, image=None):
       guid = Guid(link, isPermaLink=0),
       pubDate = datetime.datetime.now(),
       image = image,
-      filetype = filetype)
+      filetype = filetype,
+      tracknum = tracknum)
 
 def dir2item(dname, config, image):
   link = "%s/feed?%s" % (common.server_base(config), urllib.urlencode({'dir':dname}))
@@ -133,6 +138,41 @@ def getart(path):
 
   return curr_image
 
+def item_sorter(lhs, rhs):
+  # folders always come before non folders
+  if lhs.description == "Folder" and rhs.description != "Folder":
+    return -1
+  if rhs.description == "Folder" and lhs.description != "Folder":
+    return 1
+
+  # first sort by artist
+  if lhs.description < rhs.description:
+    return -1
+  if rhs.description < lhs.description:
+    return 1
+
+  # things with track numbers always come first
+  if lhs.tracknum and not rhs.tracknum:
+    return -1
+  if rhs.tracknum and not lhs.tracknum:
+    return 1
+
+  # if both have a track number, sort on that
+  if lhs.tracknum and rhs.tracknum:
+    if lhs.tracknum < rhs.tracknum:
+      return -1
+    elif lhs.tracknum > rhs.tracknum:
+      return 1
+  
+  # if the track numbers are the same or both don't
+  # exist then sort by title
+  if lhs.title < rhs.title:
+    return -1
+  elif rhs.title < lhs.title:
+    return 1
+  else:
+    return 0 # they must be the same
+
 def getdoc(path, config, recurse=False):
   items = []
   music_re = re.compile("\.mp3|\.wma")
@@ -156,6 +196,9 @@ def getdoc(path, config, recurse=False):
       item = file2item(os.path.join(base,file), config, curr_image)
       if item:
         items.append(item)
+
+  # sort the items
+  items.sort(item_sorter)
 
   doc = RSS2(
       title="A Personal Music Feed",
