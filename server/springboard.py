@@ -7,6 +7,7 @@ config_file = "config.ini"
 
 import os
 import sys
+import socket
 import ConfigParser
 from common import *
 
@@ -27,11 +28,23 @@ def ensure(varname, default):
     config.set("config", varname, default)
 
 ensure("roku_ip", "ROKU IP ADDRESS")
-ensure("server_ip", "SERVER IP ADDRESS")
+ensure("server_ip", socket.gethostbyname(socket.gethostname()))
 ensure("server_port", "8001")
 ensure("collapse_collections", "False")
-ensure("music_dir", "C:\Music")
-ensure("python_path", "C:\Python26\python.exe")
+
+# make a reasonable guess at where the user keeps their music
+default_music_path = "Music"
+home = os.path.expanduser("~")
+
+if sys.platform == "win32":
+  default_music_path = os.path.join(home, "My Documents", "My Music")
+elif sys.platform == "darwin":
+  default_music_path = os.path.join(home, "Music", "iTunes", "iTunes Music")
+elif sys.platform == "linux2":
+  default_music_path = os.path.join(home, "Music")
+
+ensure("music_dir", default_music_path)
+ensure("python_path", sys.executable)
 
 # upload a zip file to the roku
 def upload_client_zip(config, the_zip):
