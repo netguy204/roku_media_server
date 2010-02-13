@@ -85,10 +85,10 @@ def file2item(fname, config, image=None):
     return None
 
   size = os.stat(fname).st_size
-  link="%s/song?%s" % (common.server_base(config), urllib.urlencode({'name':fname}))
+  link="%s/song?%s" % (common.server_base(config), urllib.urlencode({'name':fname.encode('utf-8')}))
 
   if image:
-    image = "%s/image?%s" % (common.server_base(config), urllib.urlencode({'name':image}))
+    image = "%s/image?%s" % (common.server_base(config), urllib.urlencode({'name':image.encode('utf-8')}))
 
   print link
 
@@ -107,11 +107,11 @@ def file2item(fname, config, image=None):
       tracknum = tracknum)
 
 def dir2item(dname, config, image):
-  link = "%s/feed?%s" % (common.server_base(config), urllib.urlencode({'dir':dname}))
+  link = "%s/feed?%s" % (common.server_base(config), urllib.urlencode({'dir':dname.encode('utf-8')}))
   name = os.path.split(dname)[1]
 
   if image:
-    image = "%s/image?%s" % (common.server_base(config), urllib.urlencode({'name':image}))
+    image = "%s/image?%s" % (common.server_base(config), urllib.urlencode({'name':image.encode('utf-8')}))
 
   description = "Folder"
   #if image:
@@ -129,7 +129,7 @@ def getart(path):
   curr_image = None
   img_re = re.compile(".jpg|.jpeg|.png")
 
-  for base, dirs, files in os.walk(path.encode('utf-8')):
+  for base, dirs, files in os.walk(path):
     # don't recurse when searching for artwork
     del dirs[:]
 
@@ -180,7 +180,7 @@ def getdoc(path, config, recurse=False):
   items = []
   music_re = re.compile("\.mp3|\.wma")
 
-  for base, dirs, files in os.walk(path.encode('utf-8')):
+  for base, dirs, files in os.walk(path):
     if not recurse:
       for dir in dirs:
         subdir = os.path.join(base,dir)
@@ -265,10 +265,11 @@ class SongHandler:
     if not song.name:
       return
 
-    size = os.stat(song.name).st_size
+    name = song.name
+    size = os.stat(name).st_size
     web.header("Content-Type", "audio/mpeg")
     web.header("Content-Length", "%d" % size)
-    return range_handler(song.name)
+    return range_handler(name)
 
 class ImageHandler:
   "retrieve album art"
@@ -295,7 +296,7 @@ class RssHandler:
     if feed.dir:
       return getdoc(feed.dir, config, collapse_collections).to_xml()
     else:
-      return getdoc(config.get("config", 'music_dir'), config).to_xml()
+      return getdoc(unicode(config.get("config", 'music_dir'), encoding='utf-8'), config).to_xml()
 
 class M3UHandler:
   def GET(self):
@@ -308,7 +309,7 @@ class M3UHandler:
     if feed.dir:
       return doc2m3u(getdoc(feed.dir, config, True))
     else:
-      return doc2m3u(getdoc(config.get("config", 'music_dir'), config, True))
+      return doc2m3u(getdoc(unicode(config.get("config", 'music_dir'), encoding='utf-8'), config, True))
 
 class EntropyHandler:
   def GET(self):
