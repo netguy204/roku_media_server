@@ -31,7 +31,7 @@ Here's some tips:
 
 * when you move your files to the nas be sure to put them somewhere they won't disappear when you restart the box. i don't know much about the maxtor NAS but the /etc/roku directory i created went away aftert i rebooted my d-ink box. I haven't tested it yet but I reinstalled the files in my  /ffp/ directory and I think they'll stay now.
 
-* Once everything is on your NAS you run the app (via telnet) by typing in
+Once everything is on your NAS you run the app (via telnet) by typing in
 
 pre. python rss_server.py
 
