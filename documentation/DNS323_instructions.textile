@@ -1,0 +1,51 @@
+h1. Installing the Server on the DNS323 NAS
+
+*1. Get a Git client*
+
+This is to download the latest build of the app from the GitHub site where it's posted.
+
+* Download the Google Git client here:  "http://code.google.com/p/msysgit/downloads/list":http://code.google.com/p/msysgit/downloads/list
+** the top link worked for me
+* Install it (I used all the defaults)
+* Run the Git Gui
+** Use the Clone Repository option - this copies the latest version of the files to the folder you specify
+** This is the repository location: git://github.com/netguy204/roku_media_server.git
+** This app is being updated all the time so you may want to do this every couple days.
+* Close Git
+
+*2. Join the Roku Developer community*
+
+This is so you can get the code in the documents to unlock your Roku box and put it in Dev mode. 
+
+* Download the SDK 
+* Look throught the docs to find the unlock sequence - it's like an old nintendo game ... Home x 3, Left, Left, Right x2, etc.
+* write down the ip the roku gives you when you unlock it.
+
+*3. From here you can follow the README that was downloaded along with the MyMusic repository.*
+
+Here's some tips:
+
+* The tricky part here is that NAS boxes don't have a display output so you'll want to install python on your windows box and run the springboad.vbs local - let it modify your files and THEN ftp the SERVER directory to your NAS. 
+** Remember to set the music path to your music on your NAS not your PC. 
+** Be sure to set the Server IP to your NAS boxes IP address not your PC. 
+
+* when you move your files to the nas be sure to put them somewhere they won't disappear when you restart the box. i don't know much about the maxtor NAS but the /etc/roku directory i created went away aftert i rebooted my d-ink box. I haven't tested it yet but I reinstalled the files in my  /ffp/ directory and I think they'll stay now.
+
+Once everything is on your NAS you run the app (via telnet) by typing in
+
+pre. python rss_server.py
+
+from the Server directory you uploaded earlier. There's a way to have this run on startup via FFP on the D-Link but I haven't configured it yet. I'm sure this can be done on the Maxtor as well but I'm not sure how. To have python continue without your telnet window open you can type
+
+pre. python rss_server.py &
+
+*4. Troubleshooting*
+
+Verify library is working.. you should see songs in here:
+"http://NAS_IP_Address_Here:8001/feed":http://NAS_IP_Address_Here:8001/feed
+
+Check the Roku debug port to see what's going on while it loads/runs the MyMusic client:
+"http://ROKU_IP_HERE:8085/":http://ROKU_IP_HERE:8085/
+ 
+_Contributed by onecaribou_
+

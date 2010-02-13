@@ -130,7 +130,7 @@ def getart(path):
   curr_image = None
   img_re = re.compile(".jpg|.jpeg|.png")
 
-  for base, dirs, files in os.walk(path):
+  for base, dirs, files in os.walk(path.encode('utf-8')):
     # don't recurse when searching for artwork
     del dirs[:]
 
@@ -255,7 +255,7 @@ def getdoc(path, dirrange, config, recurse=False):
 
   music_re = re.compile("\.mp3|\.wma")
 
-  for base, dirs, files in os.walk(path):
+  for base, dirs, files in os.walk(path.encode('utf-8')):
     if not recurse:
       for dir in dirs:
 
