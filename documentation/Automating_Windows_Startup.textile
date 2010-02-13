@@ -1,0 +1,54 @@
+h1. Automating Server Startup
+
+For those of you who have gotten this working for Windows, here's how to automate the web server startup. 
+
+
+*How to start the Python web server automatically*
+
+This can be done with a simple batch file. First, you should add en environment variable for your Python installation so that you can call the python.exe file from anywhere. To do this, modify the PATH statement in your environment variables to include this: 
+
+pre. c:\python26
+
+*To add environment variables in Windows 7 & Vista:*
+
+Right-click My Computer and then click the Advanced system settings link. Click the Environment variables button. In the System Variable section, select the PATH item and click the Edit button. At the end of this string, add a semicolon and then your new variable for Python. 
+
+Now, assuming that your Roku Media Player files are in a folder named roku_media_player, create a batch file like this: 
+
+pre. cd c:\roku_media_player\server 
+python rss_server.py
+
+Save it as "roku_start.bat" to and double-click it to start your web server. 
+
+*So you've noticed that the command windows stays open?*
+
+Here's how to run this without showing the command window (invisible mode) 
+
+Create another file that looks like this: 
+
+pre. Set WshShell = CreateObject("WScript.Shell") 
+WshShell.Run chr(34) & "c:\Python26\roku_start.bat" & Chr(34), 0 
+Set WshShell = Nothing
+
+Save this file as "roku_start.vbs". When you launch this .VBS file, it will call the .BAT file you made above, but will not show the command window. 
+
+Now, how do I get this to run each time I start my computer? 
+Easy. Just put the roku_start.vbs (or a shortcut to it) into your Windows Startup folder. 
+
+*Windows Startup folder locations*
+
+_Windows 7 + Vista _
+
+NOTE: The all users Startup folder is a hidden system folder located at: 
+C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup 
+
+_Windows XP _
+
+C:\Documents and Settings\All Users\Start Menu\Programs\Startup 
+
+*How do I stop the Python web server if I can't see the command window?*
+
+Normally, you could use CTRL+C to stop the web server, but without a command window, this isn't possible. Just open Windows Task Manager and on the Processes tab, sort the list to fine the process called Python. Select it and then hit the End Process button to stop the web server.
+
+_Contributed by umbighouse,_
+
