@@ -80,8 +80,6 @@ Function CreateVideoItem(desc as object)
 End Function
 
 Sub Main()
-    print "hello world"
-
     'initialize theme attributes like titles, logos and overhang color'
     initTheme()
 
@@ -107,7 +105,7 @@ Sub Main()
 
     currentBaseSong = 0
     layers = CreateObject("roList")
-    layers.AddTail(pl)
+    layers.AddTail( { playlist: pl, last_selected: 0 } )
 
     pscr.screen.Show()
     
@@ -124,17 +122,17 @@ Sub Main()
             print "fetching old pl"
 
             pscr = makePosterScreen(port)
+            last_selected = layers.GetTail().last_selected
             layers.RemoveTail()
-            pl = layers.GetTail()
+            rec = layers.GetTail()
 
-            pscr.SetPlayList(pl)
+            pscr.SetPlayList(rec.playlist)
             pscr.screen.Show()
+            pscr.screen.SetFocusedListItem(last_selected)
 
         else if type(msg) = "roPosterScreenEvent" then
             if msg.isListItemSelected() then
                 song = msg.GetIndex()
-                audio.Stop()
-                audio.ClearContent()
 
                 posters = pscr.GetPosters()
                 item = posters[song].item
@@ -142,6 +140,8 @@ Sub Main()
                 if item.IsPlayable() then
                     'play the selected song'
 
+                    audio.Stop()
+                    audio.ClearContent()
                     audio.AddContent(item.GetPlayable())
                     print item.GetTitle()
                     currentBaseSong = song
@@ -152,7 +152,7 @@ Sub Main()
 
                     print "loading subitems for "; song
                     pl = item.GetSubItems()
-                    layers.AddTail(pl)
+                    layers.AddTail( { playlist: pl, last_selected: song } )
                     pscr.SetPlayList(pl)
                     currentBaseSong = 0
                 endif
