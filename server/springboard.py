@@ -31,7 +31,7 @@ ensure("roku_ip", "ROKU IP ADDRESS")
 ensure("server_ip", socket.gethostbyname(socket.gethostname()))
 ensure("server_port", "8001")
 ensure("collapse_collections", "False")
-ensure("max_folders_before_split", "20")
+ensure("max_folders_before_split", "10")
 
 # make a reasonable guess at where the user keeps their music
 default_music_path = "Music"
