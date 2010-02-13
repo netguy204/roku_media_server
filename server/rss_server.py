@@ -187,7 +187,7 @@ def partition_by_firstletter(subdirs, basedir, minmax, config):
     int(config.get("config", "max_folders_before_split"))
 
   # handle the trivial case
-  if len(subdirs) <= max_dirs:
+  if len(subdirs) <= max_dirs or max_dirs <= 0:
     return subdirs
 
   minl, maxl = minmax
