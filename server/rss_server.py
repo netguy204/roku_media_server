@@ -179,13 +179,19 @@ def item_sorter(lhs, rhs):
   else:
     return 0 # they must be the same
 
-def partition_by_firstletter(subdirs, basedir, config):
+def partition_by_firstletter(subdirs, basedir, minmax, config):
   "based on config, change subdirs into alphabet clumps if there are too many"
   
-  max_dirs = config.get("config", "max_folders_before_split")
+  max_dirs = int(config.get("config", "max_folders_before_split"))
 
   # handle the trivial case
-  if len(subdirs) <= max_dirs: return subdirs
+  if len(subdirs) <= max_dirs:
+    return subdirs
+
+  minl, maxl = minmax
+
+  # presort
+  subdirs.sort(key=lambda x: x.title.lower())
 
   # how many pivots? (round up)
   pivots = int(math.ceil(float(len(subdirs))/max_dirs))
@@ -204,23 +210,38 @@ def partition_by_firstletter(subdirs, basedir, config):
       break # we're done
 
     last_letter = get_letter(subdirs[last_end])
-    next_end = min(max_dirs * sublist, len(subdirs) - 1)
+    if last_end == 0:
+      last_letter = minl
+
+    next_end = min(last_end + max_dirs, len(subdirs) - 1)
 
     while get_letter(subdirs[next_end]) == last_letter and next_end != last_index_ord:
       next_end += 1
 
+    first_unique = get_letter(subdirs[next_end])
+
+    while get_letter(subdirs[next_end]) == first_unique and next_end != last_index_ord:
+      next_end += 1
+
     next_letter = chr(max(ord('a'), ord(get_letter(subdirs[next_end]))-1))
+    if next_end == last_index_ord:
+      next_letter = maxl
 
     # create the item
     link = "%s/feed?%s" % (common.server_base(config), urllib.urlencode({'dir':basedir, 'range': last_letter+next_letter}))
 
     newsubdirs.append(RSSImageItem(
-      title = "%s - %s" % (last_letter, next_letter),
+      title = "%s - %s" % (last_letter.upper(), next_letter.upper()),
       link = link,
       description = "Folder",
       guid = Guid(link, isPermaLink=0)))
 
-  return newsubdirs
+    last_end = next_end
+
+  if len(newsubdirs) > 1:
+    return newsubdirs
+  else:
+    return subdirs
 
 def getdoc(path, dirrange, config, recurse=False):
   subdirs = []
@@ -259,7 +280,7 @@ def getdoc(path, dirrange, config, recurse=False):
         items.append(item)
 
   # partition the subdirs and add to items
-  items.extend(partition_by_firstletter(subdirs, config))
+  items.extend(partition_by_firstletter(subdirs, path, (minl, maxl), config))
 
   # sort the items
   items.sort(item_sorter)
