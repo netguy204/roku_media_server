@@ -16,6 +16,7 @@ import eyeD3
 import urllib
 import ConfigParser
 import common
+import math
 
 class RSSImageItem(RSSItem):
   "extending rss items to support our extended tags"
@@ -178,10 +179,48 @@ def item_sorter(lhs, rhs):
   else:
     return 0 # they must be the same
 
-def partition_by_firstletter(subdirs, config):
-  "stubbed"
+def partition_by_firstletter(subdirs, basedir, config):
+  "based on config, change subdirs into alphabet clumps if there are too many"
+  
+  max_dirs = config.get("config", "max_folders_before_split")
 
-  return subdirs # fixme
+  # handle the trivial case
+  if len(subdirs) <= max_dirs: return subdirs
+
+  # how many pivots? (round up)
+  pivots = int(math.ceil(float(len(subdirs))/max_dirs))
+  newsubdirs = []
+
+  # try to divide the list evenly
+  def get_letter(item):
+    return item.title[0].lower()
+
+  last_index_ord = len(subdirs) - 1
+
+  last_end = 0
+
+  for sublist in range(pivots):
+    if last_end == last_index_ord:
+      break # we're done
+
+    last_letter = get_letter(subdirs[last_end])
+    next_end = min(max_dirs * sublist, len(subdirs) - 1)
+
+    while get_letter(subdirs[next_end]) == last_letter and next_end != last_index_ord:
+      next_end += 1
+
+    next_letter = chr(max(ord('a'), ord(get_letter(subdirs[next_end]))-1))
+
+    # create the item
+    link = "%s/feed?%s" % (common.server_base(config), urllib.urlencode({'dir':basedir, 'range': last_letter+next_letter}))
+
+    newsubdirs.append(RSSImageItem(
+      title = "%s - %s" % (last_letter, next_letter),
+      link = link,
+      description = "Folder",
+      guid = Guid(link, isPermaLink=0)))
+
+  return newsubdirs
 
 def getdoc(path, dirrange, config, recurse=False):
   subdirs = []
