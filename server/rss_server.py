@@ -79,6 +79,15 @@ def file2item(fname, config, image=None):
     filetype = "wma"
     mimetype = "audio/x-ms-wma"
 
+  elif ext == ".mp4":
+    # this is a video file
+
+    basename = os.path.split(fname)[1]
+    title = os.path.splitext(basename)[0]
+    description = "Video"
+    filetype = "mp4"
+    mimetype = "video/mp4"
+
   else:
     # don't know what this is
 
@@ -178,7 +187,7 @@ def item_sorter(lhs, rhs):
 
 def getdoc(path, config, recurse=False):
   items = []
-  music_re = re.compile("\.mp3|\.wma")
+  media_re = re.compile("\.mp3|\.wma|\.mp4")
 
   for base, dirs, files in os.walk(path):
     if not recurse:
@@ -192,7 +201,7 @@ def getdoc(path, config, recurse=False):
     curr_image = getart(base)
 
     for file in files:
-      if not music_re.match(os.path.splitext(file)[1].lower()):
+      if not media_re.match(os.path.splitext(file)[1].lower()):
         print "rejecting %s" % file
         continue
       
