@@ -142,6 +142,8 @@ def getart(path):
   return curr_image
 
 def item_sorter(lhs, rhs):
+  "folders first, sort on artist, then track number (prioritize those with), then track name"
+
   # folders always come before non folders
   if lhs.description == "Folder" and rhs.description != "Folder":
     return -1
@@ -176,15 +178,32 @@ def item_sorter(lhs, rhs):
   else:
     return 0 # they must be the same
 
-def getdoc(path, config, recurse=False):
+def partition_by_firstletter(subdirs, config):
+  "stubbed"
+
+  return subdirs # fixme
+
+def getdoc(path, dirrange, config, recurse=False):
+  subdirs = []
   items = []
+
+  minl, maxl = dirrange
+  minl = minl.lower()
+  maxl = maxl.lower()
+
   music_re = re.compile("\.mp3|\.wma")
 
   for base, dirs, files in os.walk(path):
     if not recurse:
       for dir in dirs:
+
+        # skip directories not in our range
+        first_letter = dir[0].lower()
+        if first_letter < minl or first_letter > maxl:
+          continue
+
         subdir = os.path.join(base,dir)
-        items.append(dir2item(subdir, config, getart(subdir)))
+        subdirs.append(dir2item(subdir, config, getart(subdir)))
 
       del dirs[:]
 
@@ -200,12 +219,15 @@ def getdoc(path, config, recurse=False):
       if item:
         items.append(item)
 
+  # partition the subdirs and add to items
+  items.extend(partition_by_firstletter(subdirs, config))
+
   # sort the items
   items.sort(item_sorter)
 
   doc = RSS2(
       title="A Personal Music Feed",
-      link="%s/feed?dir=%s" % (common.server_base(config), path),
+      link="%s/feed?dir=%s&range=%s" % (common.server_base(config), path, minl + maxl),
       description="My music.",
       lastBuildDate=datetime.datetime.now(),
       items = items )
@@ -291,11 +313,11 @@ class RssHandler:
     collapse_collections = config.get("config", "collapse_collections").lower() == "true"
 
     web.header("Content-Type", "application/rss+xml")
-    feed = web.input(dir = None)
+    feed = web.input(dir = None, range="az")
     if feed.dir:
-      return getdoc(feed.dir, config, collapse_collections).to_xml()
+      return getdoc(feed.dir, tuple(feed.range), config, collapse_collections).to_xml()
     else:
-      return getdoc(config.get("config", 'music_dir'), config).to_xml()
+      return getdoc(config.get("config", 'music_dir'), tuple(feed.range), config).to_xml()
 
 class M3UHandler:
   def GET(self):
