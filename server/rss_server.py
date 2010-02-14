@@ -149,9 +149,9 @@ def item_sorter(lhs, rhs):
     return 1
 
   # first sort by artist
-  if lhs.description < rhs.description:
+  if lhs.description.lower() < rhs.description.lower():
     return -1
-  if rhs.description < lhs.description:
+  if rhs.description.lower() < lhs.description.lower():
     return 1
 
   # things with track numbers always come first
@@ -169,9 +169,9 @@ def item_sorter(lhs, rhs):
   
   # if the track numbers are the same or both don't
   # exist then sort by title
-  if lhs.title < rhs.title:
+  if lhs.title.lower() < rhs.title.lower():
     return -1
-  elif rhs.title < lhs.title:
+  elif rhs.title.lower() < lhs.title.lower():
     return 1
   else:
     return 0 # they must be the same
