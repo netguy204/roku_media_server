@@ -85,10 +85,10 @@ def file2item(fname, config, image=None):
     return None
 
   size = os.stat(fname).st_size
-  link="%s/song?%s" % (common.server_base(config), urllib.urlencode({'name':fname.encode('utf-8')}))
+  link="%s/song?%s" % (common.server_base(config), urllib.urlencode({'name':to_utf8(fname)}))
 
   if image:
-    image = "%s/image?%s" % (common.server_base(config), urllib.urlencode({'name':image.encode('utf-8')}))
+    image = "%s/image?%s" % (common.server_base(config), urllib.urlencode({'name':to_utf8(image)}))
 
   print link
 
@@ -107,11 +107,11 @@ def file2item(fname, config, image=None):
       tracknum = tracknum)
 
 def dir2item(dname, config, image):
-  link = "%s/feed?%s" % (common.server_base(config), urllib.urlencode({'dir':dname.encode('utf-8')}))
+  link = "%s/feed?%s" % (common.server_base(config), urllib.urlencode({'dir':to_utf8(dname)}))
   name = os.path.split(dname)[1]
 
   if image:
-    image = "%s/image?%s" % (common.server_base(config), urllib.urlencode({'name':image.encode('utf-8')}))
+    image = "%s/image?%s" % (common.server_base(config), urllib.urlencode({'name':to_utf8(image)}))
 
   description = "Folder"
   #if image:
@@ -140,6 +140,21 @@ def getart(path):
         break
 
   return curr_image
+
+def to_unicode(obj, encoding='utf-8'):
+  "convert to unicode if not already and it's possible to do so"
+
+  if isinstance(obj, basestring):
+    if not isinstance(obj, unicode):
+      obj = unicode(obj, encoding)
+  return obj
+
+def to_utf8(obj):
+  "convert back to utf-8 if we're in unicode"
+
+  if isinstance(obj, unicode):
+    obj = obj.encode('utf-8')
+  return obj
 
 def item_sorter(lhs, rhs):
   # folders always come before non folders
@@ -177,6 +192,11 @@ def item_sorter(lhs, rhs):
     return 0 # they must be the same
 
 def getdoc(path, config, recurse=False):
+  "get a media feed document for path"
+
+  # make sure we're unicode
+  path = to_unicode(path)
+
   items = []
   music_re = re.compile("\.mp3|\.wma")
 
@@ -296,7 +316,7 @@ class RssHandler:
     if feed.dir:
       return getdoc(feed.dir, config, collapse_collections).to_xml()
     else:
-      return getdoc(unicode(config.get("config", 'music_dir'), encoding='utf-8'), config).to_xml()
+      return getdoc(config.get("config", 'music_dir'), config).to_xml()
 
 class M3UHandler:
   def GET(self):
@@ -309,7 +329,7 @@ class M3UHandler:
     if feed.dir:
       return doc2m3u(getdoc(feed.dir, config, True))
     else:
-      return doc2m3u(getdoc(unicode(config.get("config", 'music_dir'), encoding='utf-8'), config, True))
+      return doc2m3u(getdoc(config.get("config", 'music_dir'), config, True))
 
 class EntropyHandler:
   def GET(self):
