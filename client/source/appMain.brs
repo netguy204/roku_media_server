@@ -142,11 +142,18 @@ Sub Main()
 
                     audio.Stop()
                     audio.ClearContent()
-                    audio.AddContent(item.GetPlayable())
-                    print item.GetTitle()
-                    currentBaseSong = song
-                    print "current base song ";Stri(song)
-                    audio.Play()
+
+                    'unless its really a video'
+                    if item.GetType() = "mp4" then
+                        displayVideo(item.GetMedia())
+                    else
+                        audio.AddContent(item.GetPlayable())
+                        print item.GetTitle()
+                        currentBaseSong = song
+                        print "current base song ";Stri(song)
+                        audio.Play()
+                    endif
+
                 else
                     'load the sub items and display those'
 
@@ -179,8 +186,13 @@ Sub Main()
                 audio.Stop()
                 audio.ClearContent()
                 item = posters[song].item
-                audio.AddContent(item.GetPlayable())
-                audio.Play()
+
+                'stop if the next item is a video'
+                if not item.GetType() = "mp4" then
+                    audio.AddContent(item.GetPlayable())
+                    audio.Play()
+                endif
+
                 pscr.screen.SetFocusedListItem(song)
                 currentBaseSong = song
             endif
@@ -292,7 +304,7 @@ End Function
 '** displayVideo()'
 '*************************************************************'
 
-Function displayVideo()
+Function displayVideo(url)
     print "Displaying video: "
     p = CreateObject("roMessagePort")
     video = CreateObject("roVideoScreen")
@@ -304,7 +316,7 @@ Function displayVideo()
     'bitrates  = [996000]'    ' <1.1Mbps  = 3 dots'
     'bitrates  = [2048000]'    ' >=1.1Mbps = 4 dots'
     bitrates  = [1500]    
-    urls = ["http://video.ted.com/talks/podcast/DanGilbert_2004_480.mp4"]
+    urls = [url]
     qualities = ["SD"]
     'qualities = ["HD"]'
     
@@ -313,7 +325,7 @@ Function displayVideo()
     videoclip.StreamUrls = urls
     videoclip.StreamQualities = qualities
     videoclip.StreamFormat = "mp4"
-    videoclip.Title = "Dan Gilbert asks, Why are we happy?"
+    videoclip.Title = "Early Video Support"
 
     'videoclip.StreamFormat = "wmv"'
  

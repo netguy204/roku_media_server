@@ -80,13 +80,22 @@ def file2item(fname, config, image=None):
     filetype = "wma"
     mimetype = "audio/x-ms-wma"
 
+  elif ext == ".m4v":
+    # this is a video file
+
+    basename = os.path.split(fname)[1]
+    title = os.path.splitext(basename)[0]
+    description = "Video"
+    filetype = "mp4"
+    mimetype = "video/mp4"
+
   else:
     # don't know what this is
 
     return None
 
   size = os.stat(fname).st_size
-  link="%s/song?%s" % (common.server_base(config), urllib.urlencode({'name':to_utf8(fname)}))
+  link="%s/media?%s" % (common.server_base(config), urllib.urlencode({'name':to_utf8(fname)}))
 
   if image:
     image = "%s/image?%s" % (common.server_base(config), urllib.urlencode({'name':to_utf8(image)}))
@@ -273,7 +282,7 @@ def getdoc(path, dirrange, config, recurse=False):
   minl = minl.lower()
   maxl = maxl.lower()
 
-  music_re = re.compile("\.mp3|\.wma")
+  media_re = re.compile("\.mp3|\.wma|\.m4v")
 
   for base, dirs, files in os.walk(path):
     if not recurse:
@@ -293,7 +302,7 @@ def getdoc(path, dirrange, config, recurse=False):
     curr_image = getart(base)
 
     for file in files:
-      if not music_re.match(os.path.splitext(file)[1].lower()):
+      if not media_re.match(os.path.splitext(file)[1].lower()):
         print "rejecting %s" % file
         continue
       
@@ -349,19 +358,39 @@ def range_handler(fname):
   # is this a range request?
   # looks like: 'HTTP_RANGE': 'bytes=41017-'
   if 'HTTP_RANGE' in web.ctx.environ:
+    # try a start only regex
     regex = re.compile('bytes=(\d+)-$')
-    start = int(regex.match(web.ctx.environ['HTTP_RANGE']).group(1))
-    print "player issued range request starting at %d" % start
-    f.seek(start)
-    bytes = f.read()
+    grp = regex.match(web.ctx.environ['HTTP_RANGE'])
+    if grp:
+      start = int(grp.group(1))
+      print "player issued range request starting at %d" % start
+
+      f.seek(start)
+      bytes = f.read()
+      f.close()
+      return bytes
+
+    # try a span regex
+    regex = re.compile('bytes=(\d+)-(\d+)$')
+    grp = regex.match(web.ctx.environ['HTTP_RANGE'])
+    if grp:
+      start,end = int(grp.group(1)), int(grp.group(2))
+      print "player issued range request starting at %d and ending at %d" % (start, end)
+
+      f.seek(start)
+      bytes = f.read(end-start)
+      f.close()
+      return bytes
+    
+    # don't bother implementing end-only... who uses it?
+
   else:
     # write the whole thing
     bytes = f.read()
-  
-  f.close()
-  return bytes
+    f.close()
+    return bytes
 
-class SongHandler:
+class MediaHandler:
   "retrieve a song"
 
   def GET(self):
@@ -371,7 +400,22 @@ class SongHandler:
 
     name = song.name
     size = os.stat(name).st_size
-    web.header("Content-Type", "audio/mpeg")
+
+    # make a guess at mime type
+    ext = os.path.splitext(os.path.split(name)[1] or "")[1].lower()
+
+    if ext == ".mp3":
+      web.header("Content-Type", "audio/mpeg")
+    elif ext == ".wma":
+      web.header("Content-Type", "audio/x-ms-wma")
+    elif ext == ".m4v":
+      web.header("Content-Type", "video/mp4")
+
+      print str(web.ctx.environ)
+
+    else:
+      web.header("Content-Type", "audio/mpeg")
+
     web.header("Content-Length", "%d" % size)
     return range_handler(name)
 
@@ -423,7 +467,7 @@ class EntropyHandler:
 
 urls = (
     '/feed', 'RssHandler',
-    '/song', 'SongHandler',
+    '/media', 'MediaHandler',
     '/m3u', 'M3UHandler',
     '/image', 'ImageHandler',
     '/entropy', 'EntropyHandler')
