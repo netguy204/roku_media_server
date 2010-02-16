@@ -354,10 +354,13 @@ def range_handler(fname):
   f = open(fname, "rb")
 
   bytes = None
+  CHUNK_SIZE = 10 * 1024;
 
   # is this a range request?
   # looks like: 'HTTP_RANGE': 'bytes=41017-'
   if 'HTTP_RANGE' in web.ctx.environ:
+    print "server issued range query: %s" % web.ctx.environ['HTTP_RANGE']
+
     # try a start only regex
     regex = re.compile('bytes=(\d+)-$')
     grp = regex.match(web.ctx.environ['HTTP_RANGE'])
@@ -366,9 +369,14 @@ def range_handler(fname):
       print "player issued range request starting at %d" % start
 
       f.seek(start)
-      bytes = f.read()
+
+      # we'll stream it
+      bytes = f.read(CHUNK_SIZE)
+      while not bytes == "":
+        yield bytes
+        bytes = f.read(CHUNK_SIZE)
+
       f.close()
-      return bytes
 
     # try a span regex
     regex = re.compile('bytes=(\d+)-(\d+)$')
@@ -378,17 +386,40 @@ def range_handler(fname):
       print "player issued range request starting at %d and ending at %d" % (start, end)
 
       f.seek(start)
-      bytes = f.read(end-start)
+      bytes_remaining = end-start+1 # +1 because range is inclusive
+      chunk_size = min(bytes_remaining, chunk_size)
+      bytes = f.read(chunk_size)
+
+      while not bytes == "":
+        yield bytes
+
+        bytes_remaining -= chunk_size
+        chunk_size = min(bytes_remaining, chunk_size)
+        bytes = f.read(chunk_size)
+
       f.close()
-      return bytes
     
-    # don't bother implementing end-only... who uses it?
+    # try a tail regex
+    regex = re.compile('bytes=-(\d+)$')
+    grp = regex.match(web.ctx.environ['HTTP_RANGE'])
+    if grp:
+      end = int(grp.group(1))
+      print "player issued tail request beginning at %d from end" % end
+
+      f.seek(-end, os.SEEK_END)
+      bytes = f.read()
+      yield bytes
+      f.close()
 
   else:
     # write the whole thing
-    bytes = f.read()
+    # we'll stream it
+    bytes = f.read(CHUNK_SIZE)
+    while not bytes == "":
+      yield bytes
+      bytes = f.read(CHUNK_SIZE)
+    
     f.close()
-    return bytes
 
 class MediaHandler:
   "retrieve a song"
@@ -410,7 +441,6 @@ class MediaHandler:
       web.header("Content-Type", "audio/x-ms-wma")
     elif ext == ".m4v":
       web.header("Content-Type", "video/mp4")
-
       print str(web.ctx.environ)
 
     else:
