@@ -15,8 +15,8 @@ from PyRSS2Gen import *
 import eyeD3
 import urllib
 import ConfigParser
-import common
 import math
+from common import *
 
 class RSSImageItem(RSSItem):
   "extending rss items to support our extended tags"
@@ -95,10 +95,13 @@ def file2item(fname, config, image=None):
     return None
 
   size = os.stat(fname).st_size
-  link="%s/media?%s" % (common.server_base(config), urllib.urlencode({'name':to_utf8(fname)}))
+  music_base = config.get("config", "music_dir")
+  path = relpath26(fname, music_base)
+  link="%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(path)}))
 
   if image:
-    image = "%s/image?%s" % (common.server_base(config), urllib.urlencode({'name':to_utf8(image)}))
+    image = relpath26(image, music_base)
+    image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(image)}))
 
   print link
 
@@ -117,11 +120,15 @@ def file2item(fname, config, image=None):
       tracknum = tracknum)
 
 def dir2item(dname, config, image):
-  link = "%s/feed?%s" % (common.server_base(config), urllib.urlencode({'dir':to_utf8(dname)}))
+  music_base = config.get("config", "music_dir")
+  path = relpath26(dname, music_base)
+
+  link = "%s/feed?%s" % (server_base(config), urllib.urlencode({'dir':to_utf8(path)}))
   name = os.path.split(dname)[1]
 
   if image:
-    image = "%s/image?%s" % (common.server_base(config), urllib.urlencode({'name':to_utf8(image)}))
+    image = relpath26(image, music_base)
+    image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(image)}))
 
   description = "Folder"
   #if image:
@@ -254,7 +261,7 @@ def partition_by_firstletter(subdirs, basedir, minmax, config):
       next_letter = maxl
 
     # create the item
-    link = "%s/feed?%s" % (common.server_base(config), urllib.urlencode({'dir':basedir, 'range': last_letter+next_letter}))
+    link = "%s/feed?%s" % (server_base(config), urllib.urlencode({'dir':basedir, 'range': last_letter+next_letter}))
 
     newsubdirs.append(RSSImageItem(
       title = "%s - %s" % (last_letter.upper(), next_letter.upper()),
@@ -315,10 +322,11 @@ def getdoc(path, dirrange, config, recurse=False):
 
   # sort the items
   items.sort(item_sorter)
+  music_base = config.get("config", "music_dir")
 
   doc = RSS2(
       title="A Personal Music Feed",
-      link="%s/feed?dir=%s&range=%s" % (common.server_base(config), path, minl + maxl),
+      link="%s/feed?dir=%s&range=%s" % (server_base(config), relpath26(path, music_base), minl + maxl),
       description="My music.",
       lastBuildDate=datetime.datetime.now(),
       items = items )
@@ -429,7 +437,18 @@ class MediaHandler:
     if not song.name:
       return
 
+    config = parse_config(config_file)
+    music_base = config.get("config", "music_dir")
     name = song.name
+    name = os.path.join(music_base, name)
+
+    # refuse anything that isn't in the media directory
+    # IE, refuse anything containing pardir
+    fragments = song.name.split(os.sep)
+    if os.path.pardir in fragments:
+      print "SECURITY WARNING: Someone was trying to access %s. The MyMedia client shouldn't do this" % song.name
+      return
+
     size = os.stat(name).st_size
 
     # make a guess at mime type
@@ -441,38 +460,26 @@ class MediaHandler:
       web.header("Content-Type", "audio/x-ms-wma")
     elif ext == ".m4v":
       web.header("Content-Type", "video/mp4")
-      print str(web.ctx.environ)
-
+    elif ext == ".jpg":
+      web.header("Content-Type", "image/jpeg")
     else:
       web.header("Content-Type", "audio/mpeg")
 
     web.header("Content-Length", "%d" % size)
     return range_handler(name)
 
-class ImageHandler:
-  "retrieve album art"
-
-  def GET(self):
-    img = web.input(name = None)
-    if not img.name:
-      return
-
-    size = os.stat(img.name).st_size
-    web.header("Content-Type", "image/jpeg")
-    web.header("Content-Length", "%d" % size)
-    return range_handler(img.name)
-
 class RssHandler:
   def GET(self):
     "retrieve a specific feed"
 
-    config = common.parse_config(config_file)
+    config = parse_config(config_file)
     collapse_collections = config.get("config", "collapse_collections").lower() == "true"
 
     web.header("Content-Type", "application/rss+xml")
     feed = web.input(dir = None, range="az")
     if feed.dir:
-      return getdoc(feed.dir, tuple(feed.range), config, collapse_collections).to_xml()
+      path = os.path.join(config.get("config", "music_dir"), feed.dir)
+      return getdoc(path, tuple(feed.range), config, collapse_collections).to_xml()
     else:
       return getdoc(config.get("config", 'music_dir'), tuple(feed.range), config).to_xml()
 
@@ -480,12 +487,13 @@ class M3UHandler:
   def GET(self):
     "retrieve a feed in m3u format"
 
-    config = common.parse_config(config_file)
+    config = parse_config(config_file)
 
     web.header("Content-Type", "text/plain")
     feed = web.input(dir = None)
     if feed.dir:
-      return doc2m3u(getdoc(feed.dir, config, True))
+      path = os.path.join(config.get("config", "music_dir"), feed.dir)
+      return doc2m3u(getdoc(path, config, True))
     else:
       return doc2m3u(getdoc(config.get("config", 'music_dir'), config, True))
 
@@ -499,7 +507,6 @@ urls = (
     '/feed', 'RssHandler',
     '/media', 'MediaHandler',
     '/m3u', 'M3UHandler',
-    '/image', 'ImageHandler',
     '/entropy', 'EntropyHandler')
 
 app = web.application(urls, globals())
@@ -507,7 +514,7 @@ app = web.application(urls, globals())
 if __name__ == "__main__":
   import sys
 
-  config = common.parse_config(config_file)
+  config = parse_config(config_file)
 
   sys.argv.append(config.get("config","server_port"))
   app.run()
