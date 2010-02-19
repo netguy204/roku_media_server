@@ -13,7 +13,7 @@ Function makePosterScreen(port) As Object
     screen=CreateObject("roPosterScreen")
 
     screen.SetMessagePort(port)
-    screen.SetListStyle("flat-episodic")
+    screen.SetListStyle("flat-category")
     screen.SetListDisplayMode("best-fit")
 
     return {
