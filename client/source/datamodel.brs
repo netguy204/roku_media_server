@@ -76,6 +76,8 @@ Function itemGetPosterItem()
     'see if there is an image associated with this item'
     if m.xml.image.Count() > 0 then
         icon = m.xml.image.GetText()
+    else if m.IsPlayable() and m.GetType() = "mp4" then
+        icon = "pkg:/images/videos.jpg"
     else if not m.IsPlayable() then
         icon = "pkg:/images/folder.jpg"
     endif
