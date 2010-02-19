@@ -96,11 +96,11 @@ def file2item(fname, config, image=None):
   size = os.stat(fname).st_size
   music_base = config.get("config", "music_dir")
   path = relpath26(fname, music_base)
-  link="%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(fname)}))
+  link="%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(path)}))
 
   if image:
     image = relpath26(image, music_base)
-    image = "%s/image?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(image)}))
+    image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(image)}))
 
   print link
 
@@ -127,7 +127,7 @@ def dir2item(dname, config, image):
 
   if image:
     image = relpath26(image, music_base)
-    image = "%s/image?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(image)}))
+    image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(image)}))
 
   description = "Folder"
   #if image:
@@ -353,7 +353,18 @@ class MediaHandler:
     if not song.name:
       return
 
+    config = parse_config(config_file)
+    music_base = config.get("config", "music_dir")
     name = song.name
+    name = os.path.join(music_base, name)
+
+    # refuse anything that isn't in the media directory
+    # IE, refuse anything containing pardir
+    fragments = song.name.split(os.sep)
+    if os.path.pardir in fragments:
+      print "SECURITY WARNING: Someone was trying to access %s. The MyMedia client shouldn't do this" % song.name
+      return
+
     size = os.stat(name).st_size
 
     # make a guess at mime type
@@ -365,28 +376,13 @@ class MediaHandler:
       web.header("Content-Type", "audio/x-ms-wma")
     elif ext == ".m4v":
       web.header("Content-Type", "video/mp4")
-      print str(web.ctx.environ)
-
+    elif ext == ".jpg":
+      web.header("Content-Type", "image/jpeg")
     else:
       web.header("Content-Type", "audio/mpeg")
 
     web.header("Content-Length", "%d" % size)
     return range_handler(name)
-
-class ImageHandler:
-  "retrieve album art"
-
-  def GET(self):
-    img = web.input(name = None)
-    if not img.name:
-      return
-    
-    config = parse_config(config_file)
-    path = os.path.join(config.get("config", "music_dir"), img.name)
-    size = os.stat(path).st_size
-    web.header("Content-Type", "image/jpeg")
-    web.header("Content-Length", "%d" % size)
-    return range_handler(path)
 
 class RssHandler:
   def GET(self):
@@ -427,7 +423,6 @@ urls = (
     '/feed', 'RssHandler',
     '/media', 'MediaHandler',
     '/m3u', 'M3UHandler',
-    '/image', 'ImageHandler',
     '/entropy', 'EntropyHandler')
 
 app = web.application(urls, globals())
