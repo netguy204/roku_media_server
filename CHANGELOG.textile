@@ -15,6 +15,7 @@
 * Convert poster view to arced-square. The square layout works much better with album art. Our channel specific artwork that is used when album art is unavailable has been updated to the new format as well.
 
 * If an image file is found with the same basename as a video file, the image file is used as the cover art for that video. This strategy takes advantage of the directory structure used by XBMC.
+** If you have multiple video files and artwork for some of them, one video art file will be chosen at random to be the "album art" for the folder.
 
 * Channel error conditions are reported to the user. This should make installation and troubleshooting much simpler.
 ** If the server cannot be contacted using the IP address given at installation a dialog box is displayed explaining this and the user is given the opportunity to enter their own IP address. Technically this feature also gives us the option of distributing as a private channel but we're going to hold off on that for now because keeping the channel version and the server version synchronized could be difficult if the two are distributed separately.
