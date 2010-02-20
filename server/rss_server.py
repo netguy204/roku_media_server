@@ -79,7 +79,7 @@ def file2item(fname, config, image=None):
     filetype = "wma"
     mimetype = "audio/x-ms-wma"
 
-  elif ext == ".m4v":
+  elif ext in (".m4v",".mp4"):
     # this is a video file
 
     basename = os.path.split(fname)[1]
@@ -214,7 +214,7 @@ def getdoc(path, config, recurse=False):
   path = to_unicode(path)
 
   items = []
-  media_re = re.compile("\.mp3|\.wma|\.m4v")
+  media_re = re.compile("\.mp3|\.wma|\.m4v|\.mp4")
 
   for base, dirs, files in os.walk(path):
     if not recurse:
@@ -374,7 +374,7 @@ class MediaHandler:
       web.header("Content-Type", "audio/mpeg")
     elif ext == ".wma":
       web.header("Content-Type", "audio/x-ms-wma")
-    elif ext == ".m4v":
+    elif ext in (".m4v",".mp4"):
       web.header("Content-Type", "video/mp4")
     elif ext == ".jpg":
       web.header("Content-Type", "image/jpeg")
