@@ -96,7 +96,7 @@ def file2item(key, fname, base_dir, config, image=None):
     description = ""
     filetype = "wma"
 
-  elif ext == ".m4v" or ext == ".mp4":
+  elif ext in (".m4v",".mp4"):
     # this is a video file
 
     basename = os.path.split(fname)[1]
