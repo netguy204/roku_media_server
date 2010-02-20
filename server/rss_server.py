@@ -166,6 +166,7 @@ def getart(path):
     for test_ext in (".jpg", ".jpeg", ".png"):
       if os.path.exists(no_ext + test_ext):
         return no_ext + test_ext
+    return None
 
   curr_image = None
   img_re = re.compile("\.jpg|\.jpeg|\.png")
