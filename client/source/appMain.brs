@@ -79,6 +79,142 @@ Function CreateVideoItem(desc as object)
      return item
 End Function
 
+Function ShowResumeDialog() as Boolean
+
+    print "ShowResumeDialog"
+    port = CreateObject("roMessagePort") 
+    dialog = CreateObject("roMessageDialog") 
+    dialog.SetMessagePort(port) 
+ 
+    dialog.SetTitle("Starting position") 
+    dialog.SetText("Resume from last saved position?") 
+    dialog.AddButton(1, "resume playing") 
+    dialog.AddButton(2, "play from beginning") 
+    dialog.Show() 
+ 
+    while true 
+        dlgMsg = wait(0, dialog.GetMessagePort()) 
+        exit while                 
+    end while 
+
+    if dlgMsg.GetIndex() = 1 then
+        return true
+    else
+        return false
+    end if
+End Function 
+
+Sub RegDelete(key as String)    ' may have to add a "section" parameter later
+
+    print "RegDelete"
+    reg = CreateObject("roRegistry")
+
+    'Use the "Transient" section for now
+    sect = CreateObject("roRegistrySection", "Transient")
+    
+    if sect.Exists(key) then    ' the documentation is pretty poor
+        sect.Delete(key)        ' not sure if we need to check for existence before    
+        sect.Flush()            ' deleting it or if we need to flush (probably)
+    end if
+
+End Sub
+
+Sub RegSave(key as String, value as String) ' may have to add a "section" parameter later
+
+    print "RegSave"
+    reg = CreateObject("roRegistry")
+    
+    'Use the "Transient" section for now
+    sect = CreateObject("roRegistrySection", "Transient")
+    sect.Write(key,value)
+    sect.Flush()
+
+End Sub
+
+Function RegGet(key as String) as Dynamic  ' may have to add a "section" parameter later
+
+    print "RegGet"
+    reg = CreateObject("roRegistry")
+
+    'Use the "Transient" section for now
+    sect = CreateObject("roRegistrySection", "Transient")
+    
+    if sect.Exists(key) then
+        return sect.Read(key)
+    else
+        return invalid
+    end if
+        
+End Function
+
+Sub ShowServerProblemMsg(s As String)
+
+    print "ShowServerProblemMsg "; s
+    port = CreateObject("roMessagePort") 
+    dialog = CreateObject("roParagraphScreen") 
+    dialog.SetMessagePort(port) 
+ 
+    dialog.SetTitle("Server Problem") 
+    dialog.AddHeaderText("Cannot retrieve media list")
+    dialog.AddParagraph("Cannot retrieve media list from:")
+    dialog.AddParagraph(s)
+    dialog.AddParagraph("Is the address correct and is the server running?")
+    dialog.AddButton(1, "Enter server address manually") 
+    dialog.AddButton(2, "Try again") 
+    dialog.Show() 
+ 
+    while true 
+        dlgMsg = wait(0, dialog.GetMessagePort()) 
+        exit while                 
+    end while 
+    
+    if dlgMsg.GetIndex() = 1 then
+        kb = CreateObject("roKeyboardScreen")
+        kb.SetMessagePort(port) 
+        kb.SetTitle("Enter server ip address and port")
+        kb.SetDisplayText("Example:  http://192.168.1.100:8001/feed")
+        kb.SetText(s)
+        kb.AddButton(1,"Finished")
+        kb.Show()
+        while true 
+            msg = wait(0, kb.GetMessagePort()) 
+     
+            if type(msg) = "roKeyboardScreenEvent" then
+            print "message received" 
+                if msg.isScreenClosed() then
+                    return  
+     
+                else if msg.isButtonPressed() then
+                    if msg.GetIndex() = 1  then
+                        svr = kb.GetText() 
+                        print "New server: "; svr
+                        RegSave("Server",svr)
+                        exit while
+                    end if 
+                end if 
+            end if 
+        end while 
+    end if
+End Sub 
+
+Sub ShowListProblemDialog()
+
+    print "ShowListProblemDialog"
+    port = CreateObject("roMessagePort") 
+    dialog = CreateObject("roMessageDialog") 
+    dialog.SetMessagePort(port) 
+ 
+    dialog.SetTitle("Media List Problem") 
+    dialog.SetText("No media items retrieved.  Is the media path set correctly?") 
+    dialog.AddButton(1, "Ok") 
+    dialog.Show() 
+ 
+    while true 
+        dlgMsg = wait(0, dialog.GetMessagePort()) 
+        exit while                 
+    end while 
+End Sub 
+
 Sub Main()
     'initialize theme attributes like titles, logos and overhang color'
     initTheme()
@@ -95,7 +231,24 @@ Sub Main()
     end if
 
     port = CreateObject("roMessagePort")
-    pl = rss.GetSongListFromFeed("SERVER_NAME/feed")
+    while true    
+        server = RegGet("Server")
+        if server = invalid then
+            print "Setting server to default"
+            server = "SERVER_NAME" + "/feed"
+        else
+            print "Retrieved server from registry"
+        end if
+        print "server = "; server    
+        pl = rss.GetSongListFromFeed(server)
+        if pl = invalid then
+            ShowServerProblemMsg(server)
+        elseif pl.Count() = 0
+            ShowListProblemDialog()
+        else
+            exit while
+        end if
+    end while
     pscr = makePosterScreen(port)
     pscr.SetPlayList(pl)
 
@@ -108,7 +261,7 @@ Sub Main()
     layers.AddTail( { playlist: pl, last_selected: 0 } )
 
     pscr.screen.Show()
-    
+
     while true
         msg = wait(0, port)
         print "mainloop msg = "; type(msg)
@@ -145,7 +298,20 @@ Sub Main()
 
                     'unless its really a video'
                     if item.GetType() = "mp4" then
-                        displayVideo(item.GetMedia())
+                        offset = 0
+                        regoffset = RegGet(item.GetTitle())
+                        if regoffset <> invalid then
+                            if ShowResumeDialog() then offset = regoffset.toInt()
+                        end if
+                        print "Starting from position "; offset
+                        offset = displayVideo(item.GetMedia(),item.GetTitle(),offset)
+                        if offset = 0 then
+                            ' Delete reg key
+                            RegDelete(item.GetTitle())
+                        else
+                            ' Save offset
+                            RegSave(item.GetTitle(),offset.toStr())
+                        end if
                     else
                         audio.AddContent(item.GetPlayable())
                         print item.GetTitle()
@@ -304,11 +470,12 @@ End Function
 '** displayVideo()'
 '*************************************************************'
 
-Function displayVideo(url)
+Function displayVideo(url,title,offset) as Integer
     print "Displaying video: "
     p = CreateObject("roMessagePort")
     video = CreateObject("roVideoScreen")
     video.setMessagePort(p)
+    video.SetPositionNotificationPeriod(10)
 
     'bitrates  = [0]'          ' 0 = no dots'
     'bitrates  = [348000]'    ' <500 Kbps = 1 dot'
@@ -325,16 +492,16 @@ Function displayVideo(url)
     videoclip.StreamUrls = urls
     videoclip.StreamQualities = qualities
     videoclip.StreamFormat = "mp4"
-    videoclip.Title = "Early Video Support"
+    videoclip.Title = title
+    videoclip.PlayStart = offset
 
     'videoclip.StreamFormat = "wmv"'
  
     video.SetContent(videoclip)
     video.show()
 
-    lastSavedPos   = 0
-    statusInterval = 10 'position must change by more than this number of seconds before saving'
-
+    nowpos = offset
+    
     while true
         msg = wait(0, video.GetMessagePort())
         if type(msg) = "roVideoScreenEvent"
@@ -343,16 +510,13 @@ Function displayVideo(url)
                 exit while
             else if msg.isPlaybackPosition() then
                 nowpos = msg.GetIndex()
-                if nowpos > 10000
-                    
-                end if
-                if nowpos > 0
-                    if abs(nowpos - lastSavedPos) > statusInterval
-                        lastSavedPos = nowpos
-                    end if
-                end if
+print nowpos
             else if msg.isRequestFailed()
                 print "play failed: "; msg.GetMessage()
+            else if msg.isFullResult()
+                return 0
+            else if msg.isPartialResult()
+                return nowpos
             else
                 print "Unknown event: "; msg.GetType(); " msg: "; msg.GetMessage()
             endif

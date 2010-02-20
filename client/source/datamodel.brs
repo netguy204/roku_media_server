@@ -5,29 +5,32 @@
 ' ********************************************************************'
 
 Function CreateMediaRSSConnection() As Object
-	rss = {
-		port: CreateObject("roMessagePort"),
-		http: CreateObject("roUrlTransfer"),
+        rss = {
+                port: CreateObject("roMessagePort"),
+                http: CreateObject("roUrlTransfer"),
 
-		GetSongListFromFeed: GetSongListFromFeed,
-		}
+                GetSongListFromFeed: GetSongListFromFeed,
+                }
 
-	return rss
+        return rss
 End Function
 
-Function GetSongListFromFeed(feed_url) As Object
+Function GetSongListFromFeed(feed_url) As Dynamic
     print "GetSongListFromFeed"
 
     m.http.SetUrl(feed_url)
     xml = m.http.GetToString()
     rss=CreateObject("roXMLElement")
-    if not rss.Parse(xml) then stop
+    if not rss.Parse(xml) then 
+        print "No xml received from server"
+        return invalid
+    end if
     print "rss@verion=";rss@version
 
     pl=CreateObject("roList")
     for each item in rss.channel.item
         pl.Push(newMediaFromXML(m, item))
-        print "got media item";pl.Peek().GetTitle()
+        print "got media item: "; pl.Peek().GetTitle()
     next
 
     return pl
@@ -72,14 +75,14 @@ End Function
 
 Function itemGetPosterItem()
     icon = "pkg:/images/music_square.jpg"
-    
+
     'see if there is an image associated with this item'
     if m.xml.image.Count() > 0 then
         icon = m.xml.image.GetText()
-    else if m.IsPlayable() and m.GetType() = "mp4" then
-        icon = "pkg:/images/videos_square.jpg"
     else if not m.IsPlayable() then
         icon = "pkg:/images/folder_square.jpg"
+    else if m.IsPlayable() and m.GetType() = "mp4" then
+        icon = "pkg:/images/videos_square.jpg"
     endif
 
     return {
