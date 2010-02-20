@@ -158,6 +158,15 @@ def dir2item(key, dname, base_dir, config, image, name=None):
       image = image)
 
 def getart(path):
+  # is path a full path to a video?
+  if is_video(path):
+    no_ext = os.path.splitext(path)[0]
+
+    # look for a corresponding image
+    for test_ext in (".jpg", ".jpeg", ".png"):
+      if os.path.exists(no_ext + test_ext):
+        return no_ext + test_ext
+
   curr_image = None
   img_re = re.compile("\.jpg|\.jpeg|\.png")
 
@@ -172,6 +181,9 @@ def getart(path):
         break
 
   return curr_image
+
+# we could memoize getart as a primitive form of caching since
+# the return value if this is unlikely to change
 
 def item_sorter(lhs, rhs):
   "folders first, sort on artist, then track number (prioritize those with), then track name"
@@ -332,7 +344,13 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
         continue
       
       path = os.path.join(base, file)
-      item = file2item(key, path, base_dir, config, curr_image)
+
+      if is_video(path):
+        image_icon = getart(path) or image_icon
+      else:
+        image_icon = curr_image
+
+      item = file2item(key, path, base_dir, config, image_icon)
       if item:
         items.append(item)
 

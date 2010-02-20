@@ -127,6 +127,21 @@ def encode_multipart_formdata(fields, files):
 def get_content_type(filename):
     return mimetypes.guess_type(filename)[0] or 'application/octet-stream'
 
+
+# from recipe 52201
+# code.activestate.com
+class Memoize:
+    """Memoize(fn) - an instance which acts like fn but memoizes its arguments
+       Will only work on functions with non-mutable arguments
+    """
+    def __init__(self, fn):
+        self.fn = fn
+        self.memo = {}
+    def __call__(self, *args):
+        if not self.memo.has_key(args):
+            self.memo[args] = self.fn(*args)
+        return self.memo[args]
+
 def ext2mime(ext):
   "get the mimetype for an extension"
   ext = ext[-3:].lower()
@@ -181,4 +196,7 @@ def video_dir(config):
     if os.path.exists(path):
       return path
   return None
+
+def is_video(path):
+  return ext2mime(path) in ("video/mp4",)
 
