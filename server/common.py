@@ -175,5 +175,10 @@ def music_dir(config):
   return config.get("config", "music_dir")
 
 def video_dir(config):
-  return config.get("config", "video_dir")
+  "this is an optional variable so we're more careful about retrieving it"
+  if config.has_option("config", "video_dir"):
+    path = config.get("config", "video_dir")
+    if os.path.exists(path):
+      return path
+  return None
 

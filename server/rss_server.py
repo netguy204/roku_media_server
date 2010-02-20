@@ -42,15 +42,19 @@ class RSSImageItem(RSSItem):
 def main_menu_feed(config):
   "create the root feed for the main menu"
 
-  music_item = dir2item("music", music_dir(config), music_dir(config), config, image="pkg:/images/music_square.jpg", name="Music")
-  video_item = dir2item("video", video_dir(config), video_dir(config), config, image="pkg:/images/video_square.jpg", name="Video")
+  items = []
+  items.append(dir2item("music", music_dir(config), music_dir(config), config, image="pkg:/images/music_square.jpg", name="Music"))
+
+  dir = video_dir(config)
+  if dir:
+    items.append(dir2item("video", dir, dir, config, image="pkg:/images/video_square.jpg", name="Video"))
 
   doc = RSS2(
       title="A Personal Music Feed",
       link="%s/feed",
       description="My music.",
       lastBuildDate=datetime.datetime.now(),
-      items = [music_item, video_item] )
+      items = items)
 
   return doc
 
