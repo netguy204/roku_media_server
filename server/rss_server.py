@@ -43,11 +43,11 @@ def main_menu_feed(config):
   "create the root feed for the main menu"
 
   items = []
-  items.append(dir2item("music", music_dir(config), music_dir(config), config, image="pkg:/images/music_square.jpg", name="Music"))
+  items.append(dir2item("music", music_dir(config), music_dir(config), config, image=None, name="Music"))
 
   dir = video_dir(config)
   if dir:
-    items.append(dir2item("video", dir, dir, config, image="pkg:/images/video_square.jpg", name="Video"))
+    items.append(dir2item("video", dir, dir, config, image=None, name="Video"))
 
   doc = RSS2(
       title="A Personal Music Feed",
