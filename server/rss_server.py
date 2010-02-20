@@ -18,26 +18,36 @@ import ConfigParser
 import math
 from common import *
 
-class RSSImageItem(RSSItem):
-  "extending rss items to support our extended tags"
-  TAGS = ('image', 'filetype', 'tracknum')
-  def __init__(self, **kwargs):
-    for name in RSSImageItem.TAGS:
+class PublishMixin:
+  def publish_extensions(self, handler):
+    for name in self.TAGS:
+      val = getattr(self, name)
+      if val:
+        handler.startElement(name, {})
+        handler.characters(val)
+        handler.endElement(name)
+
+  def set_variables(self, kwargs):
+    for name in self.TAGS:
       if name in kwargs:
         setattr(self, name, kwargs[name])
         del kwargs[name]
       else:
         setattr(self, name, None)
 
+class RSSImageItem(PublishMixin, RSSItem):
+  "extending rss items to support our extended tags"
+  def __init__(self, **kwargs):
+    self.TAGS = ('image', 'filetype', 'tracknum')
+    self.set_variables(kwargs)
     RSSItem.__init__(self, **kwargs)
 
-  def publish_extensions(self, handler):
-    for name in RSSImageItem.TAGS:
-      val = getattr(self, name)
-      if val:
-        handler.startElement(name, {})
-        handler.characters(val)
-        handler.endElement(name)
+class RSSDoc(PublishMixin, RSS2):
+  "extending rss document to provide theme tags, etc"
+  def __init__(self, **kwargs):
+    self.TAGS = ('theme',)
+    self.set_variables(kwargs)
+    RSS2.__init__(self, **kwargs)
 
 def main_menu_feed(config):
   "create the root feed for the main menu"
@@ -49,12 +59,13 @@ def main_menu_feed(config):
   if dir:
     items.append(dir2item("video", dir, dir, config, image=None, name="Video"))
 
-  doc = RSS2(
+  doc = RSSDoc(
       title="A Personal Music Feed",
-      link="%s/feed",
+      link="%s/feed" % server_base(config),
       description="My Media",
       lastBuildDate=datetime.datetime.now(),
-      items = items)
+      items = items,
+      theme = "media")
 
   return doc
 
@@ -378,12 +389,13 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
   else:
     range = ""
 
-  doc = RSS2(
+  doc = RSSDoc(
       title="A Personal Music Feed",
       link="%s/feed?key=%s&dir=%s%s" % (key, server_base(config), relpath26(path, base_dir), range),
       description="My Media",
       lastBuildDate=datetime.datetime.now(),
-      items = items )
+      items = items,
+      theme = key)
 
   return doc
 

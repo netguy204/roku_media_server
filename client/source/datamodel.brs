@@ -28,12 +28,15 @@ Function GetSongListFromFeed(feed_url) As Dynamic
     print "rss@verion=";rss@version
 
     pl=CreateObject("roList")
+
+    theme = rss.channel.theme.GetText()
+
     for each item in rss.channel.item
         pl.Push(newMediaFromXML(m, item))
         print "got media item: "; pl.Peek().GetTitle()
     next
 
-    return pl
+    return { items:pl, theme:theme }
 End Function
 
 Function newMediaFromXML(rss As Object, xml As Object) As Object

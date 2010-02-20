@@ -39,7 +39,7 @@ End Function
 
 Function psSetPlayList(pl)
     posters=CreateObject("roList")
-    for each song in pl
+    for each song in pl.items
         posters.Push(song.GetPosterItem())
     next
 
@@ -224,7 +224,9 @@ End Sub
 
 Sub Main()
     'initialize theme attributes like titles, logos and overhang color'
-    initTheme()
+
+    app = CreateObject("roAppManager")
+    initTheme(app, "media")
 
     'display a fake screen while the real one initializes. this screen'
     'has to live for the duration of the whole app to prevent flashing'
@@ -250,7 +252,7 @@ Sub Main()
         pl = rss.GetSongListFromFeed(server)
         if pl = invalid then
             ShowServerProblemMsg(server)
-        elseif pl.Count() = 0
+        elseif pl.items.Count() = 0
             ShowListProblemDialog()
             return
         else
@@ -265,8 +267,10 @@ Sub Main()
     audio.SetLoop(false)
 
     currentBaseSong = 0
+    currentTheme = "media"
     layers = CreateObject("roList")
     layers.AddTail( { playlist: pl, last_selected: 0 } )
+    dontKillPosterScreen = false
 
     pscr.screen.Show()
 
@@ -275,22 +279,33 @@ Sub Main()
         print "mainloop msg = "; type(msg)
         print "type = ";msg.GetType()
 
-        if msg.isScreenClosed() then
+        if msg.isButtonPressed() then
+            print "button pressed idx= ";msg.GetIndex()
+            print "button pressed data= ";msg.GetData()
+        else if msg.isScreenClosed() then
             print "isScreenClosed()"
             if layers.Count() = 1 then return
 
-            'recreate the pscr since it just got closed'
-            print "fetching old pl"
+            if dontKillPosterScreen then
+                'do nothing. we werent called by the user
+                dontKillPosterScreen = false
+            else
+                'recreate the pscr since it just got closed'
+                print "fetching old pl"
 
-            pscr = makePosterScreen(port)
-            last_selected = layers.GetTail().last_selected
-            layers.RemoveTail()
-            rec = layers.GetTail()
+                pscr = makePosterScreen(port)
+                last_selected = layers.GetTail().last_selected
+                layers.RemoveTail()
+                rec = layers.GetTail()
 
-            pscr.SetPlayList(rec.playlist)
-            pscr.screen.Show()
-            pscr.screen.SetFocusedListItem(last_selected)
-
+                pscr.SetPlayList(rec.playlist)
+                if rec.playlist.theme <> currentTheme then
+                    currentTheme = rec.playlist.theme
+                    initTheme(app, currentTheme)
+                endif
+                pscr.screen.Show()
+                pscr.screen.SetFocusedListItem(last_selected)
+             endif
         else if type(msg) = "roPosterScreenEvent" then
             if msg.isListItemSelected() then
                 song = msg.GetIndex()
@@ -333,10 +348,20 @@ Sub Main()
 
                     print "loading subitems for "; song
                     pl = item.GetSubItems()
-                    if pl <> invalid and pl.Count() <> 0 then
+                    if pl <> invalid and pl.items.Count() <> 0 then
                         layers.AddTail( { playlist: pl, last_selected: song } )
+                        dontKillPosterScreen = true
+                        oldScr = pscr.screen
+                        if pl.theme <> currentTheme then
+                            currentTheme = pl.theme
+                            initTheme(app, currentTheme)
+                        endif
+                        pscr = makePosterScreen(port)
                         pscr.SetPlayList(pl)
+                        pscr.screen.Show()
+                        oldScr.Close()
                         currentBaseSong = 0
+
                     else if pl = invalid then
                         ShowServerProblemMsg(server)
                     else
@@ -403,21 +428,20 @@ End Sub
 '** Configure the custom overhang and Logo attributes'
 '*************************************************************'
 
-Sub initTheme()
-
-    app = CreateObject("roAppManager")
+Sub initTheme(app as object, themeName as String)
     theme = CreateObject("roAssociativeArray")
 
     theme.OverhangPrimaryLogoOffsetSD_X = "72"
     theme.OverhangPrimaryLogoOffsetSD_Y = "15"
     theme.OverhangSliceSD = "pkg:/images/Overhang_BackgroundSlice_SD43.png"
-    theme.OverhangPrimaryLogoSD  = "pkg:/images/media_Logo_Overhang_SD43.png"
+    theme.OverhangPrimaryLogoSD  = "pkg:/images/" + themeName + "_Logo_Overhang_SD43.png"
 
     theme.OverhangPrimaryLogoOffsetHD_X = "123"
     theme.OverhangPrimaryLogoOffsetHD_Y = "20"
     theme.OverhangSliceHD = "pkg:/images/Overhang_BackgroundSlice_HD.png"
-    theme.OverhangPrimaryLogoHD  = "pkg:/images/media_Logo_Overhang_HD.png"
+    theme.OverhangPrimaryLogoHD  = "pkg:/images/" + themeName + "_Logo_Overhang_HD.png"
     
+    print "theme logo "; theme.OverhangPrimaryLogoHD
     app.SetTheme(theme)
 
 End Sub
