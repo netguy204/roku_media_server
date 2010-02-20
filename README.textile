@@ -14,7 +14,7 @@ _el.wubo_
 
 _hoffmcs_ - server side improvements
 
-_jt_ - video resuming. better channel error handling. overall improvements
+_renojim_ - video resuming. better channel error handling. overall improvements
 
 _onecaribou_ - testing. contributing the DNS323 NAS installation guide.
 
@@ -99,14 +99,14 @@ h4. All Users
 
 h5. Configuration Options
 
-* music_dir - Full path to where you store all of your music
-* video_dir - Full path to where you store all of your video
-* server_ip - IP address (or hostname) of the computer that holds your music collection. The default value is likely to be correct.
-* roku_ip - IP address of the Roku DVP (see notes above for obtaining this)
-* collapse_collections - Deprecated. Set to False.
-* max_folders_before_split - Makes navigating large music collections easier. 10 is a good starting value. Set to -1 to disable partitioning.
-* python_path - Path to your python interpreter. The default value should be correct.
-* server_port - Port number the server runs on. Use the default unless it conflicts with something else.
+* _music_dir_ - Full path to where you store all of your music
+* _video_dir_ - Full path to where you store all of your video
+* _server_ip_ - IP address (or hostname) of the computer that holds your music collection. The default value is likely to be correct.
+* _roku_ip_ - IP address of the Roku DVP (see notes above for obtaining this)
+* _collapse_collections_ - Deprecated. Set to False.
+* _max_folders_before_split_ - Makes navigating large music collections easier. 10 is a good starting value. Set to -1 to disable partitioning.
+* _python_path_ - Path to your python interpreter. The default value should be correct.
+* _server_port_ - Port number the server runs on. Use the default unless it conflicts with something else.
 
 Set all configuration variables in the tool. Click on "Install Client" to update your Roku (at the IP address you specified) and click on "Start Server" to start the server. Note that sometimes the Roku will automatically launch the client after you upload it. If this happens you'll need to go back to the home screen and then launch it again after you've started the server.
 
