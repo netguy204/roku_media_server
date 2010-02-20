@@ -1,7 +1,14 @@
 ' ********************************************************************'
-' **  RssPlayer'
+' **  MyMusic'
+' **'
+' **  Initial revision'
 ' **  Brian Taylor el.wubo@gmail.com'
 ' **  Copyright (c) 2010'
+' **  Distribute under the terms of the GPL'
+' **'
+' **  Contributions from'
+' **  Brian Taylor'
+' **  Jim Truscello'
 ' **'
 ' **  This code was derived from:'
 ' **  Sample PlayVideo App'
@@ -404,12 +411,12 @@ Sub initTheme()
     theme.OverhangPrimaryLogoOffsetSD_X = "72"
     theme.OverhangPrimaryLogoOffsetSD_Y = "15"
     theme.OverhangSliceSD = "pkg:/images/Overhang_BackgroundSlice_SD43.png"
-    theme.OverhangPrimaryLogoSD  = "pkg:/images/Logo_Overhang_SD43.png"
+    theme.OverhangPrimaryLogoSD  = "pkg:/images/media_Logo_Overhang_SD43.png"
 
     theme.OverhangPrimaryLogoOffsetHD_X = "123"
     theme.OverhangPrimaryLogoOffsetHD_Y = "20"
     theme.OverhangSliceHD = "pkg:/images/Overhang_BackgroundSlice_HD.png"
-    theme.OverhangPrimaryLogoHD  = "pkg:/images/Logo_Overhang_HD.png"
+    theme.OverhangPrimaryLogoHD  = "pkg:/images/media_Logo_Overhang_HD.png"
     
     app.SetTheme(theme)
 
