@@ -1,0 +1,37 @@
+2/20/2010
+
+*Changes*
+
+* Music and Video directories can be configured independently and don't need to be combined.
+
+* Fixed the partitioning algorithm so that it works with folders starting with numbers and passes through folders starting with special characters.
+
+* Merged the partition functionality to mainline so we don't have to maintain the partition version any longer. The partition branch will no longer be updated.
+
+* The players position in a video is saved when the player exits. When the same video is played again the user is given the option of resuming play where they were before.
+
+* Completed the name change from MyMusic to MyMedia. Updated artwork, README, and server to reflect this change.
+
+* Convert poster view to arced-square. The square layout works much better with album art. Our channel specific artwork that is used when album art is unavailable has been updated to the new format as well.
+
+* If an image file is found with the same basename as a video file, the image file is used as the cover art for that video. This strategy takes advantage of the directory structure used by XBMC.
+
+* Channel error conditions are reported to the user. This should make installation and troubleshooting much simpler.
+** If the server cannot be contacted using the IP address given at installation a dialog box is displayed explaining this and the user is given the opportunity to enter their own IP address. Technically this feature also gives us the option of distributing as a private channel but we're going to hold off on that for now because keeping the channel version and the server version synchronized could be difficult if the two are distributed separately.
+** If the server returns an empty feed for any directory the channel displays a message to that effect and suggestions for what to check.
+
+* The server recognizes both mp4 files and m4v files as video. No need to change your file extensions.
+
+* Updated documentation with a better explanation of the configuration options
+
+*Contributors for this release*
+
+_dellsweig_: Testing for new folder partitioning support
+
+_hoffmcs_: Support for recognizing mp4 files as video
+
+_renojim_: Channel error reporting improvements. Video suspend / resume.
+
+_umbighouse_: New square artwork and MyMedia logo
+
+
