@@ -127,3 +127,47 @@ def encode_multipart_formdata(fields, files):
 def get_content_type(filename):
     return mimetypes.guess_type(filename)[0] or 'application/octet-stream'
 
+def ext2mime(ext):
+  "get the mimetype for an extension"
+  ext = ext[-3:].lower()
+  if ext == "mp3":
+    return "audio/mpeg"
+  elif ext == "m4v" or ext == "mp4":
+    return "video/mp4"
+  elif ext == "wma":
+    return "audio/x-ms-wma"
+  elif ext == "jpg" or ext == "peg":
+    return "image/jpeg"
+  elif ext == "png":
+    return "image/png"
+  else:
+    return None
+
+def to_unicode(obj, encoding='utf-8'):
+  "convert to unicode if not already and it's possible to do so"
+
+  if isinstance(obj, basestring):
+    if not isinstance(obj, unicode):
+      obj = unicode(obj, encoding)
+  return obj
+
+def to_utf8(obj):
+  "convert back to utf-8 if we're in unicode"
+
+  if isinstance(obj, unicode):
+    obj = obj.encode('utf-8')
+  return obj
+
+def is_letter(c):
+  if c >= 'a' and c <= 'z':
+    return True
+  return False
+
+def is_number(c):
+  if c >= '0' and c <= '9':
+    return True
+  return False
+
+def first_letter(str):
+  return str[0].lower()
+

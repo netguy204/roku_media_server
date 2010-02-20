@@ -67,9 +67,7 @@ def file2item(fname, config, image=None):
     if tracknum:
       tracknum = str(tracknum)
 
-
     filetype = "mp3"
-    mimetype = "audio/mpeg"
 
   elif ext == ".wma":
     # use the filename as the title
@@ -78,16 +76,14 @@ def file2item(fname, config, image=None):
     title = os.path.splitext(basename)[0]
     description = ""
     filetype = "wma"
-    mimetype = "audio/x-ms-wma"
 
-  elif ext == ".m4v":
+  elif ext == ".m4v" or ext == ".mp4":
     # this is a video file
 
     basename = os.path.split(fname)[1]
     title = os.path.splitext(basename)[0]
     description = "Video"
     filetype = "mp4"
-    mimetype = "video/mp4"
 
   else:
     # don't know what this is
@@ -111,7 +107,7 @@ def file2item(fname, config, image=None):
       enclosure = Enclosure(
         url = link,
         length = size,
-        type = mimetype),
+        type = ext2mime(ext)),
       description = description,
       guid = Guid(link, isPermaLink=0),
       pubDate = datetime.datetime.now(),
@@ -144,7 +140,7 @@ def dir2item(dname, config, image):
 
 def getart(path):
   curr_image = None
-  img_re = re.compile(".jpg|.jpeg|.png")
+  img_re = re.compile("\.jpg|\.jpeg|\.png")
 
   for base, dirs, files in os.walk(path):
     # don't recurse when searching for artwork
@@ -157,21 +153,6 @@ def getart(path):
         break
 
   return curr_image
-
-def to_unicode(obj, encoding='utf-8'):
-  "convert to unicode if not already and it's possible to do so"
-
-  if isinstance(obj, basestring):
-    if not isinstance(obj, unicode):
-      obj = unicode(obj, encoding)
-  return obj
-
-def to_utf8(obj):
-  "convert back to utf-8 if we're in unicode"
-
-  if isinstance(obj, unicode):
-    obj = obj.encode('utf-8')
-  return obj
 
 def item_sorter(lhs, rhs):
   "folders first, sort on artist, then track number (prioritize those with), then track name"
@@ -209,19 +190,6 @@ def item_sorter(lhs, rhs):
     return 1
   else:
     return 0 # they must be the same
-
-def is_letter(c):
-  if c >= 'a' and c <= 'z':
-    return True
-  return False
-
-def is_number(c):
-  if c >= '0' and c <= '9':
-    return True
-  return False
-
-def first_letter(str):
-  return str[0].lower()
 
 def partition_by_firstletter(subdirs, basedir, minmax, config):
   "based on config, change subdirs into alphabet clumps if there are too many"
@@ -314,7 +282,7 @@ def getdoc(path, dirrange, config, recurse=False):
     minl = minl.lower()
     maxl = maxl.lower()
 
-  media_re = re.compile("\.mp3|\.wma|\.m4v")
+  media_re = re.compile("\.mp3|\.wma|\.m4v|\.mp4")
 
   for base, dirs, files in os.walk(path):
     if not recurse:
@@ -486,17 +454,10 @@ class MediaHandler:
     # make a guess at mime type
     ext = os.path.splitext(os.path.split(name)[1] or "")[1].lower()
 
-    if ext == ".mp3":
-      web.header("Content-Type", "audio/mpeg")
-    elif ext == ".wma":
-      web.header("Content-Type", "audio/x-ms-wma")
-    elif ext == ".m4v":
-      web.header("Content-Type", "video/mp4")
-    elif ext == ".jpg":
-      web.header("Content-Type", "image/jpeg")
-    else:
-      web.header("Content-Type", "audio/mpeg")
-
+    mimetype = ext2mime(ext)
+    if not mimetype:
+      return None
+    web.header("Content-Type", mimetype)
     web.header("Content-Length", "%d" % size)
     return range_handler(name)
 
