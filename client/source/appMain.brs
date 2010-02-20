@@ -205,7 +205,7 @@ Sub ShowListProblemDialog()
     dialog.SetMessagePort(port) 
  
     dialog.SetTitle("Media List Problem") 
-    dialog.SetText("No media items retrieved.  Is the media path set correctly?") 
+    dialog.SetText("No media items retrieved.  Is the media path set correctly? Does the selected path contain playable files?") 
     dialog.AddButton(1, "Ok") 
     dialog.Show() 
  
@@ -245,6 +245,7 @@ Sub Main()
             ShowServerProblemMsg(server)
         elseif pl.Count() = 0
             ShowListProblemDialog()
+            exit while
         else
             exit while
         end if
@@ -325,9 +326,13 @@ Sub Main()
 
                     print "loading subitems for "; song
                     pl = item.GetSubItems()
-                    layers.AddTail( { playlist: pl, last_selected: song } )
-                    pscr.SetPlayList(pl)
-                    currentBaseSong = 0
+                    if pl <> invalid and pl.Count() <> 0 then
+                        layers.AddTail( { playlist: pl, last_selected: song } )
+                        pscr.SetPlayList(pl)
+                        currentBaseSong = 0
+                    else
+                        ShowListProblemDialog()
+                    endif
                 endif
             endif
         else if type(msg) = "roAudioPlayerEvent" then
