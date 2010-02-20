@@ -52,7 +52,7 @@ def main_menu_feed(config):
   doc = RSS2(
       title="A Personal Music Feed",
       link="%s/feed",
-      description="My music.",
+      description="My Media",
       lastBuildDate=datetime.datetime.now(),
       items = items)
 
@@ -362,7 +362,7 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
   doc = RSS2(
       title="A Personal Music Feed",
       link="%s/feed?key=%s&dir=%s%s" % (key, server_base(config), relpath26(path, base_dir), range),
-      description="My music.",
+      description="My Media",
       lastBuildDate=datetime.datetime.now(),
       items = items )
 

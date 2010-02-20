@@ -1,15 +1,16 @@
-h1. Roku-Box Media Server / Client
+h1. My Media
 
-A simple rss media server and a client designed for the Roku set-top box.
+h2. Roku DVP Personal Media Server and Channel
 
-Brian Taylor (el.wubo@gmail.com)
-Copyright 2010
+A simple media server and a channel designed for the Roku set-top box.
 
-*Special Thanks To:*
+*With contributions from*
 
 (alphabetized)
 
 _all testers_ - Thank you for installing this code and providing feedback and suggestions. You make building this fun!
+
+_el.wubo_
 
 _jt_ - video resuming. better channel error handling. overall improvements
 
@@ -17,18 +18,22 @@ _onecaribou_ - testing. contributing the DNS323 NAS installation guide.
 
 _umbighouse_ - helping debug the windows client and providing excellent beta testing feedback. Windows installation tips and scripts. Channel icon and theming.
 
+Initial development by:
+Brian Taylor (el.wubo@gmail.com)
+Copyright 2010
+
 
 h2. License
 
-The server code in this package is to be distributed under the terms of the GPL. The client code is also GPL but with a special exception for the Roku business entity (per their SDK license agreement.)
+The server code in this package is to be distributed under the terms of the GPL. The client code is also GPL but with a special attribution exception for the Roku business entity (per their SDK license agreement.)
 
 Some third party code is also included in the web, simplejson, and eyeD3 folders. Each of these are distributed under their author's original license (look in their source to see what they are.)
 
-The folder icon is distributed under the creative commons. All other channel theming artwork is Copyright 2010 _umbighouse_. All channel artwork is free for non-commercial use. Contact the original author if you would like to use the art under different terms.
+The folder icon is distributed under the creative commons. All other channel theming artwork is Copyright 2010 _umbighouse_. Channel artwork is free for non-commercial use. Contact the original author if you would like to use the art under different terms.
 
 h2. Security Warning
 
-The way the server works essentially exposes all of the mp3's on your computer to an outside user with intimate knowledge of this program.  Definitely don't run this unless your local network is somehow isolated from the internet at large -- ie, you're behind a router.  
+The way the server works essentially exposes all of the mp3's in your music folder to an outside user with intimate knowledge of this program.  Definitely don't run this unless your local network is somehow isolated from the internet at large -- ie, you're behind a router.  
 
 In other words: If your IP address isn't something like 192. ? . ? . ? or 10 . ? . ? . ? -- for the love of your data, PLEASE don't run the server.
 
@@ -39,6 +44,7 @@ I don't think it will happen but following these instructions could break your c
 h1. INSTALLATION
 
 # Download and install python for your platform
+# "Download MyMedia":http://github.com/netguy204/roku_media_server/archives/master
 # Put your Roku into developer mode
 # Run springboard.vbs to install the channel on your Roku and start the server
 
