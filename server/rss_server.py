@@ -347,7 +347,7 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
       path = os.path.join(base, file)
 
       if is_video(path):
-        image_icon = getart(path) or image_icon
+        image_icon = getart(path) or curr_image
       else:
         image_icon = curr_image
 
