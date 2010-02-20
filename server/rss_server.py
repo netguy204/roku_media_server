@@ -210,6 +210,19 @@ def item_sorter(lhs, rhs):
   else:
     return 0 # they must be the same
 
+def is_letter(c):
+  if c >= 'a' and c <= 'z':
+    return True
+  return False
+
+def is_number(c):
+  if c >= '0' and c <= '9':
+    return True
+  return False
+
+def first_letter(str):
+  return str[0].lower()
+
 def partition_by_firstletter(subdirs, basedir, minmax, config):
   "based on config, change subdirs into alphabet clumps if there are too many"
   
@@ -218,10 +231,19 @@ def partition_by_firstletter(subdirs, basedir, minmax, config):
     max_dirs = int(config.get("config", "max_folders_before_split"))
 
   # handle the trivial case
-  if len(subdirs) <= max_dirs or max_dirs <= 0:
+  if len(subdirs) <= max_dirs or max_dirs <= 0 or not minmax:
     return subdirs
 
+  # figure out if we're doing a letter or number partition
   minl, maxl = minmax
+  
+  if is_letter(minl):
+    min_of_class = 'a'
+  elif is_number(minl):
+    min_of_class = '0'
+  else:
+    # this must be a special character. give up
+    return subdirs
 
   # presort
   subdirs.sort(key=lambda x: x.title.lower())
@@ -230,14 +252,13 @@ def partition_by_firstletter(subdirs, basedir, minmax, config):
   pivots = int(math.ceil(float(len(subdirs))/max_dirs))
   newsubdirs = []
 
-  # try to divide the list evenly
   def get_letter(item):
-    return item.title[0].lower()
+    return first_letter(item.title)
 
   last_index_ord = len(subdirs) - 1
-
   last_end = 0
 
+  # try to divide the list evenly
   for sublist in range(pivots):
     if last_end == last_index_ord:
       break # we're done
@@ -256,7 +277,7 @@ def partition_by_firstletter(subdirs, basedir, minmax, config):
     while get_letter(subdirs[next_end]) == first_unique and next_end != last_index_ord:
       next_end += 1
 
-    next_letter = chr(max(ord('a'), ord(get_letter(subdirs[next_end]))-1))
+    next_letter = chr(max(ord(min_of_class), ord(get_letter(subdirs[next_end]))-1))
     if next_end == last_index_ord:
       next_letter = maxl
 
@@ -282,12 +303,16 @@ def getdoc(path, dirrange, config, recurse=False):
   # make sure we're unicode
   path = to_unicode(path)
 
-  subdirs = []
+  number_subdirs = []
+  letter_subdirs = []
+  special_subdirs = []
+
   items = []
 
-  minl, maxl = dirrange
-  minl = minl.lower()
-  maxl = maxl.lower()
+  if dirrange:
+    minl, maxl = dirrange
+    minl = minl.lower()
+    maxl = maxl.lower()
 
   media_re = re.compile("\.mp3|\.wma|\.m4v")
 
@@ -296,12 +321,18 @@ def getdoc(path, dirrange, config, recurse=False):
       for dir in dirs:
 
         # skip directories not in our range
-        first_letter = dir[0].lower()
-        if first_letter < minl or first_letter > maxl:
+        first_chr = first_letter(dir)
+        if dirrange and (first_chr < minl or first_chr > maxl):
           continue
 
         subdir = os.path.join(base,dir)
-        subdirs.append(dir2item(subdir, config, getart(subdir)))
+        item = dir2item(subdir, config, getart(subdir))
+        if is_number(first_chr):
+          number_subdirs.append(item)
+        elif is_letter(first_chr):
+          letter_subdirs.append(item)
+        else:
+          special_subdirs.append(item)
 
       del dirs[:]
 
@@ -317,16 +348,33 @@ def getdoc(path, dirrange, config, recurse=False):
       if item:
         items.append(item)
 
-  # partition the subdirs and add to items
-  items.extend(partition_by_firstletter(subdirs, path, (minl, maxl), config))
+  # include our partitioned folders
+  if dirrange:
+    # the range must either have only letters or only numbers
+    if len(number_subdirs) > 0:
+      items.extend(partition_by_firstletter(\
+          number_subdirs, path, (minl,maxl), config))
+    elif len(letter_subdirs) > 0:
+      items.extend(partition_by_firstletter(\
+          letter_subdirs, path, (minl,maxl), config))
+  else:
+    items.extend(partition_by_firstletter(number_subdirs, path, ('0','9'), config))
+    items.extend(partition_by_firstletter(letter_subdirs, path, ('a','z'), config))
+
+  items.extend(special_subdirs)
 
   # sort the items
   items.sort(item_sorter)
   music_base = config.get("config", "music_dir")
 
+  if dirrange:
+    range = "&range=%s" % (minl + maxl)
+  else:
+    range = ""
+
   doc = RSS2(
       title="A Personal Music Feed",
-      link="%s/feed?dir=%s&range=%s" % (server_base(config), relpath26(path, music_base), minl + maxl),
+      link="%s/feed?dir=%s%s" % (server_base(config), relpath26(path, music_base), range),
       description="My music.",
       lastBuildDate=datetime.datetime.now(),
       items = items )
@@ -340,22 +388,6 @@ def doc2m3u(doc):
   for item in doc.items:
     lines.append(item.link)
   return "\n".join(lines)
-
-def get_entropy(entries):
-  "return an xml document full of random numbers since roku can't make them itself"
-  import xml.dom.minidom as dom
-  import random
-
-  impl = dom.getDOMImplementation()
-  doc = impl.createDocument(None, "entropy", None)
-  top = doc.documentElement
-
-  for ii in range(entries):
-    el = dom.Element("entry")
-    el.setAttribute("value", str(random.randrange(0,1000000)))
-    top.appendChild(el)
-
-  return doc
 
 def range_handler(fname):
   "return all or part of the bytes of a fyle depending on whether we were called with the HTTP_RANGE header set"
@@ -476,12 +508,15 @@ class RssHandler:
     collapse_collections = config.get("config", "collapse_collections").lower() == "true"
 
     web.header("Content-Type", "application/rss+xml")
-    feed = web.input(dir = None, range="az")
+    feed = web.input(dir = None, range=None)
+    range = feed.range
+    if range: range = tuple(range)
+
     if feed.dir:
       path = os.path.join(config.get("config", "music_dir"), feed.dir)
-      return getdoc(path, tuple(feed.range), config, collapse_collections).to_xml()
+      return getdoc(path, range, config, collapse_collections).to_xml()
     else:
-      return getdoc(config.get("config", 'music_dir'), tuple(feed.range), config).to_xml()
+      return getdoc(config.get("config", 'music_dir'), range, config).to_xml()
 
 class M3UHandler:
   def GET(self):
@@ -497,17 +532,10 @@ class M3UHandler:
     else:
       return doc2m3u(getdoc(config.get("config", 'music_dir'), config, True))
 
-class EntropyHandler:
-  def GET(self):
-    "get an xml document full of random integers"
-
-    return get_entropy(100).toxml()
-
 urls = (
     '/feed', 'RssHandler',
     '/media', 'MediaHandler',
-    '/m3u', 'M3UHandler',
-    '/entropy', 'EntropyHandler')
+    '/m3u', 'M3UHandler')
 
 app = web.application(urls, globals())
 
