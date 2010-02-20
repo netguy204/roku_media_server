@@ -71,15 +71,15 @@ Function itemGetPlayable()
 End Function
 
 Function itemGetPosterItem()
-    icon = "pkg:/images/music.jpg"
+    icon = "pkg:/images/music_square.jpg"
     
     'see if there is an image associated with this item'
     if m.xml.image.Count() > 0 then
         icon = m.xml.image.GetText()
     else if m.IsPlayable() and m.GetType() = "mp4" then
-        icon = "pkg:/images/videos.jpg"
+        icon = "pkg:/images/videos_square.jpg"
     else if not m.IsPlayable() then
-        icon = "pkg:/images/folder.jpg"
+        icon = "pkg:/images/folder_square.jpg"
     endif
 
     return {
