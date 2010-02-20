@@ -245,7 +245,7 @@ Sub Main()
             ShowServerProblemMsg(server)
         elseif pl.Count() = 0
             ShowListProblemDialog()
-            exit while
+            return
         else
             exit while
         end if
@@ -330,6 +330,8 @@ Sub Main()
                         layers.AddTail( { playlist: pl, last_selected: song } )
                         pscr.SetPlayList(pl)
                         currentBaseSong = 0
+                    else if pl = invalid then
+                        ShowServerProblemMsg(server)
                     else
                         ShowListProblemDialog()
                     endif
