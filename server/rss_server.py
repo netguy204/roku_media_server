@@ -39,7 +39,22 @@ class RSSImageItem(RSSItem):
         handler.characters(val)
         handler.endElement(name)
 
-def file2item(fname, config, image=None):
+def main_menu_feed(config):
+  "create the root feed for the main menu"
+
+  music_item = dir2item("music", music_dir(config), music_dir(config), config, image="pkg:/images/music_square.jpg", name="Music")
+  video_item = dir2item("video", video_dir(config), video_dir(config), config, image="pkg:/images/video_square.jpg", name="Video")
+
+  doc = RSS2(
+      title="A Personal Music Feed",
+      link="%s/feed",
+      description="My music.",
+      lastBuildDate=datetime.datetime.now(),
+      items = [music_item, video_item] )
+
+  return doc
+
+def file2item(key, fname, base_dir, config, image=None):
   # guess the filetype based on the extension
   ext = os.path.splitext(fname)[1].lower()
 
@@ -91,13 +106,12 @@ def file2item(fname, config, image=None):
     return None
 
   size = os.stat(fname).st_size
-  music_base = config.get("config", "music_dir")
-  path = relpath26(fname, music_base)
-  link="%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(path)}))
+  path = relpath26(fname, base_dir)
+  link="%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(path), 'key': key}))
 
   if image:
-    image = relpath26(image, music_base)
-    image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(image)}))
+    image = relpath26(image, base_dir)
+    image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(image), 'key': key}))
 
   print link
 
@@ -115,16 +129,17 @@ def file2item(fname, config, image=None):
       filetype = filetype,
       tracknum = tracknum)
 
-def dir2item(dname, config, image):
-  music_base = config.get("config", "music_dir")
-  path = relpath26(dname, music_base)
+def dir2item(key, dname, base_dir, config, image, name=None):
+  path = relpath26(dname, base_dir)
 
-  link = "%s/feed?%s" % (server_base(config), urllib.urlencode({'dir':to_utf8(path)}))
-  name = os.path.split(dname)[1]
+  link = "%s/feed?%s" % (server_base(config), urllib.urlencode({'dir':to_utf8(path), 'key': key}))
+
+  if not name:
+    name = os.path.split(dname)[1]
 
   if image:
-    image = relpath26(image, music_base)
-    image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(image)}))
+    image = relpath26(image, base_dir)
+    image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(image), 'key': key}))
 
   description = "Folder"
   #if image:
@@ -191,7 +206,7 @@ def item_sorter(lhs, rhs):
   else:
     return 0 # they must be the same
 
-def partition_by_firstletter(subdirs, basedir, minmax, config):
+def partition_by_firstletter(key, subdirs, basedir, minmax, config):
   "based on config, change subdirs into alphabet clumps if there are too many"
   
   max_dirs = 10
@@ -250,7 +265,7 @@ def partition_by_firstletter(subdirs, basedir, minmax, config):
       next_letter = maxl
 
     # create the item
-    link = "%s/feed?%s" % (server_base(config), urllib.urlencode({'dir':basedir, 'range': last_letter+next_letter}))
+    link = "%s/feed?%s" % (server_base(config), urllib.urlencode({'dir':basedir, 'range': last_letter+next_letter, 'key': key}))
 
     newsubdirs.append(RSSImageItem(
       title = "%s - %s" % (last_letter.upper(), next_letter.upper()),
@@ -265,7 +280,7 @@ def partition_by_firstletter(subdirs, basedir, minmax, config):
   else:
     return subdirs
 
-def getdoc(path, dirrange, config, recurse=False):
+def getdoc(key, path, base_dir, dirrange, config, recurse=False):
   "get a media feed document for path"
 
   # make sure we're unicode
@@ -294,7 +309,7 @@ def getdoc(path, dirrange, config, recurse=False):
           continue
 
         subdir = os.path.join(base,dir)
-        item = dir2item(subdir, config, getart(subdir))
+        item = dir2item(key, subdir, base_dir, config, getart(subdir))
         if is_number(first_chr):
           number_subdirs.append(item)
         elif is_letter(first_chr):
@@ -312,7 +327,8 @@ def getdoc(path, dirrange, config, recurse=False):
         print "rejecting %s" % file
         continue
       
-      item = file2item(os.path.join(base,file), config, curr_image)
+      path = os.path.join(base, file)
+      item = file2item(key, path, base_dir, config, curr_image)
       if item:
         items.append(item)
 
@@ -320,20 +336,19 @@ def getdoc(path, dirrange, config, recurse=False):
   if dirrange:
     # the range must either have only letters or only numbers
     if len(number_subdirs) > 0:
-      items.extend(partition_by_firstletter(\
+      items.extend(partition_by_firstletter(key, \
           number_subdirs, path, (minl,maxl), config))
     elif len(letter_subdirs) > 0:
-      items.extend(partition_by_firstletter(\
+      items.extend(partition_by_firstletter(key, \
           letter_subdirs, path, (minl,maxl), config))
   else:
-    items.extend(partition_by_firstletter(number_subdirs, path, ('0','9'), config))
-    items.extend(partition_by_firstletter(letter_subdirs, path, ('a','z'), config))
+    items.extend(partition_by_firstletter(key, number_subdirs, path, ('0','9'), config))
+    items.extend(partition_by_firstletter(key, letter_subdirs, path, ('a','z'), config))
 
   items.extend(special_subdirs)
 
   # sort the items
   items.sort(item_sorter)
-  music_base = config.get("config", "music_dir")
 
   if dirrange:
     range = "&range=%s" % (minl + maxl)
@@ -342,7 +357,7 @@ def getdoc(path, dirrange, config, recurse=False):
 
   doc = RSS2(
       title="A Personal Music Feed",
-      link="%s/feed?dir=%s%s" % (server_base(config), relpath26(path, music_base), range),
+      link="%s/feed?key=%s&dir=%s%s" % (key, server_base(config), relpath26(path, base_dir), range),
       description="My music.",
       lastBuildDate=datetime.datetime.now(),
       items = items )
@@ -433,14 +448,19 @@ class MediaHandler:
   "retrieve a song"
 
   def GET(self):
-    song = web.input(name = None)
+    song = web.input(name = None, key = None)
     if not song.name:
       return
 
     config = parse_config(config_file)
-    music_base = config.get("config", "music_dir")
     name = song.name
-    name = os.path.join(music_base, name)
+
+    if song.key == "music":
+      name = os.path.join(music_dir(config), name)
+    elif song.key == "video":
+      name = os.path.join(video_dir(config), name)
+    else:
+      return None
 
     # refuse anything that isn't in the media directory
     # IE, refuse anything containing pardir
@@ -457,6 +477,7 @@ class MediaHandler:
     mimetype = ext2mime(ext)
     if not mimetype:
       return None
+
     web.header("Content-Type", mimetype)
     web.header("Content-Length", "%d" % size)
     return range_handler(name)
@@ -469,15 +490,25 @@ class RssHandler:
     collapse_collections = config.get("config", "collapse_collections").lower() == "true"
 
     web.header("Content-Type", "application/rss+xml")
-    feed = web.input(dir = None, range=None)
+    feed = web.input(dir = None, range=None, key=None)
+    
+    if feed.key == "music":
+      base_dir = music_dir(config)
+    elif feed.key == "video":
+      base_dir = video_dir(config)
+    else:
+      return main_menu_feed(config).to_xml()
+
+    # get the range for partitioning
     range = feed.range
     if range: range = tuple(range)
-
     if feed.dir:
-      path = os.path.join(config.get("config", "music_dir"), feed.dir)
-      return getdoc(path, range, config, collapse_collections).to_xml()
+      # the user has navigated to dir
+      path = os.path.join(base_dir, feed.dir)
+      return getdoc(feed.key, path, base_dir, range, config, collapse_collections).to_xml()
     else:
-      return getdoc(config.get("config", 'music_dir'), range, config).to_xml()
+      # if no dir was given we return the index view for this base_dir
+      return getdoc(feed.key, base_dir, base_dir, range, config).to_xml()
 
 class M3UHandler:
   def GET(self):
@@ -488,10 +519,10 @@ class M3UHandler:
     web.header("Content-Type", "text/plain")
     feed = web.input(dir = None)
     if feed.dir:
-      path = os.path.join(config.get("config", "music_dir"), feed.dir)
-      return doc2m3u(getdoc(path, config, True))
+      path = os.path.join(music_dir(config), feed.dir)
+      return doc2m3u(getdoc("music", path, music_dir(config), config, True))
     else:
-      return doc2m3u(getdoc(config.get("config", 'music_dir'), config, True))
+      return doc2m3u(getdoc("music", music_dir(config), music_dir(config), config, True))
 
 urls = (
     '/feed', 'RssHandler',

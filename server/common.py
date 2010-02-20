@@ -171,3 +171,9 @@ def is_number(c):
 def first_letter(str):
   return str[0].lower()
 
+def music_dir(config):
+  return config.get("config", "music_dir")
+
+def video_dir(config):
+  return config.get("config", "video_dir")
+
