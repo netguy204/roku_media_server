@@ -43,7 +43,7 @@ h2. Disclaimer
 
 I don't think it will happen but following these instructions could break your computer or your Roku. Don't hold me responsible if they do. If this breaks something for you, I'm sorry, and if you ask nice I may try to help you. No promises, no warranty, good luck.
 
-h1. INSTALLATION
+h1(#install). INSTALLATION
 
 # Download and install python for your platform
 # "Download MyMedia":http://github.com/netguy204/roku_media_server/archives/master
