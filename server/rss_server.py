@@ -53,11 +53,15 @@ def main_menu_feed(config):
   "create the root feed for the main menu"
 
   items = []
-  items.append(dir2item("music", music_dir(config), music_dir(config), config, image=None, name="Music"))
+  item = dir2item("music", music_dir(config), music_dir(config), config, image=None, name="My Music")
+  item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': "images/music_square.jpg", 'key': "client"}))
+  items.append(item)
 
   dir = video_dir(config)
-  if dir:
-    items.append(dir2item("video", dir, dir, config, image=None, name="Video"))
+  if dir and os.path.exists(dir):
+    item = dir2item("video", dir, dir, config, image=None, name="My Video")
+    item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': "images/videos_square.jpg", 'key': "client"}))
+    items.append(item)
 
   doc = RSSDoc(
       title="A Personal Music Feed",
@@ -490,11 +494,8 @@ class MediaHandler:
     config = parse_config(config_file)
     name = song.name
 
-    if song.key == "music":
-      name = os.path.join(music_dir(config), name)
-    elif song.key == "video":
-      name = os.path.join(video_dir(config), name)
-    else:
+    name = key_to_path(config, song.key, name)
+    if not (name and os.path.exists(name)):
       return None
 
     # refuse anything that isn't in the media directory
@@ -527,16 +528,15 @@ class RssHandler:
     web.header("Content-Type", "application/rss+xml")
     feed = web.input(dir = None, range=None, key=None)
     
-    if feed.key == "music":
-      base_dir = music_dir(config)
-    elif feed.key == "video":
-      base_dir = video_dir(config)
-    else:
+    if not feed.key in ("music", "video"):
       return main_menu_feed(config).to_xml()
 
     # get the range for partitioning
     range = feed.range
     if range: range = tuple(range)
+
+    base_dir = key_to_path(config, feed.key)
+
     if feed.dir:
       # the user has navigated to dir
       path = os.path.join(base_dir, feed.dir)

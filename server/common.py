@@ -197,6 +197,25 @@ def video_dir(config):
       return path
   return None
 
+def client_dir(config):
+  "path to the client code"
+  return os.path.join(os.path.pardir, "client")
+
 def is_video(path):
   return ext2mime(path) in ("video/mp4",)
+
+def key_to_path(config, key, base=None):
+  if key == "music":
+    base_dir = music_dir(config)
+  elif key == "video":
+    base_dir = video_dir(config)
+  elif key == "client":
+    base_dir = client_dir(config)
+  else:
+    return None
+
+  if not base:
+    return base_dir
+  else:
+    return os.path.join(base_dir, base)
 
