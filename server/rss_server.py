@@ -177,6 +177,8 @@ def dir2item(key, dname, base_dir, config, image, name=None):
       image = image)
 
 def getart(path):
+  path = to_unicode(path)
+
   # is path a full path to a video?
   if is_video(path):
     no_ext = os.path.splitext(path)[0]
