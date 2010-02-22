@@ -70,6 +70,10 @@ def main_menu_feed(config):
   return doc
 
 def file2item(key, fname, base_dir, config, image=None):
+  if not os.path.exists(fname):
+    print "WARNING: Tried to create feed item for `%s' which does not exist. This shouldn't happen" % fname
+    return None
+
   # guess the filetype based on the extension
   ext = os.path.splitext(fname)[1].lower()
 
