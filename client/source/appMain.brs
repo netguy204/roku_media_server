@@ -87,8 +87,8 @@ Function CreateVideoItem(desc as object)
 End Function
 
 Function ShowResumeDialog() as Boolean
-
     print "ShowResumeDialog"
+    
     port = CreateObject("roMessagePort") 
     dialog = CreateObject("roMessageDialog") 
     dialog.SetMessagePort(port) 
@@ -111,52 +111,44 @@ Function ShowResumeDialog() as Boolean
     end if
 End Function 
 
-Sub RegDelete(key as String)    ' may have to add a "section" parameter later
-
+Sub RegDelete(key as String, section as String)
     print "RegDelete"
+    
     reg = CreateObject("roRegistry")
-
-    'Use the "Transient" section for now
-    sect = CreateObject("roRegistrySection", "Transient")
+    sect = CreateObject("roRegistrySection", section)
     
     if sect.Exists(key) then    ' the documentation is pretty poor
         sect.Delete(key)        ' not sure if we need to check for existence before    
         sect.Flush()            ' deleting it or if we need to flush (probably)
     end if
-
 End Sub
 
-Sub RegSave(key as String, value as String) ' may have to add a "section" parameter later
-
+Sub RegSave(key as String, value as String, section as String)
     print "RegSave"
-    reg = CreateObject("roRegistry")
     
-    'Use the "Transient" section for now
-    sect = CreateObject("roRegistrySection", "Transient")
+    reg = CreateObject("roRegistry")
+    sect = CreateObject("roRegistrySection", section)
+    
     sect.Write(key,value)
     sect.Flush()
-
 End Sub
 
-Function RegGet(key as String) as Dynamic  ' may have to add a "section" parameter later
-
+Function RegGet(key as String, section as String) as Dynamic 
     print "RegGet"
+    
     reg = CreateObject("roRegistry")
-
-    'Use the "Transient" section for now
-    sect = CreateObject("roRegistrySection", "Transient")
+    sect = CreateObject("roRegistrySection", section)
     
     if sect.Exists(key) then
         return sect.Read(key)
     else
         return invalid
     end if
-        
 End Function
 
 Sub ShowServerProblemMsg(s As String)
-
     print "ShowServerProblemMsg "; s
+    
     port = CreateObject("roMessagePort") 
     dialog = CreateObject("roParagraphScreen") 
     dialog.SetMessagePort(port) 
@@ -195,7 +187,7 @@ Sub ShowServerProblemMsg(s As String)
                     if msg.GetIndex() = 1  then
                         svr = kb.GetText() 
                         print "New server: "; svr
-                        RegSave("Server",svr)
+                        RegSave("Server",svr, "Settings")
                         exit while
                     end if 
                 end if 
@@ -205,8 +197,8 @@ Sub ShowServerProblemMsg(s As String)
 End Sub 
 
 Sub ShowListProblemDialog()
-
     print "ShowListProblemDialog"
+    
     port = CreateObject("roMessagePort") 
     dialog = CreateObject("roMessageDialog") 
     dialog.SetMessagePort(port) 
@@ -221,6 +213,50 @@ Sub ShowListProblemDialog()
         exit while                 
     end while 
 End Sub 
+
+Sub SaveOffset(title as String, offset as String)
+    print "SaveOffset"
+    
+    reg = CreateObject("roRegistry")        
+    sect = CreateObject("roRegistrySection", "Resume")
+    
+    dt = CreateObject("roDateTime")
+    now = dt.asSeconds()
+    value = now.toStr() + offset    ' timestamp concatenated w/offset as string
+    sect.Write(title,value)
+    sect.Flush()    
+
+    ' Check for more than 100 saved resume points
+    keys = sect.GetKeyList()
+    if keys.Count() > 100  then
+        oldest = &h7fffffff
+        keys.ResetIndex()
+        key = keys.GetIndex()
+        while key <> invalid
+            val = RegGet(key, "Resume")
+            timestamp = left(val,10) ' unless we go back in time, timestamps are 10 digits
+            ts = timestamp.toInt()
+            if ts < oldest then 
+                oldest = ts
+                oldestKey = key
+            end if
+            key = keys.GetIndex()
+        end while
+        RegDelete(oldestKey, "Resume")
+    end if    
+End Sub
+
+Function GetOffset(title as String) as Integer
+    print "GetOffset"
+
+    offset = RegGet(title, "Resume")
+    if offset <> invalid then
+        offset = Right(offset,offset.Len() - 10) ' trim off 10 digits of timestamp
+        return offset.toInt()
+    else
+        return 0
+    end if
+End Function
 
 Sub Main()
     'initialize theme attributes like titles, logos and overhang color'
@@ -241,7 +277,12 @@ Sub Main()
 
     port = CreateObject("roMessagePort")
     while true    
-        server = RegGet("Server")
+        ' Try "Transient" section first for backwards compatibility
+        server = RegGet("Server", "Transient")
+print "Transient server "; server        
+        if server = invalid then
+            server = RegGet("Server", "Settings")
+        end if
         if server = invalid then
             print "Setting server to default"
             server = "SERVER_NAME" + "/feed"
@@ -321,19 +362,18 @@ Sub Main()
 
                     'unless its really a video'
                     if item.GetType() = "mp4" then
-                        offset = 0
-                        regoffset = RegGet(item.GetTitle())
-                        if regoffset <> invalid then
-                            if ShowResumeDialog() then offset = regoffset.toInt()
+                        offset = GetOffset(item.GetTitle())
+                        if offset > 0 then
+                            if not ShowResumeDialog() then offset = 0
                         end if
                         print "Starting from position "; offset
                         offset = displayVideo(item.GetMedia(),item.GetTitle(),offset)
                         if offset = 0 then
                             ' Delete reg key
-                            RegDelete(item.GetTitle())
+                            RegDelete(item.GetTitle(), "Resume")
                         else
                             ' Save offset
-                            RegSave(item.GetTitle(),offset.toStr())
+                            SaveOffset(item.GetTitle(),offset.toStr())
                         end if
                     else
                         audio.AddContent(item.GetPlayable())
@@ -341,7 +381,7 @@ Sub Main()
                         currentBaseSong = song
                         print "current base song ";Stri(song)
                         audio.Play()
-                    endif
+                    end if
 
                 else
                     'load the sub items and display those'
