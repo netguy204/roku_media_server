@@ -74,6 +74,10 @@ def main_menu_feed(config):
   return doc
 
 def file2item(key, fname, base_dir, config, image=None):
+  if not os.path.exists(fname):
+    print "WARNING: Tried to create feed item for `%s' which does not exist. This shouldn't happen" % fname
+    return None
+
   # guess the filetype based on the extension
   ext = os.path.splitext(fname)[1].lower()
 
@@ -173,6 +177,8 @@ def dir2item(key, dname, base_dir, config, image, name=None):
       image = image)
 
 def getart(path):
+  path = to_unicode(path)
+
   # is path a full path to a video?
   if is_video(path):
     no_ext = os.path.splitext(path)[0]
