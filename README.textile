@@ -10,6 +10,8 @@ A simple media server and a channel designed for the Roku set-top box.
 
 _all testers_ - Thank you for installing this code and providing feedback and suggestions. You make building this fun!
 
+_czarjosh_ - "Mac Installation HOWTO":http://joshferris.com/2010/02/21/local-media-on-your-roku/
+
 _el.wubo_
 
 _hoffmcs_ - server side improvements
@@ -66,6 +68,10 @@ h4. Windows Users
 
 Go to "http://www.python.org/download":http://www.python.org/download and select the Windows installer that suits your platform (32 or 64 bit.) Run it, accept all the defaults,
 
+h4. OSX
+
+You already have it!
+
 h3. Put your Roku into developer mode
 
 Here's some more legal hairy-ness. Based on the SDK agreement with Roku, I'm not sure what I'm allowed to tell you here... so you'll have to discover it for yourself.
@@ -94,6 +100,10 @@ Open springboard.py
 Menu: Run | Run Module (or press F5)
 
 None of the included batch files or vbs scripts will work if you put python somewhere other than C:\Python26. If you installed python somewhere else then update the scripts you want to use as well.
+
+h4. OSX
+
+Check out "czarjosh's excellent HOWTO":http://joshferris.com/2010/02/21/local-media-on-your-roku/
 
 h4. All Users
 
