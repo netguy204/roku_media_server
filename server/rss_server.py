@@ -6,6 +6,7 @@
 
 # this file contains the configurable variables
 config_file = "config.ini"
+LOG_FILE = "my_media_log.txt"
 
 # main webapp
 import os
@@ -16,7 +17,12 @@ import eyeD3
 import urllib
 import ConfigParser
 import math
+import logging
 from common import *
+
+logging.basicConfig(filename=LOG_FILE, level=logging.DEBUG)
+#formatter = logging.Formatter("%(levelname)@s[%(asctime)s]: %(message)s")
+#logging.getLogger().setFormatter(formatter)
 
 class PublishMixin:
   def publish_extensions(self, handler):
@@ -75,7 +81,7 @@ def main_menu_feed(config):
 
 def file2item(key, fname, base_dir, config, image=None):
   if not os.path.exists(fname):
-    print "WARNING: Tried to create feed item for `%s' which does not exist. This shouldn't happen" % fname
+    logging.warning("WARNING: Tried to create feed item for `%s' which does not exist. This shouldn't happen" % fname)
     return None
 
   # guess the filetype based on the extension
@@ -95,7 +101,7 @@ def file2item(key, fname, base_dir, config, image=None):
       if not tag.link(fname):
         return None
     except:
-      print "library failed to parse ID3 tags for %s. Skipping." % fname
+      logging.warning("library failed to parse ID3 tags for %s. Skipping." % fname)
       return None
 
     title = tag.getTitle()
@@ -136,7 +142,7 @@ def file2item(key, fname, base_dir, config, image=None):
     image = relpath26(image, base_dir)
     image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(image), 'key': key}))
 
-  print link
+  logging.debug(link)
 
   return RSSImageItem(
       title = title,
@@ -362,7 +368,7 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
 
     for file in files:
       if not media_re.match(os.path.splitext(file)[1].lower()):
-        print "rejecting %s" % file
+        logging.debug("rejecting %s" % file)
         continue
       
       path = os.path.join(base, file)
@@ -427,14 +433,14 @@ def range_handler(fname):
   # is this a range request?
   # looks like: 'HTTP_RANGE': 'bytes=41017-'
   if 'HTTP_RANGE' in web.ctx.environ:
-    print "server issued range query: %s" % web.ctx.environ['HTTP_RANGE']
+    logging.debug("server issued range query: %s" % web.ctx.environ['HTTP_RANGE'])
 
     # try a start only regex
     regex = re.compile('bytes=(\d+)-$')
     grp = regex.match(web.ctx.environ['HTTP_RANGE'])
     if grp:
       start = int(grp.group(1))
-      print "player issued range request starting at %d" % start
+      logging.debug("player issued range request starting at %d" % start)
 
       f.seek(start)
 
@@ -451,7 +457,7 @@ def range_handler(fname):
     grp = regex.match(web.ctx.environ['HTTP_RANGE'])
     if grp:
       start,end = int(grp.group(1)), int(grp.group(2))
-      print "player issued range request starting at %d and ending at %d" % (start, end)
+      logging("player issued range request starting at %d and ending at %d" % (start, end))
 
       f.seek(start)
       bytes_remaining = end-start+1 # +1 because range is inclusive
@@ -472,7 +478,7 @@ def range_handler(fname):
     grp = regex.match(web.ctx.environ['HTTP_RANGE'])
     if grp:
       end = int(grp.group(1))
-      print "player issued tail request beginning at %d from end" % end
+      logging.debug("player issued tail request beginning at %d from end" % end)
 
       f.seek(-end, os.SEEK_END)
       bytes = f.read()
@@ -508,7 +514,7 @@ class MediaHandler:
     # IE, refuse anything containing pardir
     fragments = song.name.split(os.sep)
     if os.path.pardir in fragments:
-      print "SECURITY WARNING: Someone was trying to access %s. The MyMedia client shouldn't do this" % song.name
+      logging.warning("SECURITY WARNING: Someone was trying to access %s. The MyMedia client shouldn't do this" % song.name)
       return
 
     size = os.stat(name).st_size
