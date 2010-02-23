@@ -375,6 +375,8 @@ print "Transient server "; server
                             ' Save offset
                             SaveOffset(item.GetTitle(),offset.toStr())
                         end if
+                    else if item.GetTitle() = "image" then
+                        'do nothing'
                     else
                         audio.AddContent(item.GetPlayable())
                         print item.GetTitle()

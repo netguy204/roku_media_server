@@ -2,6 +2,7 @@ import os
 import sys
 import ConfigParser
 import httplib, mimetypes
+import logging
 
 def server_base(config):
   return "http://%s:%s" % (config.get("config", "server_ip"), config.get("config", "server_port"))
@@ -155,6 +156,8 @@ def ext2mime(ext):
     return "image/jpeg"
   elif ext == "png":
     return "image/png"
+  elif ext == "gif":
+    return "image/gif"
   else:
     return None
 
@@ -195,6 +198,18 @@ def video_dir(config):
     path = config.get("config", "video_dir")
     if os.path.exists(path):
       return path
+    else:
+      logging.warning("Video directory %s was configured but does not exist" % path)
+  return None
+
+def photo_dir(config):
+  "this is an optional variable so we're more careful about retrieving it"
+  if config.has_option("config", "photo_dir"):
+    path = config.get("config", "photo_dir")
+    if os.path.exists(path):
+      return path
+    else:
+      logging.warning("Photo directory %s was configured but does not exist" % path)
   return None
 
 def client_dir(config):
@@ -204,6 +219,9 @@ def client_dir(config):
 def is_video(path):
   return ext2mime(path) in ("video/mp4",)
 
+def is_photo(path):
+  return ext2mime(path) in ("image/jpeg", "image/png", "image/gif")
+
 def key_to_path(config, key, base=None):
   if key == "music":
     base_dir = music_dir(config)
@@ -211,6 +229,8 @@ def key_to_path(config, key, base=None):
     base_dir = video_dir(config)
   elif key == "client":
     base_dir = client_dir(config)
+  elif key == "photo":
+    base_dir = photo_dir(config)
   else:
     return None
 

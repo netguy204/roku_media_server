@@ -41,15 +41,20 @@ home = os.path.expanduser("~")
 if sys.platform == "win32":
   default_music_path = os.path.join(home, "My Documents", "My Music")
   default_video_path = os.path.join(home, "My Documents", "My Videos")
+  default_photo_path = os.path.join(home, "My Documents", "My Pictures")
 elif sys.platform == "darwin":
   default_music_path = os.path.join(home, "Music", "iTunes", "iTunes Music")
   default_video_path = os.path.join(home, "Videos")
+  default_photo_path = os.path.join(home, "Pictures", "iPhoto Library")
 elif sys.platform == "linux2":
   default_music_path = os.path.join(home, "Music")
   default_video_path = os.path.join(home, "Videos")
+  default_photo_path = os.path.join(home, "Pictures")
 
 ensure("music_dir", default_music_path)
 ensure("video_dir", default_video_path)
+ensure("photo_dir", default_photo_path)
+
 ensure("python_path", sys.executable)
 
 # upload a zip file to the roku

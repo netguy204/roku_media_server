@@ -69,6 +69,12 @@ def main_menu_feed(config):
     item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': "images/videos_square.jpg", 'key': "client"}))
     items.append(item)
 
+  dir = photo_dir(config)
+  if dir and os.path.exists(dir):
+    item = dir2item("photo", dir, dir, config, image=None, name="My Photos")
+    item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': "images/videos_square.jpg", 'key': "client"}))
+    items.append(item)
+
   doc = RSSDoc(
       title="A Personal Music Feed",
       link="%s/feed" % server_base(config),
@@ -128,6 +134,13 @@ def file2item(key, fname, base_dir, config, image=None):
     title = os.path.splitext(basename)[0]
     description = "Video"
     filetype = "mp4"
+
+  elif ext in (".jpg", ".jpeg", ".gif", ".png"):
+
+    basename = os.path.split(fname)[1]
+    title = os.path.splitext(basename)[0]
+    description = "Picture"
+    filetype = "image"
 
   else:
     # don't know what this is
@@ -194,6 +207,9 @@ def getart(path):
       if os.path.exists(no_ext + test_ext):
         return no_ext + test_ext
     return None
+
+  if is_photo(path):
+    return path
 
   curr_image = None
   img_re = re.compile("\.jpg|\.jpeg|\.png")
@@ -341,7 +357,7 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
     minl = minl.lower()
     maxl = maxl.lower()
 
-  media_re = re.compile("\.mp3|\.wma|\.m4v|\.mp4")
+  media_re = re.compile("\.mp3|\.wma|\.m4v|\.mp4|\.jpg|\.jpeg|\.png|\.gif")
 
   for base, dirs, files in os.walk(path):
     if not recurse:
@@ -373,7 +389,7 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
       
       path = os.path.join(base, file)
 
-      if is_video(path):
+      if is_video(path) or is_photo(path):
         image_icon = getart(path) or curr_image
       else:
         image_icon = curr_image
@@ -540,7 +556,7 @@ class RssHandler:
     web.header("Content-Type", "application/rss+xml")
     feed = web.input(dir = None, range=None, key=None)
     
-    if not feed.key in ("music", "video"):
+    if not feed.key in ("music", "video", "photo"):
       return main_menu_feed(config).to_xml()
 
     # get the range for partitioning
