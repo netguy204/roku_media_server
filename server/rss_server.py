@@ -121,7 +121,7 @@ def file2item(key, fname, base_dir, config, image=None):
     description = ""
     filetype = "wma"
 
-  elif ext in (".m4v",".mp4"):
+  elif ext in (".m4v", ".mp4", ".mov"):
     # this is a video file
 
     basename = os.path.split(fname)[1]
@@ -341,7 +341,7 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
     minl = minl.lower()
     maxl = maxl.lower()
 
-  media_re = re.compile("\.mp3|\.wma|\.m4v|\.mp4")
+  media_re = re.compile("\.mp3|\.wma|\.m4v|\.mp4|\.mov")
 
   for base, dirs, files in os.walk(path):
     if not recurse:

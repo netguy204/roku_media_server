@@ -147,7 +147,7 @@ def ext2mime(ext):
   ext = ext[-3:].lower()
   if ext == "mp3":
     return "audio/mpeg"
-  elif ext in ("m4v", "mp4"):
+  elif ext in ("m4v", "mp4", "mov"):
     return "video/mp4"
   elif ext == "wma":
     return "audio/x-ms-wma"
