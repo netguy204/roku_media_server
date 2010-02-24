@@ -72,7 +72,7 @@ def main_menu_feed(config):
   dir = photo_dir(config)
   if dir and os.path.exists(dir):
     item = dir2item("photo", dir, dir, config, image=None, name="My Photos")
-    item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': "images/videos_square.jpg", 'key': "client"}))
+    item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': "images/photos_square.jpg", 'key': "client"}))
     items.append(item)
 
   doc = RSSDoc(
