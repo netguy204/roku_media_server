@@ -158,6 +158,8 @@ def ext2mime(ext):
     return "image/png"
   elif ext == "gif":
     return "image/gif"
+  elif ext == "wmv":
+    return "video/x-ms-wmv"
   else:
     return None
 
@@ -217,7 +219,7 @@ def client_dir(config):
   return os.path.join(os.path.pardir, "client")
 
 def is_video(path):
-  return ext2mime(path) in ("video/mp4",)
+  return ext2mime(path) in ("video/mp4", "video/x-ms-wmv")
 
 def is_photo(path):
   return ext2mime(path) in ("image/jpeg", "image/png", "image/gif")
