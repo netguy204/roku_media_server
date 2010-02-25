@@ -6,7 +6,7 @@
 
 # this file contains the configurable variables
 config_file = "config.ini"
-LOG_FILE = "my_media_log.txt"
+log_file = "my_media_log.txt"
 
 # main webapp
 import os
@@ -20,9 +20,7 @@ import math
 import logging
 from common import *
 
-logging.basicConfig(filename=LOG_FILE, level=logging.DEBUG)
-#formatter = logging.Formatter("%(levelname)@s[%(asctime)s]: %(message)s")
-#logging.getLogger().setFormatter(formatter)
+logging.basicConfig(filename=log_file, level=logging.DEBUG)
 
 class PublishMixin:
   def publish_extensions(self, handler):
