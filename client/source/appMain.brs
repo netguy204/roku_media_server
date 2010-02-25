@@ -264,6 +264,16 @@ Function GetOffset(title as String) as Integer
     end if
 End Function
 
+Function ShowBusy() as Object
+    port = CreateObject("roMessagePort")
+    busyDlg = CreateObject("roOneLineDialog")
+    busyDlg.SetTitle("retrieving...")
+    busyDlg.showBusyAnimation()
+    busyDlg.SetMessagePort(port)
+    busyDlg.Show()
+    return busyDlg
+End Function
+
 Sub Main()
     print "Main"
 
@@ -284,6 +294,8 @@ Sub Main()
 
     port = CreateObject("roMessagePort")
 
+    busyDlg = ShowBusy()
+    
     while true
         ' Try "Transient" section first for backwards compatibility
         server = RegGet("Server", "Transient")
@@ -324,12 +336,12 @@ print "Transient server "; server
 
     audio = CreateObject("roAudioPlayer")
     audio.SetMessagePort(port)
-    audio.SetLoop(false)
 
     currentBaseSong = 0
     currentTheme = "media"
 
     pscr[0].screen.Show()
+    busyDlg.Close()
 
     while true
         msg = wait(0, pscr[level].screen.GetMessagePort())
@@ -337,11 +349,7 @@ print "Transient server "; server
         print "type = "; msg.GetType()
         print "index = "; msg.GetIndex()
 
-        if msg.isButtonPressed() then
-            print "button pressed idx= ";msg.GetIndex()
-            print "button pressed data= ";msg.GetData()
-stop
-        else if msg.isScreenClosed() then
+        if msg.isScreenClosed() then
             print "isScreenClosed()"
             ' If the top level screen rcv'd the "closed" msg, we're outta here
             if level = 0 then exit while
@@ -352,10 +360,10 @@ stop
             pscr[level].screen.Show()
         else if type(msg) = "roPosterScreenEvent" then
             if msg.isListItemSelected() then
-                song = msg.GetIndex()
+                itemIndex = msg.GetIndex()
 
                 posters = pscr[level].GetPosters()
-                item = posters[song].item
+                item = posters[itemIndex].item
 
                 if item.IsPlayable() then
                     audio.Stop()
@@ -376,24 +384,22 @@ stop
                             SaveOffset(item.GetTitle(),offset.toStr())
                         end if
                     else if item.GetType() = "mp3" then ' or wma
-                        maxSong = posters.Count() - 1
-                        currentSong = showSpringboardScreen(audio, port, posters, song)
-                        REM audio.AddContent(item.GetPlayable())
-                        REM print item.GetTitle()
-                        REM currentBaseSong = song
-                        REM print "current base song ";Stri(song)
-                        REM audio.Play()
+                        'maxSong = posters.Count() - 1
+                        songs = buildAudioContent(posters)
+                        currentSong = itemIndex
+                        currentSong = showSpringboardScreen(audio, port, songs, currentSong)
                     else if item.GetType() = "jpg" then
                         print "Photo: "; item.GetTitle()
                         print item.GetMedia()
                         ss = CreateObject("roSlideShow")
-                        ss.show()
                         ss.addContent({url: item.GetMedia() })
+                        ss.show()
                     end if
 
                 else
                     'load the sub items and display those'
-                    print "loading subitems for "; song; " - "; item.GetTitle()
+                    busyDlg = ShowBusy()
+                    print "loading subitems for "; itemIndex; " - "; item.GetTitle()
                     pl = item.GetSubItems()
                     if pl <> invalid and pl.items.Count() <> 0 then
                         if pl.theme <> currentTheme then
@@ -420,64 +426,78 @@ stop
                         pscr[level].SetPlayList(pl)
                         pscr[level].screen.Show()
                         currentBaseSong = 0
-
                     else if pl = invalid then
                         if ShowServerProblemDialog(server) then
                             print "Outta here!"
-                            return
+                            exit while
                         end if
                     else if ShowListProblemDialog() then
                         print "Outta here!"
-                        return
+                        exit while
                     end if
+                    busyDlg.Close()
                 end if
             end if
         else if type(msg) = "roAudioPlayerEvent" then
+            ' As long as the "content" passed to the audio player contains only audio
+            ' objects, this section isn't needed since the audio player can loop on
+            ' its own.  If the feature of playing a folder along with all of its sub-folders
+            ' is added, the handling of sub-folders will probably have to happen here
+            ' (as well as in the Springboard screen function) so as not to create one giant
+            ' playlist that could overwhelm the Roku
+            
             if msg.isStatusMessage() then
                 print "audio status: ";msg.GetMessage()
-            end if
-            if msg.isRequestSucceeded() then
-                print "audio isRequestSucceeded"
-
-                'queue the next song'
-                posters = pscr[level].GetPosters()
-                song = currentBaseSong + 1
-                maxsong = posters.Count() - 1
-
-                if song > maxsong
-                    song = 0
-                end if
-
-                print "song: ";Stri(song)
-                print "max song: ";Stri(maxsong)
-
-                audio.Stop()
-                audio.ClearContent()
-                item = posters[song].item
-
-                'stop if the next item is a video'
-                if not item.GetType() = "mp4" then
-                    audio.AddContent(item.GetPlayable())
+                if msg.GetMessage() = "end of stream" then
+                    currentSong = GetNextSong(songs,currentSong)
+                    print "Song "; currentSong; " should be next"
+                    audio.SetNext(currentSong)
                     audio.Play()
                 end if
+            end if
+            REM if msg.isRequestSucceeded() then
+                REM print "audio isRequestSucceeded"
 
-                pscr[level].screen.SetFocusedListItem(song)
-                currentBaseSong = song
-            end if
-            if msg.isPartialResult() then
-                print "audio partial result"
-            end if
-            if msg.isRequestFailed() then
-                print "audio request failed: ";msg.GetMessage()
-                print "error code: ";Stri(msg.GetIndex())
-            end if
-            if msg.isFullResult() then
-                print "isFullResult"
-            end if
+                REM 'queue the next song'
+                REM posters = pscr[level].GetPosters()
+                REM song = currentBaseSong + 1
+                REM maxsong = posters.Count() - 1
+
+                REM if song > maxsong
+                    REM song = 0
+                REM end if
+
+                REM print "song: ";Stri(song)
+                REM print "max song: ";Stri(maxsong)
+
+                REM audio.Stop()
+                REM audio.ClearContent()
+                REM item = posters[song].item
+
+                REM 'stop if the next item is a video'
+                REM if not item.GetType() = "mp4" then
+                    REM audio.AddContent(item.GetPlayable())
+                    REM audio.Play()
+                REM end if
+
+                REM pscr[level].screen.SetFocusedListItem(song)
+                REM currentBaseSong = song
+            REM end if
+            REM if msg.isPartialResult() then
+                REM print "audio partial result"
+            REM end if
+            REM if msg.isRequestFailed() then
+                REM print "audio request failed: ";msg.GetMessage()
+                REM print "error code: ";Stri(msg.GetIndex())
+            REM end if
+            REM if msg.isFullResult() then
+                REM print "isFullResult"
+            REM end if
             print "end roAudioPlayerEvent"
         end if
     end while
 
+    audio.Stop()
     'exit the app gently so that the screen doesnt flash to black'
     print "Exiting app"
     screenFacade.showMessage("")
@@ -509,35 +529,71 @@ Sub initTheme(app as object, themeName as String)
 End Sub
 
 
+Function buildAudioContent(posters as object) as Object
+    print "buildAudioContent"
+    
+    songs = CreateObject("roArray",1,true)
+print posters.Count(); " posters"
+    maxidx = posters.Count() - 1
+    for i = 0 to maxidx
+        'if posters[i].item.GetType() = "mp3" then     '!!! need to change to "audio"
+            item = posters[i].item
+            song = item.GetPlayable()
+            song.Title = item.GetTitle()
+            poster = item.GetPosterItem()
+            song.SDPosterURL = poster.SDPosterURL
+            song.HDPosterURL = poster.HDPosterURL
+            'song.Length = 333 ' !!! need to get real length
+            song.Album = poster.ShortDescriptionLine1
+            song.Artist = poster.ShortDescriptionLine2
+            songs.Push(song)
+        'end if
+    end for
+    return songs
+End Function
+
+Function GetNextSong(songs as Object, idx as Integer) as Integer
+    print "GetNextSong"
+    
+    maxidx = songs.Count() - 1
+    idx = idx + 1
+    if idx > maxidx then idx = 0
+    while songs[idx].LookUp("ContentType") <> "audio"
+        idx = idx + 1
+        if idx > maxidx then idx = 0
+    end while
+    return idx
+End Function    
+
+Function GetPreviousSong(songs as Object, idx as Integer) as Integer
+    print "GetPreviousSong"
+    
+    maxidx = songs.Count() - 1
+    idx = idx - 1
+    if idx < 0 then idx = maxidx
+    while songs[idx].LookUp("ContentType") <> "audio"
+        idx = idx - 1
+        if idx < 0 then idx = maxidx
+    end while
+    return idx
+End Function    
+
 '*************************************************************'
 '** showSpringboardScreen()'
 '*************************************************************'
 
-Function showSpringboardScreen(audio as object, port as object, posters as object, idx as Integer) As Integer
+Function showSpringboardScreen(audio as object, port as object, songs as object, idx as Integer) As Integer
     print "showSpringboardScreen"
 
     screen = CreateObject("roSpringboardScreen")
     screen.SetMessagePort(port)
     screen.AllowUpdates(false)
 
-    songs = CreateObject("roArray",1,true)
-print posters.Count(); " posters"
-    maxidx = posters.Count() - 1
-    for i = 0 to maxidx
-        item = posters[i].item
-        song = item.GetPlayable()
-        song.Title = item.GetTitle()
-        poster = item.GetPosterItem()
-        song.SDPosterURL = poster.SDPosterURL
-        song.HDPosterURL = poster.HDPosterURL
-        song.Length = 333 ' !!! need to get real length
-        song.Album = poster.ShortDescriptionLine1
-        song.Artist = poster.ShortDescriptionLine2
-        songs.Push(song)
-    end for
+    print songs.Count(); " songs in playlist"
+    maxidx = songs.Count() - 1
     audio.SetContentList(songs)
     audio.SetNext(idx)
-    audio.SetLoop(false)
+    audio.SetLoop(true)
 
     screen.SetContent(songs[idx])
     screen.SetDescriptionStyle("audio")
@@ -551,8 +607,6 @@ print posters.Count(); " posters"
     'screen.AllowNavRewind(true)  INVALID FUNCTIONS!!!
     'screen.AllowNavFastForward(true)
     screen.AllowUpdates(true)
-
-    print item.GetTitle()
 
     screen.Show()
 
@@ -604,31 +658,12 @@ print posters.Count(); " posters"
                         print "Outta here!"
                         exit while
                     end if
-                else if msg.GetIndex() = remoteLeft then
-                    idx = idx - 1
-                    if idx < 0 then idx = maxidx
-                    while posters[idx].item.GetType() <> "mp3"
-                        idx = idx - 1
-                        if idx < 0 then idx = maxidx
-                    end while
-                    print "Song "; idx; " should be next"
-                    audio.Stop()
-                    audio.SetNext(idx)
-                    screen.AllowUpdates(false)
-                    screen.SetContent(songs[idx])
-                    screen.SetProgressIndicator(0, length) '!!! need to get real length
-                    screen.AllowUpdates(true)
-                    progress = -1
-                    cumulative = 0
-                    audio.Play()
-                else if msg.GetIndex() = remoteRight then
-                    idx = idx + 1
-                    if idx > maxidx then idx = 0
-                    while posters[idx].item.GetType() <> "mp3"
-                        idx = idx + 1
-                        if idx > maxidx then idx = 0
-                    end while
-                    print "Song "; idx; " should be next"
+                else if msg.GetIndex() = remoteLeft or msg.GetIndex() = remoteRight then
+                    if msg.GetIndex() = remoteLeft then
+                        idx = GetPreviousSong(songs,idx)
+                    else
+                        idx = GetNextSong(songs,idx)
+                    end if
                     audio.Stop()
                     audio.SetNext(idx)
                     screen.AllowUpdates(false)
@@ -650,12 +685,7 @@ print posters.Count(); " posters"
                     else if msg.GetMessage() = "end of stream" then
                         progress = -1   ' flag so code won't update progress bar
                         cumulative = 0
-                        idx = idx + 1
-                        if idx > maxidx then idx = 0
-                        while posters[idx].item.GetType() <> "mp3"
-                            idx = idx + 1
-                            if idx > maxidx then idx = 0
-                        end while
+                        idx = GetNextSong(songs,idx)
                         print "Song "; idx; " should be next"
                         audio.SetNext(idx)
                         screen.AllowUpdates(false)

@@ -101,9 +101,15 @@ End Function
 Function itemGetPlayable()
     print "getting playable for ";m.GetMedia()
     print "type: "; m.GetType()
+    sf = m.GetType()
+    if sf = "mp3" or sf = "wma" then 
+        ct = "audio"
+    else
+        ct = ""
+    end if
     'return { Url: m.GetMedia(), StreamFormat: m.GetType() }
-    return { Url: m.GetMedia(), ContentType: "audio", Title: "this is a test", StreamFormat: "mp3",
-             Length: "300" }
+    return { Url: m.GetMedia(), ContentType: ct, Title: "this is a test", StreamFormat: sf,
+             Length: 303 }
 End Function
 
 Function itemGetPosterItem()
