@@ -15,19 +15,18 @@
 ' **  Copyright (c) 2009 Roku Inc. All Rights Reserved.'
 ' ********************************************************************'
 
-Function makePosterScreen(port) As Object
-
+Function makePosterScreen(bread1 as String, bread2 as String) As Object
+    print "makePosterScreen"
+    
+    port = CreateObject("roMessagePort")
+    
     screen=CreateObject("roPosterScreen")
 
     screen.SetMessagePort(port)
     screen.SetListStyle("arced-square")
     screen.SetListDisplayMode("best-fit")
-    cats = CreateObject("roArray",3,false)
-    cats[0] = "My Music"
-    cats[1] = "My Videos"
-    cats[2] = "My Photos"
-    'screen.SetListNames(cats)
     screen.SetBreadCrumbEnabled(true)
+    screen.SetBreadCrumbText(bread1, bread2)
 
     return {
         screen: screen,
@@ -35,8 +34,19 @@ Function makePosterScreen(port) As Object
         GetSelection: psGetSelection,
         SetPlayList: psSetPlayList,
         GetPosters: psGetPosters,
-        posters: []}
+        GetBC1: psGetBC1,
+        GetBC2: psGetBC2,
+        posters: [],
+        breadCrumb1: bread1
+        breadCrumb2: bread2}
+End Function
 
+Function psGetBC1()
+    return m.breadCrumb1
+End Function
+
+Function psGetBC2()
+    return m.breadCrumb2
 End Function
 
 Function psGetPosters()
@@ -71,25 +81,6 @@ Function psGetSelection(timeout)
             end if
         end if
     end while
-End Function
-
-' still here so i can maybe do video stuff later... '
-Function CreateVideoItem(desc as object)
-    item = {   ContentType:"episode"
-               SDPosterUrl:"file://pkg:/images/DanGilbert.jpg"
-               HDPosterUrl:"file://pkg:/images/DanGilbert.jpg"
-               IsHD:False
-               HDBranded:False
-               ShortDescriptionLine1:"Dan Gilbert asks, Why are we happy?"
-               ShortDescriptionLine2:""
-               Description:"Harvard psychologist Dan Gilbert says our beliefs about what will make us happy are often wrong -- a premise he supports with intriguing research, and explains in his accessible and unexpectedly funny book, Stumbling on Happiness."
-               Rating:"NR"
-               StarRating:"80"
-               Length:1280
-               Categories:["Technology","Talk"]
-               Title:"Dan Gilbert asks, Why are we happy?"}
-
-     return item
 End Function
 
 Function ShowResumeDialog() as Boolean
@@ -220,7 +211,6 @@ Function ShowListProblemDialog() as Boolean ' returns true if Abort was selected
     dialog.Show() 
  
     dlgMsg = wait(0, dialog.GetMessagePort())
-print "got message"    
     if dlgMsg.isScreenClosed() then 
         print "ShowListProblemDialog screen closed"
         return true
@@ -275,8 +265,9 @@ Function GetOffset(title as String) as Integer
 End Function
 
 Sub Main()
+    print "Main"
+    
     'initialize theme attributes like titles, logos and overhang color'
-
     app = CreateObject("roAppManager")
     initTheme(app, "media")
 
@@ -323,8 +314,13 @@ print "Transient server "; server
         end if
     end while
     
-    pscr = makePosterScreen(port)
-    pscr.SetPlayList(pl)
+    ' Create an array to store Poster screens as we traverse the hierarchy
+    pscr = CreateObject("roArray",1,true)
+    
+    ' Create the top level folders poster screen
+    pscr[0] = makePosterScreen("","")
+    pscr[0].SetPlayList(pl)
+    level = 0
 
     audio = CreateObject("roAudioPlayer")
     audio.SetMessagePort(port)
@@ -332,64 +328,39 @@ print "Transient server "; server
 
     currentBaseSong = 0
     currentTheme = "media"
-    layers = CreateObject("roList")
-    layers.AddTail( { playlist: pl, last_selected: 0 } )
-    dontKillPosterScreen = false
 
-    pscr.screen.Show()
+    pscr[0].screen.Show()
 
     while true
-        msg = wait(0, port)
+        msg = wait(0, pscr[level].screen.GetMessagePort())
         print "mainloop msg = "; type(msg)
         print "type = "; msg.GetType()
         print "index = "; msg.GetIndex()
 
-        if msg.isRemoteKeyPressed() then
-            stop
-        else if msg.isButtonPressed() then
+        if msg.isButtonPressed() then
             print "button pressed idx= ";msg.GetIndex()
             print "button pressed data= ";msg.GetData()
 stop            
         else if msg.isScreenClosed() then
             print "isScreenClosed()"
-            if layers.Count() = 1 then exit while
-
-            'if dontKillPosterScreen then
-                'do nothing. we weren't called by the user
-print "dontKillPosterScreen"                
-                dontKillPosterScreen = false
-            'else
-                'recreate the pscr since it just got closed'
-                print "fetching old pl"
-
-                'pscr = makePosterScreen(port)
-                last_selected = layers.GetTail().last_selected
-                layers.RemoveTail()
-                rec = layers.GetTail()
-
-                pscr.SetPlayList(rec.playlist)
-                if rec.playlist.theme <> currentTheme then
-                    currentTheme = rec.playlist.theme
-                    initTheme(app, currentTheme)
-                end if
-                pscr.screen.Show()
-                pscr.screen.SetFocusedListItem(last_selected)
-            'end if
+            ' If the top level screen rcv'd the "closed" msg, we're outta here
+            if level = 0 then exit while
+            ' Otherwise, need to show the next screen up in the hierarchy
+            print "Going up..."
+            level = level - 1
+            pscr[level].screen.Show()
         else if type(msg) = "roPosterScreenEvent" then
             if msg.isListItemSelected() then
                 song = msg.GetIndex()
 
-                posters = pscr.GetPosters()
+                posters = pscr[level].GetPosters()
                 item = posters[song].item
 
                 if item.IsPlayable() then
-print item.GetType()                
-                    'play the selected song'
 
                     audio.Stop()
                     audio.ClearContent()
 
-                    'unless its really a video'
                     if item.GetType() = "mp4" then
                         offset = GetOffset(item.GetTitle())
                         if offset > 0 then
@@ -419,24 +390,34 @@ print item.GetType()
                         ss.addContent({url: item.GetMedia() })
                     end if
 
-                else
+                else                    
                     'load the sub items and display those'
-
                     print "loading subitems for "; song; " - "; item.GetTitle()
                     pl = item.GetSubItems()
                     if pl <> invalid and pl.items.Count() <> 0 then
-                        layers.AddTail( { playlist: pl, last_selected: song } )
-                        dontKillPosterScreen = true
-                        oldScr = pscr.screen
                         if pl.theme <> currentTheme then
                             currentTheme = pl.theme
                             initTheme(app, currentTheme)
                         end if
-                        'pscr = makePosterScreen(port)
-                        pscr.SetPlayList(pl)
-                        pscr.screen.SetBreadcrumbText("1","2")
-                        pscr.screen.Show()
-                        'oldScr.Close()
+                        
+                        ' increment the level we're on
+                        level = level + 1
+                        
+                        ' create a new poseter screen
+                        '   setup breadcrumbs
+                        if level = 1 then
+                            bc1 = item.GetTitle()
+                            bc2 = ""
+                        else if level = 2
+                            bc1 = pscr[level-1].GetBC1()
+                            bc2 = item.GetTitle()
+                        else
+                            bc1 = pscr[level-1].GetBC2()
+                            bc2 = item.GetTitle()
+                        end if
+                        pscr[level] = makePosterScreen(bc1,bc2)
+                        pscr[level].SetPlayList(pl)
+                        pscr[level].screen.Show()
                         currentBaseSong = 0
 
                     else if pl = invalid then
@@ -458,7 +439,7 @@ print item.GetType()
                 print "audio isRequestSucceeded"
 
                 'queue the next song'
-                posters = pscr.GetPosters()
+                posters = pscr[level].GetPosters()
                 song = currentBaseSong + 1
                 maxsong = posters.Count() - 1
 
@@ -479,7 +460,7 @@ print item.GetType()
                     audio.Play()
                 end if
 
-                pscr.screen.SetFocusedListItem(song)
+                pscr[level].screen.SetFocusedListItem(song)
                 currentBaseSong = song
             end if
             if msg.isPartialResult() then
@@ -496,8 +477,6 @@ print item.GetType()
         end if
     end while
 
-    'showSpringboardScreen(item)'
-    
     'exit the app gently so that the screen doesnt flash to black'
     print "Exiting app"
     screenFacade.showMessage("")
@@ -536,17 +515,6 @@ End Sub
 Function showSpringboardScreen(audio as object, port as object, item as object) As Boolean
     print "showSpringboardScreen"
 
-x = createObject("roAssociativeArray")
-x.AddReplace("key 1", "val 1")   
-x.AddReplace("key 2", "val 2")   
-x.AddReplace("key 3", "val 3")   
-x.AddReplace("key 4", "val 4")   
-'y = x.Reset()
-for each y in x
-   print y
-'   y = x.Next()
-end for
-    
     screen = CreateObject("roSpringboardScreen")
 
     screen.SetMessagePort(port)
@@ -599,7 +567,6 @@ end for
         msg = wait(1000, port)
         if not paused and progress >= 0 then 
             progress = cumulative + timer.TotalSeconds()
-print cumulative, timer.TotalSeconds(), progress
             screen.SetProgressIndicator(progress, length)
         end if
         if msg <> invalid then
@@ -701,7 +668,6 @@ Function displayVideo(url,title,offset) as Integer
                 exit while
             else if msg.isPlaybackPosition() then
                 nowpos = msg.GetIndex()
-print nowpos
             else if msg.isRequestFailed()
                 print "play failed: "; msg.GetMessage()
             else if msg.isFullResult()
