@@ -29,6 +29,7 @@ class PublishMixin:
     for name in self.TAGS:
       val = getattr(self, name)
       if val:
+        val = str(val)
         handler.startElement(name, {})
         handler.characters(val)
         handler.endElement(name)
@@ -44,7 +45,7 @@ class PublishMixin:
 class RSSImageItem(PublishMixin, RSSItem):
   "extending rss items to support our extended tags"
   def __init__(self, **kwargs):
-    self.TAGS = ('image', 'filetype', 'tracknum', 'ContentType', 'StreamFormat')
+    self.TAGS = ('image', 'filetype', 'tracknum', 'ContentType', 'StreamFormat', 'playtime', 'album', 'bitrate')
     self.set_variables(kwargs)
     RSSItem.__init__(self, **kwargs)
 
@@ -95,6 +96,10 @@ def file2item(key, fname, base_dir, config, image=None):
 
   title = "None"
   description = "None"
+  album = None
+  playtime = None
+  bitrate = None
+
   filetype = None
   mimetype = None
   tracknum = None
@@ -103,19 +108,18 @@ def file2item(key, fname, base_dir, config, image=None):
     # use the ID3 tags to fill out the mp3 data
 
     try:
-      tag = eyeD3.Tag()
-      if not tag.link(fname):
-        return None
+      mp3 = eyeD3.Mp3AudioFile(fname)
+      tag = mp3.getTag()
     except:
       logging.warning("library failed to parse ID3 tags for %s. Skipping." % fname)
       return None
 
     title = tag.getTitle()
     description = tag.getArtist()
-    
+    album = tag.getAlbum()
+    playtime = mp3.getPlayTime()
+    bitrate = mp3.getBitRateString()
     tracknum = tag.getTrackNum()[0]
-    if tracknum:
-      tracknum = str(tracknum)
 
     filetype = "mp3"
     ContentType = "audio"
@@ -184,7 +188,10 @@ def file2item(key, fname, base_dir, config, image=None):
       filetype = filetype,
       tracknum = tracknum,
       ContentType = ContentType,
-      StreamFormat = filetype)
+      StreamFormat = filetype,
+      playtime = playtime,
+      album = album,
+      bitrate = bitrate)
 
 def dir2item(key, dname, base_dir, config, image, name=None):
   path = relpath26(dname, base_dir)
