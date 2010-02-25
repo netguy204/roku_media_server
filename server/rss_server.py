@@ -44,7 +44,7 @@ class PublishMixin:
 class RSSImageItem(PublishMixin, RSSItem):
   "extending rss items to support our extended tags"
   def __init__(self, **kwargs):
-    self.TAGS = ('image', 'filetype', 'tracknum')
+    self.TAGS = ('image', 'filetype', 'tracknum', 'ContentType', 'StreamFormat')
     self.set_variables(kwargs)
     RSSItem.__init__(self, **kwargs)
 
@@ -118,6 +118,7 @@ def file2item(key, fname, base_dir, config, image=None):
       tracknum = str(tracknum)
 
     filetype = "mp3"
+    ContentType = "audio"
 
   elif ext == ".wma":
     # use the filename as the title
@@ -126,6 +127,7 @@ def file2item(key, fname, base_dir, config, image=None):
     title = os.path.splitext(basename)[0]
     description = ""
     filetype = "wma"
+    ContentType = "audio"
 
   elif ext in (".m4v",".mp4"):
     # this is a video file
@@ -134,6 +136,16 @@ def file2item(key, fname, base_dir, config, image=None):
     title = os.path.splitext(basename)[0]
     description = "Video"
     filetype = "mp4"
+    ContentType = "movie"
+
+  elif ext == ".wmv":
+    # a windows movie file
+
+    basename = os.path.split(fname)[1]
+    title = os.path.splitext(basename)[0]
+    description = "Video"
+    filetype = "wmv"
+    ContentType = "movie"
 
   elif ext in (".jpg", ".jpeg", ".gif", ".png"):
 
@@ -141,6 +153,7 @@ def file2item(key, fname, base_dir, config, image=None):
     title = os.path.splitext(basename)[0]
     description = "Picture"
     filetype = "image"
+    ContentType = "image"
 
   else:
     # don't know what this is
@@ -169,7 +182,9 @@ def file2item(key, fname, base_dir, config, image=None):
       pubDate = datetime.datetime.now(),
       image = image,
       filetype = filetype,
-      tracknum = tracknum)
+      tracknum = tracknum,
+      ContentType = ContentType,
+      StreamFormat = filetype)
 
 def dir2item(key, dname, base_dir, config, image, name=None):
   path = relpath26(dname, base_dir)
@@ -357,7 +372,7 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
     minl = minl.lower()
     maxl = maxl.lower()
 
-  media_re = re.compile("\.mp3|\.wma|\.m4v|\.mp4|\.jpg|\.jpeg|\.png|\.gif")
+  media_re = re.compile("\.mp3|\.wma|\.m4v|\.mp4|\.wmv|\.jpg|\.jpeg|\.png|\.gif")
 
   for base, dirs, files in os.walk(path):
     if not recurse:
