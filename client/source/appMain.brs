@@ -17,9 +17,9 @@
 
 Function makePosterScreen(bread1 as String, bread2 as String) As Object
     print "makePosterScreen"
-    
+
     port = CreateObject("roMessagePort")
-    
+
     screen=CreateObject("roPosterScreen")
 
     screen.SetMessagePort(port)
@@ -85,57 +85,57 @@ End Function
 
 Function ShowResumeDialog() as Boolean
     print "ShowResumeDialog"
-    
-    port = CreateObject("roMessagePort") 
-    dialog = CreateObject("roMessageDialog") 
-    dialog.SetMessagePort(port) 
- 
-    dialog.SetTitle("Starting position") 
-    dialog.SetText("Resume from last saved position?") 
-    dialog.AddButton(1, "resume playing") 
-    dialog.AddButton(2, "play from beginning") 
-    dialog.Show() 
- 
-    while true 
-        dlgMsg = wait(0, dialog.GetMessagePort()) 
-        exit while                 
-    end while 
+
+    port = CreateObject("roMessagePort")
+    dialog = CreateObject("roMessageDialog")
+    dialog.SetMessagePort(port)
+
+    dialog.SetTitle("Starting position")
+    dialog.SetText("Resume from last saved position?")
+    dialog.AddButton(1, "resume playing")
+    dialog.AddButton(2, "play from beginning")
+    dialog.Show()
+
+    while true
+        dlgMsg = wait(0, dialog.GetMessagePort())
+        exit while
+    end while
 
     if dlgMsg.GetIndex() = 1 then
         return true
     else
         return false
     end if
-End Function 
+End Function
 
 Sub RegDelete(key as String, section as String)
     print "RegDelete"
-    
+
     reg = CreateObject("roRegistry")
     sect = CreateObject("roRegistrySection", section)
-    
+
     if sect.Exists(key) then    ' the documentation is pretty poor
-        sect.Delete(key)        ' not sure if we need to check for existence before    
+        sect.Delete(key)        ' not sure if we need to check for existence before
         sect.Flush()            ' deleting it or if we need to flush (probably)
     end if
 End Sub
 
 Sub RegSave(key as String, value as String, section as String)
     print "RegSave"
-    
+
     reg = CreateObject("roRegistry")
     sect = CreateObject("roRegistrySection", section)
-    
+
     sect.Write(key,value)
     sect.Flush()
 End Sub
 
-Function RegGet(key as String, section as String) as Dynamic 
+Function RegGet(key as String, section as String) as Dynamic
     print "RegGet"
-    
+
     reg = CreateObject("roRegistry")
     sect = CreateObject("roRegistrySection", section)
-    
+
     if sect.Exists(key) then
         return sect.Read(key)
     else
@@ -145,52 +145,52 @@ End Function
 
 Function ShowServerProblemDialog(s As String) as Boolean
     print "ShowServerProblemDialog "; s
-    
-    port = CreateObject("roMessagePort") 
-    dialog = CreateObject("roMessageDialog") 
-    dialog.SetMessagePort(port) 
-  
-    dialog.SetTitle("Server Problem") 
+
+    port = CreateObject("roMessagePort")
+    dialog = CreateObject("roMessageDialog")
+    dialog.SetMessagePort(port)
+
+    dialog.SetTitle("Server Problem")
     dialog.SetText("Cannot retrieve media list from:"+chr(10)+s+chr(10)+"Is the address correct and is the server running?")
-    dialog.AddButton(1, "Enter server address manually") 
-    dialog.AddButton(2, "Try again") 
-    dialog.AddButton(3, "Abort") 
-    dialog.Show() 
- 
-    while true 
-        dlgMsg = wait(0, dialog.GetMessagePort()) 
-        exit while                 
-    end while 
-    
-    if dlgMsg.isScreenClosed() then 
+    dialog.AddButton(1, "Enter server address manually")
+    dialog.AddButton(2, "Try again")
+    dialog.AddButton(3, "Abort")
+    dialog.Show()
+
+    while true
+        dlgMsg = wait(0, dialog.GetMessagePort())
+        exit while
+    end while
+
+    if dlgMsg.isScreenClosed() then
         print "ShowServerProblemDialog screen closed"
         return true
     end if
-    
+
     if dlgMsg.GetIndex() = 1 then
         kb = CreateObject("roKeyboardScreen")
-        kb.SetMessagePort(port) 
+        kb.SetMessagePort(port)
         kb.SetMaxLength(50)
         kb.SetTitle("Enter server ip address and port")
         kb.SetDisplayText("Example:  http://192.168.1.100:8001/feed")
         kb.SetText(s)
         kb.AddButton(1,"Finished")
         kb.Show()
-        while true 
-            msg = wait(0, kb.GetMessagePort()) 
-     
+        while true
+            msg = wait(0, kb.GetMessagePort())
+
             if type(msg) = "roKeyboardScreenEvent" then
-                print "message received" 
+                print "message received"
                 if msg.isButtonPressed() then
                     if msg.GetIndex() = 1  then
-                        svr = kb.GetText() 
+                        svr = kb.GetText()
                         print "New server: "; svr
                         RegSave("Server",svr, "Settings")
                         exit while
-                    end if 
-                end if 
-            end if 
-        end while 
+                    end if
+                end if
+            end if
+        end while
     else if dlgMsg.GetIndex() = 3 then
         return true
     end if
@@ -199,38 +199,38 @@ End Function
 
 Function ShowListProblemDialog() as Boolean ' returns true if Abort was selected
     print "ShowListProblemDialog"
-    
-    port = CreateObject("roMessagePort") 
-    dialog = CreateObject("roMessageDialog") 
-    dialog.SetMessagePort(port) 
- 
-    dialog.SetTitle("Media List Problem") 
-    dialog.SetText("No media items retrieved.  Is the media path set correctly? Does the selected path contain playable files?") 
-    dialog.AddButton(1, "Ok") 
-    dialog.AddButton(2, "Abort") 
-    dialog.Show() 
- 
+
+    port = CreateObject("roMessagePort")
+    dialog = CreateObject("roMessageDialog")
+    dialog.SetMessagePort(port)
+
+    dialog.SetTitle("Media List Problem")
+    dialog.SetText("No media items retrieved.  Is the media path set correctly? Does the selected path contain playable files?")
+    dialog.AddButton(1, "Ok")
+    dialog.AddButton(2, "Abort")
+    dialog.Show()
+
     dlgMsg = wait(0, dialog.GetMessagePort())
-    if dlgMsg.isScreenClosed() then 
+    if dlgMsg.isScreenClosed() then
         print "ShowListProblemDialog screen closed"
         return true
     end if
-    
+
     if dlgMsg.GetIndex() = 2 then return true
     return false
 End Function
 
 Sub SaveOffset(title as String, offset as String)
     print "SaveOffset"
-    
-    reg = CreateObject("roRegistry")        
+
+    reg = CreateObject("roRegistry")
     sect = CreateObject("roRegistrySection", "Resume")
-    
+
     dt = CreateObject("roDateTime")
     now = dt.asSeconds()
     value = now.toStr() + offset    ' timestamp concatenated w/offset as string
     sect.Write(title,value)
-    sect.Flush()    
+    sect.Flush()
 
     ' Check for more than 100 saved resume points
     keys = sect.GetKeyList()
@@ -242,14 +242,14 @@ Sub SaveOffset(title as String, offset as String)
             val = RegGet(key, "Resume")
             timestamp = left(val,10) ' unless we go back in time, timestamps are 10 digits
             ts = timestamp.toInt()
-            if ts < oldest then 
+            if ts < oldest then
                 oldest = ts
                 oldestKey = key
             end if
             key = keys.GetIndex()
         end while
         RegDelete(oldestKey, "Resume")
-    end if    
+    end if
 End Sub
 
 Function GetOffset(title as String) as Integer
@@ -266,7 +266,7 @@ End Function
 
 Sub Main()
     print "Main"
-    
+
     'initialize theme attributes like titles, logos and overhang color'
     app = CreateObject("roAppManager")
     initTheme(app, "media")
@@ -283,11 +283,11 @@ Sub Main()
     end if
 
     port = CreateObject("roMessagePort")
-    
-    while true    
+
+    while true
         ' Try "Transient" section first for backwards compatibility
         server = RegGet("Server", "Transient")
-print "Transient server "; server        
+print "Transient server "; server
         if server = invalid then
             server = RegGet("Server", "Settings")
         end if
@@ -297,10 +297,10 @@ print "Transient server "; server
         else
             print "Retrieved server from registry"
         end if
-        print "server = "; server    
+        print "server = "; server
         pl = rss.GetSongListFromFeed(server)
         if pl = invalid then
-            if ShowServerProblemDialog(server) then 
+            if ShowServerProblemDialog(server) then
                 print "Outta here!"
                 return
             end if
@@ -313,10 +313,10 @@ print "Transient server "; server
             exit while
         end if
     end while
-    
+
     ' Create an array to store Poster screens as we traverse the hierarchy
     pscr = CreateObject("roArray",1,true)
-    
+
     ' Create the top level folders poster screen
     pscr[0] = makePosterScreen("","")
     pscr[0].SetPlayList(pl)
@@ -340,13 +340,14 @@ print "Transient server "; server
         if msg.isButtonPressed() then
             print "button pressed idx= ";msg.GetIndex()
             print "button pressed data= ";msg.GetData()
-stop            
+stop
         else if msg.isScreenClosed() then
             print "isScreenClosed()"
             ' If the top level screen rcv'd the "closed" msg, we're outta here
             if level = 0 then exit while
             ' Otherwise, need to show the next screen up in the hierarchy
             print "Going up..."
+            pscr.Pop()  ' throw away the current level
             level = level - 1
             pscr[level].screen.Show()
         else if type(msg) = "roPosterScreenEvent" then
@@ -357,7 +358,6 @@ stop
                 item = posters[song].item
 
                 if item.IsPlayable() then
-
                     audio.Stop()
                     audio.ClearContent()
 
@@ -376,7 +376,8 @@ stop
                             SaveOffset(item.GetTitle(),offset.toStr())
                         end if
                     else if item.GetType() = "mp3" then ' or wma
-                        showSpringboardScreen(audio, port, item)
+                        maxSong = posters.Count() - 1
+                        currentSong = showSpringboardScreen(audio, port, posters, song)
                         REM audio.AddContent(item.GetPlayable())
                         REM print item.GetTitle()
                         REM currentBaseSong = song
@@ -390,7 +391,7 @@ stop
                         ss.addContent({url: item.GetMedia() })
                     end if
 
-                else                    
+                else
                     'load the sub items and display those'
                     print "loading subitems for "; song; " - "; item.GetTitle()
                     pl = item.GetSubItems()
@@ -399,12 +400,11 @@ stop
                             currentTheme = pl.theme
                             initTheme(app, currentTheme)
                         end if
-                        
+
                         ' increment the level we're on
                         level = level + 1
-                        
-                        ' create a new poseter screen
-                        '   setup breadcrumbs
+
+                        ' setup breadcrumbs for new poster screen
                         if level = 1 then
                             bc1 = item.GetTitle()
                             bc2 = ""
@@ -415,6 +415,7 @@ stop
                             bc1 = pscr[level-1].GetBC2()
                             bc2 = item.GetTitle()
                         end if
+                        ' create a new poster screen
                         pscr[level] = makePosterScreen(bc1,bc2)
                         pscr[level].SetPlayList(pl)
                         pscr[level].screen.Show()
@@ -501,7 +502,7 @@ Sub initTheme(app as object, themeName as String)
     theme.OverhangPrimaryLogoOffsetHD_Y = "20"
     theme.OverhangSliceHD = "pkg:/images/Overhang_BackgroundSlice_HD.png"
     theme.OverhangPrimaryLogoHD  = "pkg:/images/" + themeName + "_Logo_Overhang_HD.png"
-    
+
     print "theme logo "; theme.OverhangPrimaryLogoHD
     app.SetTheme(theme)
 
@@ -512,50 +513,52 @@ End Sub
 '** showSpringboardScreen()'
 '*************************************************************'
 
-Function showSpringboardScreen(audio as object, port as object, item as object) As Boolean
+Function showSpringboardScreen(audio as object, port as object, posters as object, idx as Integer) As Integer
     print "showSpringboardScreen"
 
     screen = CreateObject("roSpringboardScreen")
-
     screen.SetMessagePort(port)
     screen.AllowUpdates(false)
-    song = item.GetPlayable()
-    song.Title = item.GetTitle()
-    poster = item.GetPosterItem()
-    song.SDPosterURL = poster.SDPosterURL
-    song.HDPosterURL = poster.HDPosterURL
-        
-    song.Album = "Uh, what album?"
-    song.Album = poster.ShortDescriptionLine1
-    song.Artist = "Who is this, anyway?"
-    song.Artist = poster.ShortDescriptionLine2
 
-    screen.SetContent(song)
-    screen.SetDescriptionStyle("audio") 
+    songs = CreateObject("roArray",1,true)
+print posters.Count(); " posters"
+    maxidx = posters.Count() - 1
+    for i = 0 to maxidx
+        item = posters[i].item
+        song = item.GetPlayable()
+        song.Title = item.GetTitle()
+        poster = item.GetPosterItem()
+        song.SDPosterURL = poster.SDPosterURL
+        song.HDPosterURL = poster.HDPosterURL
+        song.Length = 333 ' !!! need to get real length
+        song.Album = poster.ShortDescriptionLine1
+        song.Artist = poster.ShortDescriptionLine2
+        songs.Push(song)
+    end for
+    audio.SetContentList(songs)
+    audio.SetNext(idx)
+    audio.SetLoop(false)
+
+    screen.SetContent(songs[idx])
+    screen.SetDescriptionStyle("audio")
     screen.ClearButtons()
     screen.AddButton(1,"Pause")
     screen.AddButton(2,"Go Back")
     screen.SetStaticRatingEnabled(false)
-    'screen.SetPosterStyle("rounded-square-generic") ' not needed for audio type
     screen.SetProgressIndicatorEnabled(true)
+    screen.AllowNavLeft(true)
+    screen.AllowNavRight(true)
+    'screen.AllowNavRewind(true)  INVALID FUNCTIONS!!!
+    'screen.AllowNavFastForward(true)
     screen.AllowUpdates(true)
-    
-    print item.GetTitle()
-    'audio.AddContent(item.GetPlayable())
-    audio.AddContent(song)
-    print "StreamFormat: "; song.LookUp("StreamFormat")
-    print "ContentType: "; song.LookUp("ContentType")
-    'print item.GetType()
-    'currentBaseSong = song
-    'print "current base song ";Stri(song)
 
-for each s in song
-  print s
-  print song.LookUp(s)
-end for  
-    
+    print item.GetTitle()
+
     screen.Show()
-    
+
+    remoteLeft = 4
+    remoteRight = 5
+
     paused = false
     audio.Play()
 
@@ -564,8 +567,8 @@ end for
     cumulative = 0
     timer = CreateObject("roTimespan")
     while true
-        msg = wait(1000, port)
-        if not paused and progress >= 0 then 
+        msg = wait(1000, port)  ' wait no more than a second so progress bar can be updated
+        if not paused and progress >= 0 then
             progress = cumulative + timer.TotalSeconds()
             screen.SetProgressIndicator(progress, length)
         end if
@@ -574,14 +577,13 @@ end for
             if type(msg) = "roSpringboardScreenEvent"
                 if msg.isScreenClosed()
                     print "Springboard Screen closed"
-                    exit while                
-                else if msg.isButtonPressed()           
+                    exit while
+                else if msg.isButtonPressed()
                     print "Button pressed: "; msg.GetIndex(); " " msg.GetData()
                     if msg.GetIndex() = 1 then
                         if paused then
                             paused = false
                             audio.Resume()
-                            timer.Mark()
                             screen.AllowUpdates(false)
                             screen.ClearButtons()
                             screen.AddButton(1,"Pause")
@@ -589,6 +591,7 @@ end for
                             screen.AllowUpdates(true)
                         else
                             cumulative = progress
+                            progress = -1
                             paused = true
                             audio.Pause()
                             screen.AllowUpdates(false)
@@ -599,19 +602,67 @@ end for
                         end if
                     else if msg.GetIndex() = 2
                         print "Outta here!"
-                        return true
+                        exit while
                     end if
+                else if msg.GetIndex() = remoteLeft then
+                    idx = idx - 1
+                    if idx < 0 then idx = maxidx
+                    while posters[idx].item.GetType() <> "mp3"
+                        idx = idx - 1
+                        if idx < 0 then idx = maxidx
+                    end while
+                    print "Song "; idx; " should be next"
+                    audio.Stop()
+                    audio.SetNext(idx)
+                    screen.AllowUpdates(false)
+                    screen.SetContent(songs[idx])
+                    screen.SetProgressIndicator(0, length) '!!! need to get real length
+                    screen.AllowUpdates(true)
+                    progress = -1
+                    cumulative = 0
+                    audio.Play()
+                else if msg.GetIndex() = remoteRight then
+                    idx = idx + 1
+                    if idx > maxidx then idx = 0
+                    while posters[idx].item.GetType() <> "mp3"
+                        idx = idx + 1
+                        if idx > maxidx then idx = 0
+                    end while
+                    print "Song "; idx; " should be next"
+                    audio.Stop()
+                    audio.SetNext(idx)
+                    screen.AllowUpdates(false)
+                    screen.SetContent(songs[idx])
+                    screen.SetProgressIndicator(0, length) '!!! need to get real length
+                    screen.AllowUpdates(true)
+                    progress = -1
+                    cumulative = 0
+                    audio.Play()
                 else
                     print "Unknown event: "; msg.GetType(); " msg: "; msg.GetMessage()
                 end if
             else if type(msg) = "roAudioPlayerEvent" then
                 print "AudioPlayerEvent: ";msg.GetType(); " msg: "; msg.GetMessage()
                 if msg.isStatusMessage() then
-                    if msg.GetMessage() = "start of play" and progress < 0 then
-                        progress = 0
+                    if msg.GetMessage() = "start of play" then
                         timer.Mark()
+                        progress = 0    ' allows code to update progress bar
                     else if msg.GetMessage() = "end of stream" then
-                        return true
+                        progress = -1   ' flag so code won't update progress bar
+                        cumulative = 0
+                        idx = idx + 1
+                        if idx > maxidx then idx = 0
+                        while posters[idx].item.GetType() <> "mp3"
+                            idx = idx + 1
+                            if idx > maxidx then idx = 0
+                        end while
+                        print "Song "; idx; " should be next"
+                        audio.SetNext(idx)
+                        screen.AllowUpdates(false)
+                        screen.SetContent(songs[idx])
+                        screen.SetProgressIndicator(0, length) '!!! need to get real length
+                        screen.AllowUpdates(true)
+                        audio.Play()
                     end if
                 end if
             else
@@ -620,7 +671,7 @@ end for
         end if
     end while
 
-    return true
+    return idx
 End Function
 
 
@@ -640,11 +691,11 @@ Function displayVideo(url,title,offset) as Integer
     'bitrates  = [664000]'    ' <800 Kbps = 2 dots'
     'bitrates  = [996000]'    ' <1.1Mbps  = 3 dots'
     'bitrates  = [2048000]'    ' >=1.1Mbps = 4 dots'
-    bitrates  = [1500]    
+    bitrates  = [1500]
     urls = [url]
     qualities = ["SD"]
     'qualities = ["HD"]'
-    
+
     videoclip = CreateObject("roAssociativeArray") ' MOVE THIS STUFF TO dataModel.brs!!!
     videoclip.StreamBitrates = bitrates
     videoclip.StreamUrls = urls
@@ -654,12 +705,12 @@ Function displayVideo(url,title,offset) as Integer
     videoclip.PlayStart = offset
 
     'videoclip.StreamFormat = "wmv"'  NEEDS TO BE FIXED/ADDED!!!
- 
+
     video.SetContent(videoclip)
     video.show()
 
     nowpos = offset
-    
+
     while true
         msg = wait(0, video.GetMessagePort())
         if type(msg) = "roVideoScreenEvent"
