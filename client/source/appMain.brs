@@ -395,7 +395,7 @@ Sub Main()
                             ' Save offset
                             SaveOffset(item.GetTitle(),offset.toStr())
                         end if
-                    else if item.GetType() = "mp3" then ' or wma
+                    else if item.GetType() = "mp3" or item.GetType() = "wma"
                         'maxSong = posters.Count() - 1
                         songs = buildAudioContent(posters)
                         currentSong = itemIndex
