@@ -401,11 +401,31 @@ Sub Main()
                         currentSong = itemIndex
                         currentSong = showSpringboardScreen(audio, port, songs, currentSong)
                     else if item.GetType() = "jpg" then
+                        REM print "Photo: "; item.GetTitle()
+                        REM print item.GetMedia()
+                        REM ss = CreateObject("roSlideShow")
+                        REM ss.addContent({url: item.GetMedia() })
+                        REM ss.show()
+                    REM else if item.GetType() = "image" then
                         print "Photo: "; item.GetTitle()
                         print item.GetMedia()
                         ss = CreateObject("roSlideShow")
-                        ss.addContent({url: item.GetMedia() })
+                        cl = CreateObject("roArray",1,true)
+                        ss.SetContentList(cl)
+                        ss.addContent({url: item.GetMedia(), TextOverlayBody: "This is an overlay", TextOverLayUL: "asdf asdfdf",
+                            Title: "this it the title"})
+                        ss.SetPeriod(0)
+                        ss.SetMessagePort(port)
+                        ss.SetDisplayMode("scale-to-fit")
+                        ss.SetUnderScan(2.5)
                         ss.show()
+                        while true
+                            ssmsg = wait(0, port)
+                            print "mainloop msg = "; type(ssmsg)
+                            print "type = "; ssmsg.GetType()
+                            print "index = "; ssmsg.GetIndex()
+                            if ssmsg.isScreenClosed() then exit while
+                        end while
                     end if
 
                 else
