@@ -12,13 +12,14 @@ log_file = "my_media_log.txt"
 import os
 import re
 import web
-from PyRSS2Gen import *
-import eyeD3
 import urllib
 import ConfigParser
 import math
 import logging
+
+from eyeD3 import *
 from common import *
+from PyRSS2Gen import *
 
 logging.basicConfig(filename=log_file, level=logging.DEBUG)
 
@@ -106,7 +107,7 @@ def file2item(key, fname, base_dir, config, image=None):
     # use the ID3 tags to fill out the mp3 data
 
     try:
-      mp3 = eyeD3.Mp3AudioFile(fname)
+      mp3 = Mp3AudioFile(fname)
       tag = mp3.getTag()
     except:
       logging.warning("library failed to parse ID3 tags for %s. Skipping." % fname)
@@ -239,10 +240,15 @@ def getart(path):
     del dirs[:]
 
     for file in files:
+      fp = os.path.join(base,file)
       ext = os.path.splitext(file)[1]
       if ext and img_re.match(ext):
-        curr_image = os.path.join(base,file)
+        curr_image = fp
         break
+      elif ext == ".mp3":
+        data, type = getimg(os.path.join(base,file))
+        if data:
+          curr_image = fp + ".image"
 
   return curr_image
 
@@ -461,6 +467,7 @@ def doc2m3u(doc):
 
 def range_handler(fname):
   "return all or part of the bytes of a fyle depending on whether we were called with the HTTP_RANGE header set"
+  logging.debug("serving %s" % fname)
   f = open(fname, "rb")
 
   bytes = None
@@ -543,8 +550,23 @@ class MediaHandler:
     name = song.name
 
     name = key_to_path(config, song.key, name)
+
+    ext = os.path.splitext(os.path.split(name)[1] or "")[1].lower()
+
+    print "ext = %s" % ext
+    # the .image extension means the image is embedded in an mp3
+    if ext == ".image":
+      mp3name = os.path.splitext(name)[0]
+      data, type = getimg(mp3name)
+      print "matched .image = %s type=%s" % (mp3name,type)
+      web.header("Content-Type", "image/" + type)
+      web.header("Content-Length", "%d" % len(data))
+      print str(web.ctx.environ)
+      yield data
+      return
+
     if not (name and os.path.exists(name)):
-      return None
+      return
 
     # refuse anything that isn't in the media directory
     # IE, refuse anything containing pardir
@@ -556,15 +578,14 @@ class MediaHandler:
     size = os.stat(name).st_size
 
     # make a guess at mime type
-    ext = os.path.splitext(os.path.split(name)[1] or "")[1].lower()
-
     mimetype = ext2mime(ext)
     if not mimetype:
-      return None
+      return
 
     web.header("Content-Type", mimetype)
     web.header("Content-Length", "%d" % size)
-    return range_handler(name)
+    range_handler(name)
+    return
 
 class RssHandler:
   def GET(self):
