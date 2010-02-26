@@ -30,6 +30,7 @@ Function GetSongListFromFeed(feed_url) As Dynamic
     pl=CreateObject("roList")
 
     theme = rss.channel.theme.GetText()
+print "Theme: "; theme    
 
     for each item in rss.channel.item
         pl.Push(newMediaFromXML(m, item))

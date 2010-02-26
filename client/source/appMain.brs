@@ -302,6 +302,8 @@ Sub Main()
 print "Transient server "; server
         if server = invalid then
             server = RegGet("Server", "Settings")
+        else
+            RegSave("Server", server, "Settings")
         end if
         if server = invalid then
             print "Setting server to default"
@@ -314,11 +316,19 @@ print "Transient server "; server
         if pl = invalid then
             if ShowServerProblemDialog(server) then
                 print "Outta here!"
+                'exit the app gently so that the screen doesnt flash to black'
+                print "Exiting app"
+                screenFacade.showMessage("")
+                sleep(25)
                 return
             end if
         elseif pl.items.Count() = 0         ' looks like the server always returns the mymusic folder
             if ShowListProblemDialog() then ' should it always return all top level folders???
                 print "Outta here!"
+                'exit the app gently so that the screen doesnt flash to black'
+                print "Exiting app"
+                screenFacade.showMessage("")
+                sleep(25)
                 return
             end if
         else
@@ -335,16 +345,17 @@ print "Transient server "; server
     level = 0
 
     audio = CreateObject("roAudioPlayer")
-    audio.SetMessagePort(port)
 
     currentBaseSong = 0
     currentTheme = "media"
 
     pscr[0].screen.Show()
     busyDlg.Close()
+    port = pscr[level].screen.GetMessagePort()
+    audio.SetMessagePort(port)
 
     while true
-        msg = wait(0, pscr[level].screen.GetMessagePort())
+        msg = wait(0, port)
         print "mainloop msg = "; type(msg)
         print "type = "; msg.GetType()
         print "index = "; msg.GetIndex()
@@ -357,6 +368,8 @@ print "Transient server "; server
             print "Going up..."
             pscr.Pop()  ' throw away the current level
             level = level - 1
+            port = pscr[level].screen.GetMessagePort()
+            audio.SetMessagePort(port)
             pscr[level].screen.Show()
         else if type(msg) = "roPosterScreenEvent" then
             if msg.isListItemSelected() then
@@ -425,6 +438,8 @@ print "Transient server "; server
                         pscr[level] = makePosterScreen(bc1,bc2)
                         pscr[level].SetPlayList(pl)
                         pscr[level].screen.Show()
+                        port = pscr[level].screen.GetMessagePort()
+                        audio.SetMessagePort(port)
                         currentBaseSong = 0
                     else if pl = invalid then
                         if ShowServerProblemDialog(server) then
@@ -439,12 +454,6 @@ print "Transient server "; server
                 end if
             end if
         else if type(msg) = "roAudioPlayerEvent" then
-            ' As long as the "content" passed to the audio player contains only audio
-            ' objects, this section isn't needed since the audio player can loop on
-            ' its own.  If the feature of playing a folder along with all of its sub-folders
-            ' is added, the handling of sub-folders will probably have to happen here
-            ' (as well as in the Springboard screen function) so as not to create one giant
-            ' playlist that could overwhelm the Roku
             
             if msg.isStatusMessage() then
                 print "audio status: ";msg.GetMessage()
@@ -593,7 +602,7 @@ Function showSpringboardScreen(audio as object, port as object, songs as object,
     maxidx = songs.Count() - 1
     audio.SetContentList(songs)
     audio.SetNext(idx)
-    audio.SetLoop(true)
+    audio.SetLoop(false)
 
     screen.SetContent(songs[idx])
     screen.SetDescriptionStyle("audio")
@@ -617,7 +626,8 @@ Function showSpringboardScreen(audio as object, port as object, songs as object,
     audio.Play()
 
     progress = -1
-    length = 5*60     ' 5 minutes
+    length = songs[idx].LookUp("Length")
+print "length = "; length    
     cumulative = 0
     timer = CreateObject("roTimespan")
     while true
