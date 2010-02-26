@@ -295,11 +295,10 @@ Sub Main()
     port = CreateObject("roMessagePort")
 
     busyDlg = ShowBusy()
-    
+
     while true
         ' Try "Transient" section first for backwards compatibility
         server = RegGet("Server", "Transient")
-print "Transient server "; server
         if server = invalid then
             server = RegGet("Server", "Settings")
         else
@@ -454,7 +453,7 @@ print "Transient server "; server
                 end if
             end if
         else if type(msg) = "roAudioPlayerEvent" then
-            
+
             if msg.isStatusMessage() then
                 print "audio status: ";msg.GetMessage()
                 if msg.GetMessage() = "end of stream" then
@@ -540,7 +539,7 @@ End Sub
 
 Function buildAudioContent(posters as object) as Object
     print "buildAudioContent"
-    
+
     songs = CreateObject("roArray",1,true)
 print posters.Count(); " posters"
     maxidx = posters.Count() - 1
@@ -563,7 +562,7 @@ End Function
 
 Function GetNextSong(songs as Object, idx as Integer) as Integer
     print "GetNextSong"
-    
+
     maxidx = songs.Count() - 1
     idx = idx + 1
     if idx > maxidx then idx = 0
@@ -572,11 +571,11 @@ Function GetNextSong(songs as Object, idx as Integer) as Integer
         if idx > maxidx then idx = 0
     end while
     return idx
-End Function    
+End Function
 
 Function GetPreviousSong(songs as Object, idx as Integer) as Integer
     print "GetPreviousSong"
-    
+
     maxidx = songs.Count() - 1
     idx = idx - 1
     if idx < 0 then idx = maxidx
@@ -585,7 +584,7 @@ Function GetPreviousSong(songs as Object, idx as Integer) as Integer
         if idx < 0 then idx = maxidx
     end while
     return idx
-End Function    
+End Function
 
 '*************************************************************'
 '** showSpringboardScreen()'
@@ -627,7 +626,7 @@ Function showSpringboardScreen(audio as object, port as object, songs as object,
 
     progress = -1
     length = songs[idx].LookUp("Length")
-print "length = "; length    
+print "length = "; length
     cumulative = 0
     timer = CreateObject("roTimespan")
     while true
