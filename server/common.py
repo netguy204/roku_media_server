@@ -272,5 +272,23 @@ def getimg(file):
 def scaleimg(data, type):
   try:
     import Image
+    import StringIO
 
+    print "Scaling the image"
+    SD_DIM = (223,200)
+    HD_DIM = (300,300)
+
+    file = StringIO.StringIO(data)
+    im = Image.open(file)
+    im.thumbnail(SD_DIM)
+
+    out = StringIO.StringIO()
+    im.save(out, type)
+
+    out.seek(0)
+    data = out.read()
+    return data, type
+  except:
+    print "Passing on image unmodified"
+    return data, type
 

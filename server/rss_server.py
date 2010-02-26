@@ -547,23 +547,6 @@ class MediaHandler:
       return
 
     config = parse_config(config_file)
-    name = song.name
-
-    name = key_to_path(config, song.key, name)
-
-    ext = os.path.splitext(os.path.split(name)[1] or "")[1].lower()
-
-    # the .image extension means the image is embedded in an mp3
-    if ext == ".image":
-      mp3name = os.path.splitext(name)[0]
-      data, type = getimg(mp3name)
-      web.header("Content-Type", "image/" + type)
-      web.header("Content-Length", "%d" % len(data))
-      yield data
-      return
-
-    if not (name and os.path.exists(name)):
-      return
 
     # refuse anything that isn't in the media directory
     # IE, refuse anything containing pardir
@@ -572,16 +555,53 @@ class MediaHandler:
       logging.warning("SECURITY WARNING: Someone was trying to access %s. The MyMedia client shouldn't do this" % song.name)
       return
 
+    name = song.name
+    name = key_to_path(config, song.key, name)
+    ext = os.path.splitext(os.path.split(name)[1] or "")[1].lower()
+    logging.debug("serving request for %s" % name)
+
+    # the .image extension means the image is embedded in an mp3
+    if ext == ".image":
+      mp3name = os.path.splitext(name)[0]
+      logging.debug("retrieving image data from mp3 %s" % mp3name)
+
+      data, type = scaleimg(*getimg(mp3name))
+      web.header("Content-Type", "image/" + type)
+      web.header("Content-Length", "%d" % len(data))
+      yield data
+      return
+
+    # in all other cases if the file doesn't exist, bail
+    if not (name and os.path.exists(name)):
+      logging.debug("file %s doesn't exist" % name)
+      return
+
     size = os.stat(name).st_size
 
     # make a guess at mime type
     mimetype = ext2mime(ext)
     if not mimetype:
+      logging.debug("couldn't determine mimetype for %s" % name)
       return
 
+    logging.debug("guessing mimetype of %s for %s. filesize is %d" % (mimetype, name, size))
+
+    # if it's an image, give scaling a try
+    if mimetype == "image/jpeg":
+      f = open(name)
+      data, type = scaleimg(f.read(), "jpeg")
+      f.close()
+
+      web.header("Content-Type", mimetype)
+      web.header("Content-Length", "%d" % len(data))
+      yield data
+      return
+
+    # otherwise return the data as is
     web.header("Content-Type", mimetype)
     web.header("Content-Length", "%d" % size)
-    range_handler(name)
+    for data in range_handler(name):
+      yield data
     return
 
 class RssHandler:
