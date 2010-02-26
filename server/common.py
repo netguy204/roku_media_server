@@ -269,4 +269,8 @@ def getimg(file):
   else:
     return None, None
   
+def scaleimg(data, type):
+  try:
+    import Image
+
 

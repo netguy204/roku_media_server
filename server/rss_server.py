@@ -553,15 +553,12 @@ class MediaHandler:
 
     ext = os.path.splitext(os.path.split(name)[1] or "")[1].lower()
 
-    print "ext = %s" % ext
     # the .image extension means the image is embedded in an mp3
     if ext == ".image":
       mp3name = os.path.splitext(name)[0]
       data, type = getimg(mp3name)
-      print "matched .image = %s type=%s" % (mp3name,type)
       web.header("Content-Type", "image/" + type)
       web.header("Content-Length", "%d" % len(data))
-      print str(web.ctx.environ)
       yield data
       return
 
