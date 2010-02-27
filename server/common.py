@@ -274,7 +274,7 @@ def scaleimg(data, type):
     import Image
     import StringIO
 
-    print "Scaling the image"
+    logging.debug("Scaling the image")
     SD_DIM = (223,200)
     HD_DIM = (300,300)
 
@@ -289,6 +289,6 @@ def scaleimg(data, type):
     data = out.read()
     return data, type
   except:
-    print "Passing on image unmodified"
+    logging.debug("Passing on image unmodified")
     return data, type
 
