@@ -155,7 +155,7 @@ def ext2mime(ext):
     return "video/mp4"
   elif ext == "wma":
     return "audio/x-ms-wma"
-  elif ext == "jpg" or ext == "peg":
+  elif ext in ("jpg", "peg"):
     return "image/jpeg"
   elif ext == "png":
     return "image/png"
@@ -227,6 +227,9 @@ def is_video(path):
 def is_photo(path):
   return ext2mime(path) in ("image/jpeg", "image/png", "image/gif")
 
+def is_music(path):
+  return ext2mime(path) in ("audio/mpeg" "audio/x-ms-wma")
+
 def key_to_path(config, key, base=None):
   if key == "music":
     base_dir = music_dir(config)
@@ -269,18 +272,25 @@ def getimg(file):
   else:
     return None, None
   
-def scaleimg(data, type):
+# from the roku component reference
+THB_SD_DIM = (223,200)
+THB_HD_DIM = (300,300)
+
+FULL_SD_DIM = (720,480)
+FULL_HD_DIM = (1280,720)
+
+THB_DIM = THB_SD_DIM
+FULL_DIM = FULL_SD_DIM
+
+def scaleimg(data, type, res=THB_DIM):
   try:
     import Image
     import StringIO
 
-    logging.debug("Scaling the image")
-    SD_DIM = (223,200)
-    HD_DIM = (300,300)
-
+    logging.debug("Scaling the image to %s", str(res))
     file = StringIO.StringIO(data)
     im = Image.open(file)
-    im.thumbnail(SD_DIM)
+    im.thumbnail(res)
 
     out = StringIO.StringIO()
     im.save(out, type)
@@ -295,4 +305,10 @@ def scaleimg(data, type):
     logging.debug("Passing on image unmodified")
     r = imghdr.what(None, h=data)
     return data, r
+
+def tuple2str(tup):
+  return ",".join(map(str,tup))
+
+def str2tuple(str):
+  return tuple(map(int, str.split(",")))
 

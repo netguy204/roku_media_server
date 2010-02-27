@@ -169,7 +169,7 @@ def file2item(key, fname, base_dir, config, image=None):
 
   if image:
     image = relpath26(image, base_dir)
-    image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(image), 'key': key}))
+    image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(image), 'key': key, 'res': tuple2str(THB_DIM)}))
 
   logging.debug(link)
 
@@ -202,7 +202,7 @@ def dir2item(key, dname, base_dir, config, image, name=None):
 
   if image:
     image = relpath26(image, base_dir)
-    image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(image), 'key': key}))
+    image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(image), 'key': key, 'res': tuple2str(THB_DIM)}))
 
   description = "Folder"
   #if image:
@@ -543,7 +543,7 @@ class MediaHandler:
   "retrieve a song"
 
   def GET(self):
-    song = web.input(name = None, key = None)
+    song = web.input(name = None, key = None, res = tuple2str(FULL_DIM))
     if not song.name:
       return
 
@@ -566,7 +566,8 @@ class MediaHandler:
       mp3name = os.path.splitext(name)[0]
       logging.debug("retrieving image data from mp3 %s" % mp3name)
 
-      data, type = scaleimg(*getimg(mp3name))
+      data, type = getimg(mp3name)
+      data, type = scaleimg(data, type, str2tuple(song.res))
       web.header("Content-Type", "image/" + type)
       web.header("Content-Length", "%d" % len(data))
       yield data
@@ -590,7 +591,7 @@ class MediaHandler:
     # if it's an image, give scaling a try
     if is_photo(name):
       f = open(name, "rb")
-      data, type = scaleimg(f.read(), "jpeg")
+      data, type = scaleimg(f.read(), "jpeg", str2tuple(song.res))
       f.close()
 
       web.header("Content-Type", "image/" + type)
