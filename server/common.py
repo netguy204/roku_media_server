@@ -289,6 +289,10 @@ def scaleimg(data, type):
     data = out.read()
     return data, type
   except:
+    # need to figure out what format the data was in
+    # since we won't be converting it to what the caller
+    # wanted
     logging.debug("Passing on image unmodified")
-    return data, type
+    r = imghdr.what(None, h=data)
+    return data, r
 

@@ -249,6 +249,7 @@ def getart(path):
         data, type = getimg(os.path.join(base,file))
         if data:
           curr_image = fp + ".image"
+          break
 
   return curr_image
 
@@ -587,12 +588,12 @@ class MediaHandler:
     logging.debug("guessing mimetype of %s for %s. filesize is %d" % (mimetype, name, size))
 
     # if it's an image, give scaling a try
-    if mimetype == "image/jpeg":
-      f = open(name)
+    if is_photo(name):
+      f = open(name, "rb")
       data, type = scaleimg(f.read(), "jpeg")
       f.close()
 
-      web.header("Content-Type", mimetype)
+      web.header("Content-Type", "image/" + type)
       web.header("Content-Length", "%d" % len(data))
       yield data
       return
