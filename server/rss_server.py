@@ -65,7 +65,7 @@ def main_menu_feed(config):
 
   dir = video_dir(config)
   if dir and os.path.exists(dir):
-    item = dir2item("video", dir, dir, config, image=None, name="My Video")
+    item = dir2item("video", dir, dir, config, image=None, name="My Videos")
     item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': "images/videos_square.jpg", 'key': "client"}))
     items.append(item)
 
