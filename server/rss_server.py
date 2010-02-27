@@ -132,7 +132,7 @@ def file2item(key, fname, base_dir, config, image=None):
     filetype = "wma"
     ContentType = "audio"
 
-  elif ext in (".m4v",".mp4"):
+  elif ext in (".m4v", ".mp4", ".mov"):
     # this is a video file
 
     basename = os.path.split(fname)[1]
@@ -383,7 +383,7 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
     minl = minl.lower()
     maxl = maxl.lower()
 
-  media_re = re.compile("\.mp3|\.wma|\.m4v|\.mp4|\.wmv|\.jpg|\.jpeg|\.png|\.gif")
+  media_re = re.compile("\.mp3|\.wma|\.m4v|\.mp4|\.mov|\.wmv|\.jpg|\.jpeg|\.png|\.gif")
 
   for base, dirs, files in os.walk(path):
     if not recurse:
@@ -466,7 +466,7 @@ def doc2m3u(doc):
   return "\n".join(lines)
 
 def range_handler(fname):
-  "return all or part of the bytes of a fyle depending on whether we were called with the HTTP_RANGE header set"
+  "return all or part of the bytes of a file depending on whether we were called with the HTTP_RANGE header set"
   logging.debug("serving %s" % fname)
   f = open(fname, "rb")
 
