@@ -352,7 +352,9 @@ def partition_by_firstletter(key, subdirs, basedir, minmax, config):
       next_letter = maxl
 
     # create the item
-    link = "%s/feed?%s" % (server_base(config), urllib.urlencode({'dir':basedir, 'range': last_letter+next_letter, 'key': key}))
+    reldir = relpath26(basedir, key_to_path(config, key))
+    logging.debug("built %s from %s relative to %s" % (reldir, basedir, key_to_path(config, key)))
+    link = "%s/feed?%s" % (server_base(config), urllib.urlencode({'dir':reldir, 'range': last_letter+next_letter, 'key': key}))
 
     newsubdirs.append(RSSImageItem(
       title = "%s - %s" % (last_letter.upper(), next_letter.upper()),
@@ -414,14 +416,14 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
         logging.debug("rejecting %s" % file)
         continue
       
-      path = os.path.join(base, file)
+      fpath = os.path.join(base, file)
 
-      if is_video(path) or is_photo(path):
-        image_icon = getart(path) or curr_image
+      if is_video(fpath) or is_photo(fpath):
+        image_icon = getart(fpath) or curr_image
       else:
         image_icon = curr_image
 
-      item = file2item(key, path, base_dir, config, image_icon)
+      item = file2item(key, fpath, base_dir, config, image_icon)
       if item:
         items.append(item)
 
