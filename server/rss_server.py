@@ -241,7 +241,7 @@ def getart(path):
 
     for file in files:
       fp = os.path.join(base,file)
-      ext = os.path.splitext(file)[1]
+      ext = os.path.splitext(file)[1].lower()
       if ext and img_re.match(ext):
         curr_image = fp
         break
