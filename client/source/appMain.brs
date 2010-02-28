@@ -1,5 +1,5 @@
 ' ********************************************************************'
-' **  MyMedia - Springboard version'
+' **  MyMedia - Springboard/SlideShow version'
 ' **'
 ' **  Initial revision'
 ' **  Brian Taylor el.wubo@gmail.com'
@@ -359,35 +359,36 @@ Sub Main()
         print "type = "; msg.GetType()
         print "index = "; msg.GetIndex()
 
-        if msg.isScreenClosed() then
-            print "isScreenClosed()"
-            ' If the top level screen rcv'd the "closed" msg, we're outta here
-            if level = 0 then exit while
-            ' Otherwise, need to show the next screen up in the hierarchy
-            print "Going up..."
-            pscr.Pop()  ' throw away the current level
-            level = level - 1
-            port = pscr[level].screen.GetMessagePort()
-            audio.SetMessagePort(port)
-            pscr[level].screen.Show()
-        else if type(msg) = "roPosterScreenEvent" then
-            if msg.isListItemSelected() then
+        if type(msg) = "roPosterScreenEvent" then
+            if msg.isScreenClosed() then
+                print "isScreenClosed()"
+                ' If the top level screen rcv'd the "closed" msg, we're outta here
+                if level = 0 then exit while
+                ' Otherwise, need to show the next screen up in the hierarchy
+                print "Going up..."
+                pscr.Pop()  ' throw away the current level
+                level = level - 1
+                port = pscr[level].screen.GetMessagePort()
+                audio.SetMessagePort(port)
+                pscr[level].screen.Show()
+            else if msg.isListItemSelected() then
                 itemIndex = msg.GetIndex()
 
                 posters = pscr[level].GetPosters()
                 item = posters[itemIndex].item
 
                 if item.IsPlayable() then
-                    audio.Stop()
-                    audio.ClearContent()
 
-                    if item.GetType() = "mp4" then
+                    if item.GetContentType() = "movie"
+                        audio.Stop()
+                        audio.ClearContent()
                         offset = GetOffset(item.GetTitle())
                         if offset > 0 then
                             if not ShowResumeDialog() then offset = 0
                         end if
                         print "Starting from position "; offset
-                        offset = displayVideo(item.GetMedia(),item.GetTitle(),offset)
+                        'offset = displayVideo(item.GetMedia(),item.GetTitle(),offset)
+                        offset = displayVideo(item.GetPlayable(),offset)
                         if offset = 0 then
                             ' Delete reg key
                             RegDelete(item.GetTitle(), "Resume")
@@ -395,37 +396,29 @@ Sub Main()
                             ' Save offset
                             SaveOffset(item.GetTitle(),offset.toStr())
                         end if
-                    else if item.GetType() = "mp3" or item.GetType() = "wma"
+                    else if item.GetContentType() = "audio" then
+                        audio.Stop()
+                        audio.ClearContent()
                         'maxSong = posters.Count() - 1
                         songs = buildAudioContent(posters)
                         currentSong = itemIndex
                         currentSong = showSpringboardScreen(audio, port, songs, currentSong)
-                    else if item.GetType() = "jpg" then
-                        REM print "Photo: "; item.GetTitle()
-                        REM print item.GetMedia()
-                        REM ss = CreateObject("roSlideShow")
-                        REM ss.addContent({url: item.GetMedia() })
-                        REM ss.show()
-                    REM else if item.GetType() = "image" then
+                    else if item.GetType() = "image" then
+                        busyDlg = ShowBusy()
                         print "Photo: "; item.GetTitle()
                         print item.GetMedia()
                         ss = CreateObject("roSlideShow")
                         cl = CreateObject("roArray",1,true)
+                        newidx = buildSlideShowContent(posters,itemIndex,cl)
                         ss.SetContentList(cl)
-                        ss.addContent({url: item.GetMedia(), TextOverlayBody: "This is an overlay", TextOverLayUL: "asdf asdfdf",
-                            Title: "this it the title"})
-                        ss.SetPeriod(0)
+                        ss.SetPeriod(5)
+                        ss.SetTextOverlayHoldTime(2000)
                         ss.SetMessagePort(port)
                         ss.SetDisplayMode("scale-to-fit")
-                        ss.SetUnderScan(2.5)
+                        ss.SetUnderScan(5)
+                        ss.SetNext(newidx,true)
                         ss.show()
-                        while true
-                            ssmsg = wait(0, port)
-                            print "mainloop msg = "; type(ssmsg)
-                            print "type = "; ssmsg.GetType()
-                            print "index = "; ssmsg.GetIndex()
-                            if ssmsg.isScreenClosed() then exit while
-                        end while
+                        busyDlg.Close()
                     end if
 
                 else
@@ -472,8 +465,11 @@ Sub Main()
                     busyDlg.Close()
                 end if
             end if
+        else if type(msg) = "roSlideShowEvent" then
+            print "slideshow event msg = "; type(msg)
+            print "type = "; msg.GetType()
+            print "index = "; msg.GetIndex()
         else if type(msg) = "roAudioPlayerEvent" then
-
             if msg.isStatusMessage() then
                 print "audio status: ";msg.GetMessage()
                 if msg.GetMessage() = "end of stream" then
@@ -483,44 +479,6 @@ Sub Main()
                     audio.Play()
                 end if
             end if
-            REM if msg.isRequestSucceeded() then
-                REM print "audio isRequestSucceeded"
-
-                REM 'queue the next song'
-                REM posters = pscr[level].GetPosters()
-                REM song = currentBaseSong + 1
-                REM maxsong = posters.Count() - 1
-
-                REM if song > maxsong
-                    REM song = 0
-                REM end if
-
-                REM print "song: ";Stri(song)
-                REM print "max song: ";Stri(maxsong)
-
-                REM audio.Stop()
-                REM audio.ClearContent()
-                REM item = posters[song].item
-
-                REM 'stop if the next item is a video'
-                REM if not item.GetType() = "mp4" then
-                    REM audio.AddContent(item.GetPlayable())
-                    REM audio.Play()
-                REM end if
-
-                REM pscr[level].screen.SetFocusedListItem(song)
-                REM currentBaseSong = song
-            REM end if
-            REM if msg.isPartialResult() then
-                REM print "audio partial result"
-            REM end if
-            REM if msg.isRequestFailed() then
-                REM print "audio request failed: ";msg.GetMessage()
-                REM print "error code: ";Stri(msg.GetIndex())
-            REM end if
-            REM if msg.isFullResult() then
-                REM print "isFullResult"
-            REM end if
             print "end roAudioPlayerEvent"
         end if
     end while
@@ -557,6 +515,28 @@ Sub initTheme(app as object, themeName as String)
 End Sub
 
 
+Function buildSlideShowContent(posters as object, idx as Integer, pics as Object) as Integer
+' Removes any sub-directories and other non-images from the 'posters' list and builds
+' a content list for the roSlideShow component.
+' Returns the new index that should be displayed to correspond to the index from the
+' poster list.
+    print "buildSlideShowContent"
+
+    newidx = idx
+    maxidx = posters.Count() - 1
+    for i = 0 to maxidx
+        item = posters[i].item
+        if item.GetType() = "image" then
+            pic = item.GetPlayable()
+            pic.TextOverlayBody = item.GetTitle()
+            pics.Push(pic)
+        else
+            newidx = newidx - 1
+        end if
+    end for
+    return newidx
+End Function
+
 Function buildAudioContent(posters as object) as Object
     print "buildAudioContent"
 
@@ -564,18 +544,16 @@ Function buildAudioContent(posters as object) as Object
 print posters.Count(); " posters"
     maxidx = posters.Count() - 1
     for i = 0 to maxidx
-        'if posters[i].item.GetType() = "mp3" then     '!!! need to change to "audio"
-            item = posters[i].item
-            song = item.GetPlayable()
-            song.Title = item.GetTitle()
-            poster = item.GetPosterItem()
-            song.SDPosterURL = poster.SDPosterURL
-            song.HDPosterURL = poster.HDPosterURL
-            'song.Length = 333 ' !!! need to get real length
-            song.Album = poster.ShortDescriptionLine1
-            song.Artist = poster.ShortDescriptionLine2
-            songs.Push(song)
-        'end if
+        item = posters[i].item
+        song = item.GetPlayable()
+        'song.Title = item.GetTitle()
+        poster = item.GetPosterItem()
+        song.SDPosterURL = poster.SDPosterURL
+        song.HDPosterURL = poster.HDPosterURL
+        'song.Length = 333 ' !!! need to get real length
+        'song.Album = poster.ShortDescriptionLine1
+        'song.Artist = poster.ShortDescriptionLine2
+        songs.Push(song)
     end for
     return songs
 End Function
@@ -642,13 +620,13 @@ Function showSpringboardScreen(audio as object, port as object, songs as object,
     remoteRight = 5
 
     paused = false
-    audio.Play()
 
     progress = -1
     length = songs[idx].LookUp("Length")
-print "length = "; length
+
     cumulative = 0
     timer = CreateObject("roTimespan")
+    audio.Play()
     while true
         msg = wait(1000, port)  ' wait no more than a second so progress bar can be updated
         if not paused and progress >= 0 then
@@ -697,7 +675,8 @@ print "length = "; length
                     audio.SetNext(idx)
                     screen.AllowUpdates(false)
                     screen.SetContent(songs[idx])
-                    screen.SetProgressIndicator(0, length) '!!! need to get real length
+                    length = songs[idx].LookUp("Length")
+                    screen.SetProgressIndicator(0, length)
                     screen.AllowUpdates(true)
                     progress = -1
                     cumulative = 0
@@ -719,7 +698,8 @@ print "length = "; length
                         audio.SetNext(idx)
                         screen.AllowUpdates(false)
                         screen.SetContent(songs[idx])
-                        screen.SetProgressIndicator(0, length) '!!! need to get real length
+                        length = songs[idx].LookUp("Length")
+                        screen.SetProgressIndicator(0, length)
                         screen.AllowUpdates(true)
                         audio.Play()
                     end if
@@ -738,12 +718,13 @@ End Function
 '** displayVideo()'
 '*************************************************************'
 
-Function displayVideo(url,title,offset) as Integer
+'Function displayVideo(url,title,offset) as Integer
+Function displayVideo(video as Object, offset as Integer) as Integer
     print "Displaying video: "
-    p = CreateObject("roMessagePort")
-    video = CreateObject("roVideoScreen")
-    video.setMessagePort(p)
-    video.SetPositionNotificationPeriod(10)
+    port = CreateObject("roMessagePort")
+    videoScreen = CreateObject("roVideoScreen")
+    videoScreen.setMessagePort(port)
+    videoScreen.SetPositionNotificationPeriod(10)
 
     'bitrates  = [0]'          ' 0 = no dots'
     'bitrates  = [348000]'    ' <500 Kbps = 1 dot'
@@ -751,27 +732,22 @@ Function displayVideo(url,title,offset) as Integer
     'bitrates  = [996000]'    ' <1.1Mbps  = 3 dots'
     'bitrates  = [2048000]'    ' >=1.1Mbps = 4 dots'
     bitrates  = [1500]
-    urls = [url]
     qualities = ["SD"]
     'qualities = ["HD"]'
 
-    videoclip = CreateObject("roAssociativeArray") ' MOVE THIS STUFF TO dataModel.brs!!!
+    videoclip = video   'CreateObject("roAssociativeArray") ' MOVE THIS STUFF TO dataModel.brs!!!
     videoclip.StreamBitrates = bitrates
-    videoclip.StreamUrls = urls
+    videoclip.StreamUrls = [video["url"]]
     videoclip.StreamQualities = qualities
-    videoclip.StreamFormat = "mp4"
-    videoclip.Title = title
     videoclip.PlayStart = offset
 
-    'videoclip.StreamFormat = "wmv"'  NEEDS TO BE FIXED/ADDED!!!
-
-    video.SetContent(videoclip)
-    video.show()
+    videoScreen.SetContent(videoclip)
+    videoScreen.show()
 
     nowpos = offset
 
     while true
-        msg = wait(0, video.GetMessagePort())
+        msg = wait(0, port)
         if type(msg) = "roVideoScreenEvent"
             if msg.isScreenClosed() then 'ScreenClosed event'
                 print "Closing video screen"

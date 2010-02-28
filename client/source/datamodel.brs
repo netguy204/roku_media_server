@@ -21,7 +21,7 @@ Function GetSongListFromFeed(feed_url) As Dynamic
     m.http.SetUrl(feed_url)
     xml = m.http.GetToString()
     rss=CreateObject("roXMLElement")
-    if not rss.Parse(xml) then 
+    if not rss.Parse(xml) then
         print "No xml received from server"
         return invalid
     end if
@@ -30,7 +30,6 @@ Function GetSongListFromFeed(feed_url) As Dynamic
     pl=CreateObject("roList")
 
     theme = rss.channel.theme.GetText()
-print "Theme: "; theme    
 
     for each item in rss.channel.item
         pl.Push(newMediaFromXML(m, item))
@@ -40,31 +39,31 @@ print "Theme: "; theme
     return { items:pl, theme:theme }
 End Function
 
- 
-Sub PrintXML(element As Object, depth As Integer) 
+
+Sub PrintXML(element As Object, depth As Integer)
 print "PrintXML"
-    print tab(depth*3);"Name: ";element.GetName() 
-    if not element.GetAttributes().IsEmpty() then 
-        print tab(depth*3);"Attributes: "; 
-        for each a in element.GetAttributes() 
-            print a;"=";left(element.GetAttributes()[a], 20); 
-            if element.GetAttributes().IsNext() then print ", "; 
-        end for 
-        print 
-    end if 
- 
-    if element.GetText()<>invalid then 
-        print tab(depth*3);"Contains Text: ";left(element.GetText(), 40) 
-    end if 
- 
-    if element.GetChildElements()<>invalid 
-        print tab(depth*3);"Contains roXMLList:" 
-        for each e in element.GetChildElements() 
-            PrintXML(e, depth+1) 
-        end for 
-    end if 
-    print 
-end sub 
+    print tab(depth*3);"Name: ";element.GetName()
+    if not element.GetAttributes().IsEmpty() then
+        print tab(depth*3);"Attributes: ";
+        for each a in element.GetAttributes()
+            print a;"=";left(element.GetAttributes()[a], 20);
+            if element.GetAttributes().IsNext() then print ", ";
+        end for
+        print
+    end if
+
+    if element.GetText()<>invalid then
+        print tab(depth*3);"Contains Text: ";left(element.GetText(), 40)
+    end if
+
+    if element.GetChildElements()<>invalid
+        print tab(depth*3);"Contains roXMLList:"
+        for each e in element.GetChildElements()
+            PrintXML(e, depth+1)
+        end for
+    end if
+    print
+end sub
 
 Function newMediaFromXML(rss As Object, xml As Object) As Object
 'PrintXML(xml,0)
@@ -76,7 +75,12 @@ Function newMediaFromXML(rss As Object, xml As Object) As Object
         GetPlayable:itemGetPlayable,
         GetPosterItem:itemGetPosterItem,
         GetDescription:itemGetDescription,
+        GetStreamFormat:itemGetStreamFormat,
+        GetContentType:itemGetContentType,
         GetType:itemGetType,
+        GetLength:itemGetLength,
+        GetAlbum:itemGetAlbum,
+        GetArtist:itemGetArtist,
         IsPlayable:itemIsPlayable,
         GetSubItems:itemGetSubItems }
 
@@ -99,18 +103,35 @@ Function itemGetType()
     return m.xml.filetype.GetText()
 End Function
 
+Function itemGetStreamFormat()
+    return m.xml.StreamFormat.GetText()
+End Function
+
+Function itemGetContentType()
+    return m.xml.ContentType.GetText()
+End Function
+
+Function itemGetLength()
+    l = m.xml.playtime.GetText()
+    return l.toInt()
+End Function
+
+Function itemGetAlbum()
+    return m.xml.album.GetText()
+End Function
+
+Function itemGetArtist()
+    return m.xml.description.GetText()
+End Function
+
 Function itemGetPlayable()
     print "getting playable for ";m.GetMedia()
     print "type: "; m.GetType()
-    sf = m.GetType()
-    if sf = "mp3" or sf = "wma" then 
-        ct = "audio"
-    else
-        ct = ""
-    end if
+    sf = m.GetStreamFormat()
+    ct = m.GetContentType()
     'return { Url: m.GetMedia(), StreamFormat: m.GetType() }
-    return { Url: m.GetMedia(), ContentType: ct, Title: "this is a test", StreamFormat: sf,
-             Length: 303 }
+    return { Url: m.GetMedia(), ContentType: ct, Title: m.GetTitle(), StreamFormat: sf,
+             Length: m.GetLength(), Artist: m.GetArtist(), Album: m.GetAlbum() }
 End Function
 
 Function itemGetPosterItem()
@@ -121,9 +142,14 @@ Function itemGetPosterItem()
         icon = m.xml.image.GetText()
     else if not m.IsPlayable() then
         icon = "pkg:/images/folder_square.jpg"
-    else if m.IsPlayable() and m.GetType() = "mp4" then
+    else if m.IsPlayable() and m.GetContentType() = "movie" then
         icon = "pkg:/images/videos_square.jpg"
     end if
+
+'print "ShortDescriptionLine1: "; m.GetTitle()
+'print "ShortDescriptionLine2: "; m.GetDescription()
+'print "HDPosterUrl: "; icon
+'print "SDPosterUrl: "; icon
 
     return {
         ShortDescriptionLine1: m.GetTitle(),
