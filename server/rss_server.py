@@ -423,6 +423,10 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
       else:
         image_icon = curr_image
 
+      # filter out items that don't match our current key
+      if not file2key(fpath) == key:
+        continue
+
       item = file2item(key, fpath, base_dir, config, image_icon)
       if item:
         items.append(item)

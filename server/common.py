@@ -230,6 +230,16 @@ def is_photo(path):
 def is_music(path):
   return ext2mime(path) in ("audio/mpeg" "audio/x-ms-wma")
 
+def file2key(path):
+  if is_video(path):
+    return "video"
+  elif is_photo(path):
+    return "photo"
+  elif is_music(path):
+    return "music"
+  else:
+    return None
+
 def key_to_path(config, key, base=None):
   if key == "music":
     base_dir = music_dir(config)
