@@ -1,0 +1,45 @@
+---
+layout: default
+title: MyMedia
+---
+
+h2. Dependencies
+
+p. Python
+
+h2. Install
+
+# Download and install python for your platform
+# Download MyMedia
+# Put your Roku into developer mode
+# Run springboard to install the channel on your Roku and start the server
+
+"More Details":http://github.com/netguy204/roku_media_server/blob/master/README.textile
+
+h2. License
+
+p. GNU General Public License
+
+h2. Authors
+
+Brian Taylor "el.wubo@gmail.com":mailto:el.wubo@gmail.com
+
+* czarjosh
+* hoffmcs
+* renojim
+* onecaribou
+* umbighouse
+
+h2. Contact
+
+"Users Forum":http://forums.roku.com/viewtopic.php?&t=25955
+
+"Developers Mailing List":http://groups.google.com/group/mymedia-roku-developers
+
+h2. Download
+
+You can download this project in either "zip":http://github.com/netguy204/roku_media_server/zipball/master or "tar":http://github.com/netguy204/roku_media_server/tarball/master formats.
+
+You can also clone the project with "Git":http://git-scm.com by running:
+
+pre. $ git clone git://github.com/netguy204/roku_media_server
