@@ -5,7 +5,7 @@
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 
-	<title>My Media: Personal Roku Media Server</title>
+  <title>{{ page.title }}</title>
 	
 	<style type="text/css">
 		body {
@@ -34,7 +34,7 @@
     a { color: #333388; }
     .description { font-size: 1.2em; margin-bottom: 30px; margin-top: 30px; font-style: italic;}
     .download { float: right; }
-		pre { background: #000; color: #fff; padding: 15px;}
+		pre { background: #223; color: #ccc; padding: 15px; border-style: solid; border-color: #779; border-width: 5px;}
     hr { border: 0; width: 80%; border-bottom: 1px solid #aaa}
     .footer { text-align:center; padding-top:30px; font-style: italic; }
 	</style>
@@ -42,23 +42,18 @@
 </head>
 
 <body>
-  <a href="http://github.com/netguy204/roku_media_server"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>
+  <!--<a href="http://github.com/netguy204/roku_media_server"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>-->
 
   <div id="container">
 
     <div class="download">
-      <a href="http://github.com/netguy204/roku_media_server/zipball/master">
+      <a href="http://github.com/netguy204/roku_media_server/zipball/{{ page.branch }}">
         <img border="0" width="90" src="http://github.com/images/modules/download/zip.png"></a>
-      <a href="http://github.com/netguy204/roku_media_server/tarball/master">
+      <a href="http://github.com/netguy204/roku_media_server/tarball/{{ page.branch }}">
         <img border="0" width="90" src="http://github.com/images/modules/download/tar.png"></a>
     </div>
 
-    <h1><a href="http://github.com/netguy204/roku_media_server">My Media</a>
-      <span class="small">by <a href="http://github.com/netguy204">el.wubo</a></span></h1>
-
-    <div class="description">
-      A client and server combo for serving mp3s and other local media over your local network to your Roku set-top box.
-    </div>
+<h1><a href="http://github.com/netguy204/roku_media_server">My Media</a> <span class="small">by <a href="http://github.com/netguy204">el.wubo</a></span></h1>
 
 		{{ content }}
 

@@ -1,0 +1,46 @@
+---
+layout: default
+title: Developer's Preview
+branch: PhotoBrowsing1
+---
+
+h2. Latest Release: {{page.branch}}
+
+h2. Early Development Preview
+
+If you've been itching to install a new version "here's an early preview":http://github.com/netguy204/roku_media_server/zipball/{{page.branch}} of what we've been working on.
+
+h2. What to expect
+
+* BUGS! (report them)
+* Theming isn't finished yet (umbighouse is on it!)
+* Photo browsing and slideshow (thanks renojim)
+* Audio pausing (thanks renojim)
+* Fixed bugs related to Home button (thanks renojim)
+* Better feedback while the channel is loading data from the server (thanks renojim)
+* MP3's with embedded album art will now display the art
+* Server-side image thumbnails, leading to faster channel browsing (see below)
+
+h2. Installation
+
+* Stop your current server (verify by pressing alt+ctrl+delete and stopping python in the processes tab)
+* Download and install the Python Imaging Library (PIL, see below) "for windows":http://effbot.org/downloads/PIL-1.1.7.win32-py2.6.exe or "linux and mac":http://forums.roku.com/viewtopic.php?f=28&t=25955&p=162079#p162064
+* "Download":http://github.com/netguy204/roku_media_server/zipball/{{page.branch}} and extract the new zip to a new location
+* Copy your config.ini file from old_installation/server/config.ini to new_installation/server/config.ini to maintain your current settings
+* Start springboard, configure your image folder, click install client
+* Start the server
+
+h2. Python Imaging Library
+
+In order to make personal image browsing a reality we must be able to resize images of many formats on demand. I've added the Python Imaging Library (PIL) as a requirement because it enables the server to load and manipulate most popular image formats. The channel will still work without PIL but it will pass the Roku full sized images (not thumbnails) and you can expect slow performance from your photo collection.
+
+h2. Known Bugs
+
+* My Photos uses My Videos icon and theming not correct on My Photos page
+* Horrible photo browsing performance if PIL is not installed (not really a bug, but something you should be aware of)
+* Slightly worse load times for big music collections (expect this to improve soon)
+
+*Let the bug reports begin*
+
+Note: This isn't release quality yet. It's for the brave and industrious... those willing to troubleshoot through quite a few bugs and issues.
+

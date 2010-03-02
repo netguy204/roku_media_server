@@ -1,20 +1,25 @@
 ---
 layout: default
 title: MyMedia
+branch: master
 ---
 
-h2. Dependencies
+<div class="description">
+A client and server combo for serving mp3s and other local media over your local network to your Roku set-top box.
+</div>
 
-p. Python
+h2. Getting Started
 
-h2. Install
+Check out the "installation guide":README.html for all the details but you'll basically be doing this:
 
 # Download and install python for your platform
 # Download MyMedia
 # Put your Roku into developer mode
 # Run springboard to install the channel on your Roku and start the server
 
-"More Details":http://github.com/netguy204/roku_media_server/blob/master/README.textile
+h2. For the Daring
+
+The features that eventually make it into the main distribution start their lives in the "developer's preview":developers_preview.html version. If you're willing to encounter and "report":http://forums.roku.com/viewtopic.php?&t=25955 a few bugs please give it a try! We need your help to iron out the wrinkles for everyone else.
 
 h2. License
 
