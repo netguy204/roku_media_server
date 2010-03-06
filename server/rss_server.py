@@ -28,7 +28,7 @@ class PublishMixin:
     for name in self.TAGS:
       val = getattr(self, name)
       if val:
-        val = to_unicode(val)
+        val = stringify_num(val)
         handler.startElement(name, {})
         handler.characters(val)
         handler.endElement(name)
@@ -85,6 +85,14 @@ def main_menu_feed(config):
 
   return doc
 
+def call_protected(f, default):
+  v = default
+  try:
+    v = f()
+  except:
+    logging.debug("failed to call function %s, using default %s", str(f), str(default))
+  return v
+
 def file2item(key, fname, base_dir, config, image=None):
   if not os.path.exists(fname):
     logging.warning("WARNING: Tried to create feed item for `%s' which does not exist. This shouldn't happen" % fname)
@@ -113,12 +121,12 @@ def file2item(key, fname, base_dir, config, image=None):
       logging.warning("library failed to parse ID3 tags for %s. Skipping." % fname)
       return None
 
-    title = tag.getTitle()
-    description = tag.getArtist()
-    album = tag.getAlbum()
-    playtime = mp3.getPlayTime()
-    bitrate = mp3.getBitRateString()
-    tracknum = tag.getTrackNum()[0]
+    title = call_protected(tag.getTitle, "Error Reading Title")
+    description = call_protected(tag.getArtist, "Error Reading Artist")
+    album = call_protected(tag.getAlbum, "Error Reading Album")
+    playtime = call_protected(mp3.getPlayTime, "0")
+    bitrate = call_protected(mp3.getBitRateString, "Error Reading Bitrate")
+    tracknum = call_protected(tag.getTrackNum, ( 0, ))[0]
 
     filetype = "mp3"
     ContentType = "audio"

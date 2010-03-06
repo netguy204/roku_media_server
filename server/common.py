@@ -3,6 +3,7 @@ import sys
 import ConfigParser
 import httplib, mimetypes
 import logging
+import types
 
 import imghdr
 from eyeD3 import *
@@ -326,3 +327,7 @@ def tuple2str(tup):
 def str2tuple(str):
   return tuple(map(int, str.split(",")))
 
+def stringify_num(num):
+  if type(num) in (types.IntType, types.LongType, types.FloatType):
+    return str(num)
+  return num
