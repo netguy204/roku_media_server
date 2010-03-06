@@ -1,3 +1,4 @@
+' started as main/next netguy204-roku_media_server-d01e74f.zip
 ' ********************************************************************'
 ' **  MyMedia - Springboard/SlideShow version'
 ' **'
@@ -37,6 +38,7 @@ Function makePosterScreen(bread1 as String, bread2 as String) As Object
         GetBC1: psGetBC1,
         GetBC2: psGetBC2,
         posters: [],
+        theme: "",
         breadCrumb1: bread1
         breadCrumb2: bread2}
 End Function
@@ -59,6 +61,7 @@ Function psSetPlayList(pl)
         posters.Push(song.GetPosterItem())
     next
 
+    m.theme = pl.theme
     m.posters = posters
     m.screen.SetIconArray(posters)
     m.screen.SetFocusedListItem(0)
@@ -143,76 +146,120 @@ Function RegGet(key as String, section as String) as Dynamic
     end if
 End Function
 
-Function ShowServerProblemDialog(s As String) as Boolean
-    print "ShowServerProblemDialog "; s
+Sub ShowServerWarning()
+    print "ShowServerWarning"
 
     port = CreateObject("roMessagePort")
     dialog = CreateObject("roMessageDialog")
     dialog.SetMessagePort(port)
 
-    dialog.SetTitle("Server Problem")
-    dialog.SetText("Cannot retrieve media list from:"+chr(10)+s+chr(10)+"Is the address correct and is the server running?")
-    dialog.AddButton(1, "Enter server address manually")
-    dialog.AddButton(2, "Try again")
-    dialog.AddButton(3, "Abort")
+    dialog.SetTitle("Server updated")
+    dialog.SetText("You must exit for the new server to take effect.")
+    dialog.AddButton(1, "Ok")
     dialog.Show()
 
+    dlgMsg = wait(0, dialog.GetMessagePort())
+End Sub
+
+Function ShowSettings(currentSettings as Object, toolate=true) as Object
+    print "ShowSettings"
+
+    currentServer = currentSettings.server
+    currentDelay = currentSettings.ssDelay
+    newserver = currentServer
+    newdelay = currentDelay
+
+    port = CreateObject("roMessagePort")
+    settings = invalid
+
     while true
-        dlgMsg = wait(0, dialog.GetMessagePort())
-        exit while
-    end while
+        settings = CreateObject("roParagraphScreen")
+        settings.SetMessagePort(port)
+        settings.AddHeaderText("Current configuration:")
+        settings.AddParagraph("Server:"+chr(10)+currentServer)
+        settings.AddParagraph("Slide show delay:"+chr(10)+currentDelay+" seconds")
+        settings.AddButton(1,"Edit server")
+        settings.AddButton(2,"Edit slide show delay")
+        settings.AddButton(3,"Finished")
 
-    if dlgMsg.isScreenClosed() then
-        print "ShowServerProblemDialog screen closed"
-        return true
-    end if
+        settings.Show()
 
-    if dlgMsg.GetIndex() = 1 then
-        kb = CreateObject("roKeyboardScreen")
-        kb.SetMessagePort(port)
-        kb.SetMaxLength(50)
-        kb.SetTitle("Enter server ip address and port")
-        kb.SetDisplayText("Example:  http://192.168.1.100:8001/feed")
-        kb.SetText(s)
-        kb.AddButton(1,"Finished")
-        kb.Show()
-        while true
-            msg = wait(0, kb.GetMessagePort())
+        msg = wait(0, port)
 
-            if type(msg) = "roKeyboardScreenEvent" then
-                print "message received"
-                if msg.isButtonPressed() then
-                    if msg.GetIndex() = 1  then
-                        svr = kb.GetText()
-                        print "New server: "; svr
-                        RegSave("Server",svr, "Settings")
-                        exit while
-                    end if
-                end if
+        if msg.GetIndex() = 1 then
+            newserver = EditDialog("Enter server ip address and port",currentServer,"Example:  http://192.168.1.100:8001/feed",50)
+        else if msg.GetIndex() = 2 then
+            newdelay = EditDialog("Enter slide show delay",currentDelay,"Slide show delay in seconds",4)
+        else
+            exit while
+        end if
+        if newserver <> currentServer or newdelay <> currentDelay then
+            nd = newdelay.toInt()
+            newdelay = nd.toStr()
+            RegSave("Server", newserver, "Settings")
+            RegSave("Slide show delay", newdelay, "Settings")
+            if newserver <> currentServer and toolate then
+                ShowServerWarning()
             end if
-        end while
-    else if dlgMsg.GetIndex() = 3 then
-        return true
-    end if
-    return false
+            currentServer = newserver
+            currentDelay = newdelay
+print "New server: "; newserver, "New delay: "; newdelay
+        end if
+    end  while
+
+    newSettings = {server: currentServer, ssDelay: currentDelay}
+    return newSettings
 End Function
 
-Function ShowListProblemDialog() as Boolean ' returns true if Abort was selected
-    print "ShowListProblemDialog"
+Function EditDialog(title as String, val as String, hint as String, maxlen as Integer)
+    port = CreateObject("roMessagePort")
+    kb = CreateObject("roKeyboardScreen")
+    kb.SetMessagePort(port)
+    kb.SetMaxLength(maxlen) '50)
+    kb.SetTitle(title) '"Enter server ip address and port")
+    kb.SetDisplayText(hint) '"Example:  http://192.168.1.100:8001/feed")
+    kb.SetText(val)
+    kb.AddButton(1,"Finished")
+    kb.Show()
+    while true
+        msg = wait(0, kb.GetMessagePort())
+
+        if type(msg) = "roKeyboardScreenEvent" then
+            if msg.isScreenClosed() then
+                ' only way to get here is if the Home remote button was press (I think),
+                ' so just bail out so the app can exit gracefully
+                newval = val
+                exit while
+            end if
+            if msg.isButtonPressed() then
+                if msg.GetIndex() = 1  then
+                    newval = kb.GetText()
+                    print "New value: "; newval
+                    exit while
+                end if
+            end if
+        end if
+    end while
+
+    return newval
+End Function
+
+Function ShowOkAbortDialog(title as String, text as String) as Boolean ' returns true if Abort was selected
+    print "ShowOkAbortDialog"
 
     port = CreateObject("roMessagePort")
     dialog = CreateObject("roMessageDialog")
     dialog.SetMessagePort(port)
 
-    dialog.SetTitle("Media List Problem")
-    dialog.SetText("No media items retrieved.  Is the media path set correctly? Does the selected path contain playable files?")
+    dialog.SetTitle(title)  '"Media List Problem")
+    dialog.SetText(text)    '"No media items retrieved.  Is the media path set correctly? Does the selected path contain playable files?")
     dialog.AddButton(1, "Ok")
     dialog.AddButton(2, "Abort")
     dialog.Show()
 
     dlgMsg = wait(0, dialog.GetMessagePort())
     if dlgMsg.isScreenClosed() then
-        print "ShowListProblemDialog screen closed"
+        print "ShowOkAbortDialog screen closed"
         return true
     end if
 
@@ -274,6 +321,33 @@ Function ShowBusy() as Object
     return busyDlg
 End Function
 
+Function GetConfig() as Object
+    print "GetConfig"
+
+    server = RegGet("Server", "Settings")
+    if server = invalid then
+        ' Try "Transient" section for backwards compatibility
+        server = RegGet("Server", "Transient")
+        if server <> invalid then
+            RegSave("Server", server, "Settings")
+        end if
+    end if
+    if server = invalid then
+        print "Setting server to default"
+        server = "SERVER_NAME" + "/feed"
+        RegSave("Server", server, "Settings")
+    else
+        print "Retrieved server from registry"
+    end if
+    print "server = "; server
+
+    ssDelay = RegGet("Slide show delay","Settings")
+    if ssDelay = invalid then ssDelay = "5"
+    print "slide show delay = "; ssDelay
+
+    return {server: server, ssDelay: ssDelay}
+End Function
+
 Sub Main()
     print "Main"
 
@@ -289,50 +363,63 @@ Sub Main()
 
     rss = CreateMediaRSSConnection()
     if rss=invalid then
-        print "unexpected error in CreateMediaRSSConnection"
+        print "unexpected error in CreateMediaRSSConnection"    ' Can this really fail???
     end if
 
-    port = CreateObject("roMessagePort")
-
-    busyDlg = ShowBusy()
+    currentConfig = GetConfig()
 
     while true
-        ' Try "Transient" section first for backwards compatibility
-        server = RegGet("Server", "Transient")
-        if server = invalid then
-            server = RegGet("Server", "Settings")
-        else
-            RegSave("Server", server, "Settings")
-        end if
-        if server = invalid then
-            print "Setting server to default"
-            server = "SERVER_NAME" + "/feed"
-        else
-            print "Retrieved server from registry"
-        end if
-        print "server = "; server
-        pl = rss.GetSongListFromFeed(server)
+        busyDlg = ShowBusy()
+
+        pl = rss.GetSongListFromFeed(currentConfig.server)
         if pl = invalid then
-            if ShowServerProblemDialog(server) then
-                print "Outta here!"
-                'exit the app gently so that the screen doesnt flash to black'
-                print "Exiting app"
-                screenFacade.showMessage("")
-                sleep(25)
-                return
-            end if
-        elseif pl.items.Count() = 0         ' looks like the server always returns the mymusic folder
-            if ShowListProblemDialog() then ' should it always return all top level folders???
-                print "Outta here!"
-                'exit the app gently so that the screen doesnt flash to black'
-                print "Exiting app"
-                screenFacade.showMessage("")
-                sleep(25)
-                return
-            end if
+            svrContact = false
+            items = CreateObject("roList")
+            pl = {items: items, theme: "media"}
         else
-            exit while
+            svrContact = true
         end if
+
+        ' Add the "settings" poster before proceeding (may be only poster if no contact w/server established)
+        CreateSettingsPoster(pl.items)
+
+        if svrContact then exit while
+
+        if ShowOkAbortDialog("Server Problem","Contact with server has not been established.  Check your settings and that the server is running.") then
+            print "Outta here!"
+            'exit the app gently so that the screen doesnt flash to black'
+            print "Exiting app"
+            screenFacade.showMessage("")
+            sleep(25)
+            return
+        end if
+
+        ' Stay here to allow user to change server without having to exit and re-enter channel
+        tmpscr = makePosterScreen("","")
+        tmpscr.SetPlayList(pl)
+        currentTheme = "media"
+        tmpscr.screen.Show()
+        busyDlg.Close()
+        port = tmpscr.screen.GetMessagePort()
+        while true
+            msg = wait(0,port)
+            if msg.isScreenClosed() then
+                print "isScreenClosed()"
+                print "Outta here!"
+                'exit the app gently so that the screen doesnt flash to black'
+                print "Exiting app"
+                screenFacade.showMessage("")
+                sleep(25)
+                return
+            else if msg.isListItemSelected() then   ' There's only one item - the settings
+                initTheme(app, "settings")
+                tmpscr.screen.Show()
+                currentConfig = ShowSettings(currentConfig,false)
+                initTheme(app, "media")
+                tmpscr.screen.Close()
+                exit while
+            end if
+        end while
     end while
 
     ' Create an array to store Poster screens as we traverse the hierarchy
@@ -355,9 +442,9 @@ Sub Main()
 
     while true
         msg = wait(0, port)
-        print "mainloop msg = "; type(msg)
-        print "type = "; msg.GetType()
-        print "index = "; msg.GetIndex()
+        'print "mainloop msg = "; type(msg)
+        'print "type = "; msg.GetType()
+        'print "index = "; msg.GetIndex()
 
         if type(msg) = "roPosterScreenEvent" then
             if msg.isScreenClosed() then
@@ -370,6 +457,10 @@ Sub Main()
                 level = level - 1
                 port = pscr[level].screen.GetMessagePort()
                 audio.SetMessagePort(port)
+                if pscr[level].theme <> currentTheme then
+                    currentTheme = pscr[level].theme
+                    initTheme(app, currentTheme)
+                end if
                 pscr[level].screen.Show()
             else if msg.isListItemSelected() then
                 itemIndex = msg.GetIndex()
@@ -404,23 +495,31 @@ Sub Main()
                         currentSong = itemIndex
                         currentSong = showSpringboardScreen(audio, port, songs, currentSong)
                     else if item.GetType() = "image" then
-                        busyDlg = ShowBusy()
+                        ssBusyDlg = ShowBusy()
                         print "Photo: "; item.GetTitle()
                         print item.GetMedia()
                         ss = CreateObject("roSlideShow")
-                        cl = CreateObject("roArray",1,true)
-                        newidx = buildSlideShowContent(posters,itemIndex,cl)
-                        ss.SetContentList(cl)
-                        ss.SetPeriod(5)
+                        ssCl = CreateObject("roArray",1,true)
+                        newidx = buildSlideShowContent(posters,itemIndex,ssCl)
+                        ss.SetContentList(ssCl)
+                        ss.SetPeriod(currentConfig.ssDelay.toInt())
                         ss.SetTextOverlayHoldTime(2000)
                         ss.SetMessagePort(port)
                         ss.SetDisplayMode("scale-to-fit")
                         ss.SetUnderScan(5)
                         ss.SetNext(newidx,true)
-                        ss.show()
-                        busyDlg.Close()
+                        ss.Show()
+                        ssBusyDlg.Close()
+                        ssWait = true
                     end if
 
+                else if item.IsSettings()
+                    print "settings selected"
+                    initTheme(app, "settings")
+                    pscr[0].screen.Show()
+                    currentConfig = ShowSettings(currentConfig)
+                    initTheme(app, "media")
+                    pscr[0].screen.Show()
                 else
                     'load the sub items and display those'
                     busyDlg = ShowBusy()
@@ -454,11 +553,11 @@ Sub Main()
                         audio.SetMessagePort(port)
                         currentBaseSong = 0
                     else if pl = invalid then
-                        if ShowServerProblemDialog(server) then
+                        if ShowOkAbortDialog("Server Problem","Communications with the server has been lost.") then
                             print "Outta here!"
                             exit while
                         end if
-                    else if ShowListProblemDialog() then
+                    else if ShowOkAbortDialog("Empty folder","No media items retrieved.  Is the media path set correctly? Does the selected path contain playable files?") then
                         print "Outta here!"
                         exit while
                     end if
@@ -467,8 +566,52 @@ Sub Main()
             end if
         else if type(msg) = "roSlideShowEvent" then
             print "slideshow event msg = "; type(msg)
-            print "type = "; msg.GetType()
-            print "index = "; msg.GetIndex()
+            ssMsgHandled = false
+            if msg.isStatusMessage() then
+                print " slideshow status: ";msg.GetMessage()
+            end if
+            if msg.isButtonPressed() then
+                print "  isButtonPressed"
+                ssMsgHandled = true
+            end if
+            if msg.isScreenClosed() then
+                print "  isScreenClosed"
+                ssMsgHandled = true
+            end if
+            if msg.isPlaybackPosition() then
+                print "  isPlaybackPosition"
+                ssMsgHandled = true
+            end if
+            if msg.isRemoteKeyPressed() then
+                print "  isRemoteKeyPressed"
+                ssMsgHandled = true
+            end if
+            if msg.isRequestSucceeded() then
+                print "  isRequestSucceeded"
+                ssMsgHandled = true
+            end if
+            if msg.isRequestFailed() then
+                print "  isRequestFailed"
+                ssMsgHandled = true
+            end if
+            if msg.isRequestInterrupted() then
+                print "  isRequestInterrupted"
+                ssMsgHandled = true
+            end if
+            if msg.isPaused() then
+                print "  isPaused"
+                ssMsgHandled = true
+            end if
+            if msg.isResumed() then
+                print "  isResumed"
+                ssMsgHandled = true
+            end if
+            if ssMsgHandled = false
+                print "  ***!!! unkown msg"
+            end if
+            print "  type = "; msg.GetType()
+            print "  index = "; msg.GetIndex()
+            print "end roSlideShowEvent"
         else if type(msg) = "roAudioPlayerEvent" then
             if msg.isStatusMessage() then
                 print "audio status: ";msg.GetMessage()
@@ -510,6 +653,39 @@ Sub initTheme(app as object, themeName as String)
     theme.OverhangPrimaryLogoHD  = "pkg:/images/" + themeName + "_Logo_Overhang_HD.png"
 
     print "theme logo "; theme.OverhangPrimaryLogoHD
+    theme.BreadcrumbTextLeft = "#89B811"
+    theme.BreadcrumbTextRight = "#FAFAFA"
+    'theme.BreadcrumbDelimeter = "#FF00FF"
+    'theme.ButtonMenuHighlightColor = "#FF00FF"
+    'theme.ButtonMenuNormalOverlayColor = "#FF00FF"
+    'theme.ButtonMenuNormalColor = "#FF00FF"
+    'theme.ButtonNormalColor = "#FF00FF"
+    'theme.ButtonHighlightColor = "#FF00FF"
+    'theme.BackgroundColor = "#FF00FF"
+    'theme.ParagraphBodyText = "#FF00FF"
+    'theme.ParagraphHeaderText = "#FF00FF"
+    'theme.PosterScreenLine1Text = "#FF00FF"
+    'theme.PosterScreenLine2Text = "#FF00FF"
+    'theme.RegistrationCodeColor = "#FF00FF"
+    'theme.RegistrationFocalColor = "#FF00FF"
+    'theme.SpringboardTitleText = "#FF00FF"
+    'theme.SpringboardActorColor = "#FF00FF"
+    'theme.SpringboardSynopsisColor = "#FF00FF"
+    'theme.SpringboardGenreColor = "#FF00FF"
+    'theme.SpringboardRuntimeColor = "#FF00FF"
+    'theme.SpringboardDirectorLabelColor = "#FF00FF"
+    'theme.SpringboardDirectorColor = "#FF00FF"
+    'theme.SpringboardButtonNormalColor = "#FF00FF"
+    'theme.SpringboardButtonHighlightColor = "#FF00FF"
+    'theme.SpringboardArtistColor = "#FF00FF"
+    'theme.SpringboardArtistLabelColor = "#FF00FF"
+    'theme.SpringboardAlbumColor = "#FF00FF"
+    'theme.SpringboardAlbumLabelColor = "#FF00FF"
+    'theme.EpisodeSynopsisText = "#FF00FF"
+    'theme.FilterBannerActiveColor = "#FF00FF"
+    'theme.FilterBannerInactiveColor = "#FF00FF"
+    'theme.FilterBannerSideColor = "#FF00FF"
+
     app.SetTheme(theme)
 
 End Sub
@@ -524,11 +700,14 @@ Function buildSlideShowContent(posters as object, idx as Integer, pics as Object
 
     newidx = idx
     maxidx = posters.Count() - 1
+    numpic = 1
     for i = 0 to maxidx
         item = posters[i].item
         if item.GetType() = "image" then
             pic = item.GetPlayable()
             pic.TextOverlayBody = item.GetTitle()
+            pic.TextOverlayUR = numpic.toStr()
+            numpic = numpic + 1
             pics.Push(pic)
         else
             newidx = newidx - 1
@@ -718,7 +897,6 @@ End Function
 '** displayVideo()'
 '*************************************************************'
 
-'Function displayVideo(url,title,offset) as Integer
 Function displayVideo(video as Object, offset as Integer) as Integer
     print "Displaying video: "
     port = CreateObject("roMessagePort")
@@ -735,7 +913,7 @@ Function displayVideo(video as Object, offset as Integer) as Integer
     qualities = ["SD"]
     'qualities = ["HD"]'
 
-    videoclip = video   'CreateObject("roAssociativeArray") ' MOVE THIS STUFF TO dataModel.brs!!!
+    videoclip = video
     videoclip.StreamBitrates = bitrates
     videoclip.StreamUrls = [video["url"]]
     videoclip.StreamQualities = qualities
@@ -767,4 +945,3 @@ Function displayVideo(video as Object, offset as Integer) as Integer
     end while
     return nowpos
 End Function
-

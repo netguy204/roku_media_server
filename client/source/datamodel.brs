@@ -9,7 +9,7 @@ Function CreateMediaRSSConnection() As Object
                 port: CreateObject("roMessagePort"),
                 http: CreateObject("roUrlTransfer"),
 
-                GetSongListFromFeed: GetSongListFromFeed,
+                GetSongListFromFeed: GetSongListFromFeed
                 }
 
         return rss
@@ -27,33 +27,58 @@ Function GetSongListFromFeed(feed_url) As Dynamic
     end if
     print "rss@verion=";rss@version
 
-    pl=CreateObject("roList")
+    items = CreateObject("roList")
 
     theme = rss.channel.theme.GetText()
 
     for each item in rss.channel.item
-        pl.Push(newMediaFromXML(m, item))
-        print "got media item: "; pl.Peek().GetTitle()
+        items.Push(newMediaFromXML(m, item))
+        print "got media item: "; items.Peek().GetTitle()
     next
 
-    return { items:pl, theme:theme }
+    return { items:items, theme:theme }
 End Function
+
+Sub CreateSettingsPoster(items)
+' Creates a bare minimum XML entry for the "settings" poster.
+' Most of the item.GetXxx functions are not valid.
+' Use item.IsSettings() to check for the settings entry before 
+' proceeding with other functions.
+    print "CreateSettingsPoster"
+
+    settingsXML = CreateObject("roXMLElement")
+    settingsXML.SetName("Settings root")
+    ne=settingsXML.AddBodyElement()
+    ne.SetName("title")
+    ne.SetBody("My Settings")
+    ne=settingsXML.AddBodyElement()
+    ne.SetName("image")
+    ne.SetBody("pkg:/images/settings_square.jpg")
+    ne=settingsXML.AddBodyElement()
+    ne.SetName("description")
+    ne.SetBody("Channel Settings")
+    ne=settingsXML.AddBodyElement()
+    ne.SetName("settings")
+    'ne.SetBody("settings")
+    items.Push(newMediaFromXML(invalid, settingsXML))
+End Sub
 
 
 Sub PrintXML(element As Object, depth As Integer)
-print "PrintXML"
+    if depth = 0 then print "PrintXML"
+    
     print tab(depth*3);"Name: ";element.GetName()
     if not element.GetAttributes().IsEmpty() then
         print tab(depth*3);"Attributes: ";
         for each a in element.GetAttributes()
-            print a;"=";left(element.GetAttributes()[a], 20);
+            print a;"=";left(element.GetAttributes()[a], 60);
             if element.GetAttributes().IsNext() then print ", ";
         end for
         print
     end if
 
     if element.GetText()<>invalid then
-        print tab(depth*3);"Contains Text: ";left(element.GetText(), 40)
+        print tab(depth*3);"Contains Text: ";left(element.GetText(), 60)
     end if
 
     if element.GetChildElements()<>invalid
@@ -81,7 +106,8 @@ Function newMediaFromXML(rss As Object, xml As Object) As Object
         GetLength:itemGetLength,
         GetAlbum:itemGetAlbum,
         GetArtist:itemGetArtist,
-        IsPlayable:itemIsPlayable,
+        IsPlayable:itemIsPlayable
+        IsSettings:itemIsSettings,
         GetSubItems:itemGetSubItems }
 
     return item
@@ -135,6 +161,8 @@ Function itemGetPlayable()
 End Function
 
 Function itemGetPosterItem()
+    'print "itemGetPosterItem"
+
     icon = "pkg:/images/music_square.jpg"
 
     'see if there is an image associated with this item'
@@ -161,6 +189,10 @@ End Function
 
 Function itemIsPlayable()
     return m.xml.enclosure.Count() > 0
+End Function
+
+Function itemIsSettings()
+    return m.xml.settings.Count() > 0
 End Function
 
 Function itemGetSubItems()
