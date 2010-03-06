@@ -44,7 +44,7 @@ if sys.platform == "win32":
   default_photo_path = os.path.join(home, "My Documents", "My Pictures")
 elif sys.platform == "darwin":
   default_music_path = os.path.join(home, "Music", "iTunes", "iTunes Music")
-  default_video_path = os.path.join(home, "Videos")
+  default_video_path = os.path.join(home, "Movies")
   default_photo_path = os.path.join(home, "Pictures", "iPhoto Library")
 elif sys.platform == "linux2":
   default_music_path = os.path.join(home, "Music")

@@ -169,10 +169,14 @@ def ext2mime(ext):
 def to_unicode(obj, encoding='utf-8'):
   "convert to unicode if not already and it's possible to do so"
 
-  if isinstance(obj, basestring):
-    if not isinstance(obj, unicode):
-      obj = unicode(obj, encoding)
-  return obj
+  try:
+    if isinstance(obj, basestring):
+      if not isinstance(obj, unicode):
+        obj = unicode(obj, encoding)
+  except:
+    logging.debug("failed to convert some string")
+  finally:
+    return obj
 
 def to_utf8(obj):
   "convert back to utf-8 if we're in unicode"

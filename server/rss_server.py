@@ -28,7 +28,7 @@ class PublishMixin:
     for name in self.TAGS:
       val = getattr(self, name)
       if val:
-        val = str(val)
+        val = to_unicode(val)
         handler.startElement(name, {})
         handler.characters(val)
         handler.endElement(name)
