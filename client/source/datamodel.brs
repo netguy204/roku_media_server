@@ -63,6 +63,30 @@ Sub CreateSettingsPoster(items)
     items.Push(newMediaFromXML(invalid, settingsXML))
 End Sub
 
+Sub CreateWhatsPlayingPoster(items)
+' Creates a bare minimum XML entry for the "What's Playing" poster.
+' Most of the item.GetXxx functions are not valid.
+' Use item.IsWhatsPlaying() to check for the settings entry before 
+' proceeding with other functions.
+    print "CreateWhatsPlayingPoster"
+
+    settingsXML = CreateObject("roXMLElement")
+    settingsXML.SetName("What's Playing root")
+    ne=settingsXML.AddBodyElement()
+    ne.SetName("title")
+    ne.SetBody("What's Playing")
+    ne=settingsXML.AddBodyElement()
+    ne.SetName("image")
+    ne.SetBody("pkg:/images/blank.jpg")
+    ne=settingsXML.AddBodyElement()
+    ne.SetName("description")
+    ne.SetBody("Return to Audio Player")
+    ne=settingsXML.AddBodyElement()
+    ne.SetName("playerctl")
+    'ne.SetBody("settings")
+    items.Push(newMediaFromXML(invalid, settingsXML))
+End Sub
+
 
 Sub PrintXML(element As Object, depth As Integer)
     if depth = 0 then print "PrintXML"
@@ -108,6 +132,7 @@ Function newMediaFromXML(rss As Object, xml As Object) As Object
         GetArtist:itemGetArtist,
         IsPlayable:itemIsPlayable
         IsSettings:itemIsSettings,
+        IsWhatsPlaying:itemIsWhatsPlaying,
         GetSubItems:itemGetSubItems }
 
     return item
@@ -193,6 +218,10 @@ End Function
 
 Function itemIsSettings()
     return m.xml.settings.Count() > 0
+End Function
+
+Function itemIsWhatsPlaying()
+    return m.xml.playerctl.Count() > 0
 End Function
 
 Function itemGetSubItems()
