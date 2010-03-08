@@ -12,6 +12,8 @@ _all testers_ - Thank you for installing this code and providing feedback and su
 
 _el.wubo_
 
+_hammerpocket_ - mac PIL install guide
+
 _hoffmcs_ - server side improvements
 
 _renojim_ - video resuming. better channel error handling. overall improvements
@@ -81,7 +83,7 @@ pre. sudo aptitude install python-imaging
 
 h4. Mac users
 
-*Contributed by hammerpacket*
+_Contributed by hammerpacket_
 
 IMPORTANT: PERFORM THE STEPS IN THIS ORDER.
 
