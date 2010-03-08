@@ -46,6 +46,7 @@ I don't think it will happen but following these instructions could break your c
 h1(#install). INSTALLATION
 
 # Download and install python for your platform
+# Download and install PIL
 # "Download MyMedia":http://github.com/netguy204/roku_media_server/archives/master
 # Put your Roku into developer mode
 # Run springboard.vbs to install the channel on your Roku and start the server
@@ -65,6 +66,42 @@ pre. sudo aptitude install python
 h4. Windows Users
 
 Go to "http://www.python.org/download":http://www.python.org/download and select the Windows installer that suits your platform (32 or 64 bit.) Run it, accept all the defaults,
+
+h3. Download and Install PIL
+
+To greatly improve the performance of photo browsing in My Media, you need additional software. The python imaging library is used to resize and thumbnail images for the slideshow feature. Follow these steps:
+
+h4. Windows Users
+
+Download and install "this package":http://effbot.org/downloads/PIL-1.1.7.win32-py2.6.exe . Note that if you're running 64 bit windows and 64 bit python you'll need a 64 bit PIL. Since there isn't a 64 bit version of PIL that's official and tested we recommend you uninstall 64 bit python and install the 32 bit version so that you can run 32 bit PIL.
+
+h4. Linux users (debian/ubuntu)
+
+pre. sudo aptitude install python-imaging
+
+h4. Mac users
+
+*Contributed by hammerpacket*
+
+IMPORTANT: PERFORM THE STEPS IN THIS ORDER.
+
+1. Install library for conversion of jpeg images:
+
+Download "Combo Installer: libpng & libjpeg" from the URL below and install from the disk image as you would any OS X app.
+
+"http://ethan.tira-thompson.org/Mac_OS_X_Ports.html":http://ethan.tira-thompson.org/Mac_OS_X_Ports.html
+
+2. Install Python Imaging Library (PIL):
+
+Open Terminal (in Applications>Utilities). Copy the following command and paste it into the terminal window and press [return]. 
+
+pre. sudo easy_install --find-links http://www.pythonware.com/products/pil/ Imaging
+
+You will be prompted for a password. Enter the same password you normally use for OS X software installs. This command will find and install the appropriate version of PIL. The process may take a couple of minutes and it may appear nothing is happening. Be sure to wait until you see a bunch of scrolling text and the command line prompt (your user name followed by a dollar sign) before closing the window or entering any other commands. 
+
+If you want to check that PIL and libjpeg are connected, look a few lines up from the end of the text printed to the screen at the end of the install process. You should see a line that says that jpeg support is available. 
+
+If you have problems or questions, post to the "Roku DVP forum":http://forums.rokulabs.com/viewtopic.php?p=159473":http://forums.rokulabs.com/viewtopic.php?p=159473 ; otherwise you can close the terminal window.
 
 h3. Put your Roku into developer mode
 
