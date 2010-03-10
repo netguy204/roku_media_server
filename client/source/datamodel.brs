@@ -64,7 +64,7 @@ Sub CreateSettingsPoster(items)
 End Sub
 
 Sub CreateWhatsPlayingPoster(items)
-' Creates a bare minimum XML entry for the "What's Playing" poster.
+' Creates a bare minimum XML entry for the "Now Playing" poster.
 ' Most of the item.GetXxx functions are not valid.
 ' Use item.IsWhatsPlaying() to check for the settings entry before 
 ' proceeding with other functions.
@@ -74,7 +74,7 @@ Sub CreateWhatsPlayingPoster(items)
     settingsXML.SetName("What's Playing root")
     ne=settingsXML.AddBodyElement()
     ne.SetName("title")
-    ne.SetBody("What's Playing")
+    ne.SetBody("Now Playing")
     ne=settingsXML.AddBodyElement()
     ne.SetName("image")
     ne.SetBody("pkg:/images/nowplaying_square.jpg")
