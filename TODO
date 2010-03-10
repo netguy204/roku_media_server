@@ -1,0 +1,11 @@
+
+Better XBMC Integration
+
+From mkolby:
+
+First off, I just want to say thank you for all your hard work on this project. It has been great to finally have streaming local media to the roku box. I'm just curious if you could emulate the way XBMC handles thumbnails for artwork more. You've implemented the .jpg art for titles with the same base name. Could you include a .tbn extension as well as the .jpg? The .tbn is actually a .jpg image. But XBMC only recognizes .tbn for title art. Folder art it can use both .jpg and .tbn. I don't know why they've restricted title art to just .tbn. I have my whole library in the xbmc format and it would be a big bonus to have this automatically work with the roku. You can see the wiki on how xbmc handles artwork at: http://wiki.xbmc.org/index.php?title=Thumbnails. I think others would find this really useful as well.
+
+
+Better SD / HD Handling:
+
+Serve up SD and HD file paths in the xml for thumbnails and full size images.
