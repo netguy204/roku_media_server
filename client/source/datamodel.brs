@@ -33,7 +33,7 @@ Function GetSongListFromFeed(feed_url) As Dynamic
 
     for each item in rss.channel.item
         items.Push(newMediaFromXML(m, item))
-        print "got media item: "; items.Peek().GetTitle()
+        '!!!***print "got media item: "; items.Peek().GetTitle()
     next
 
     return { items:items, theme:theme }
@@ -63,15 +63,15 @@ Sub CreateSettingsPoster(items)
     items.Push(newMediaFromXML(invalid, settingsXML))
 End Sub
 
-Sub CreateWhatsPlayingPoster(items)
+Sub CreateNowPlayingPoster(items)
 ' Creates a bare minimum XML entry for the "Now Playing" poster.
 ' Most of the item.GetXxx functions are not valid.
-' Use item.IsWhatsPlaying() to check for the settings entry before 
+' Use item.IsNowPlaying() to check for the settings entry before 
 ' proceeding with other functions.
-    print "CreateWhatsPlayingPoster"
+    print "CreateNowPlayingPoster"
 
     settingsXML = CreateObject("roXMLElement")
-    settingsXML.SetName("What's Playing root")
+    settingsXML.SetName("Now Playing root")
     ne=settingsXML.AddBodyElement()
     ne.SetName("title")
     ne.SetBody("Now Playing")
@@ -132,7 +132,7 @@ Function newMediaFromXML(rss As Object, xml As Object) As Object
         GetArtist:itemGetArtist,
         IsPlayable:itemIsPlayable
         IsSettings:itemIsSettings,
-        IsWhatsPlaying:itemIsWhatsPlaying,
+        IsNowPlaying:itemIsNowPlaying,
         GetSubItems:itemGetSubItems }
 
     return item
@@ -176,11 +176,10 @@ Function itemGetArtist()
 End Function
 
 Function itemGetPlayable()
-    print "getting playable for ";m.GetMedia()
-    print "type: "; m.GetType()
+    '!!!***print "getting playable for ";m.GetMedia()
+    '!!!***print "type: "; m.GetType()
     sf = m.GetStreamFormat()
     ct = m.GetContentType()
-    'return { Url: m.GetMedia(), StreamFormat: m.GetType() }
     return { Url: m.GetMedia(), ContentType: ct, Title: m.GetTitle(), StreamFormat: sf,
              Length: m.GetLength(), Artist: m.GetArtist(), Album: m.GetAlbum() }
 End Function
@@ -220,7 +219,7 @@ Function itemIsSettings()
     return m.xml.settings.Count() > 0
 End Function
 
-Function itemIsWhatsPlaying()
+Function itemIsNowPlaying()
     return m.xml.playerctl.Count() > 0
 End Function
 
