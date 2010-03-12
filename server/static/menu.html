@@ -2,7 +2,7 @@
 <head>
 	<script src="jquery.js" type="text/javascript"></script>
 	<script src="parseuri.js" type="text/javascript"></script>
-	<script src="swfobject.js" type="text/javascript"></script>
+	<script src="jplayer.js" type="text/javascript"></script>
 	<script>
 		$(document).ready(function() {
 			var populate = function(container, url) {
@@ -20,7 +20,9 @@
 				});
 			};
 
-			// var player = new SWFObject("player.swf","myplayer1","0","0","9");
+			$("#jplayer").jPlayer({
+				nativeSupport: true, oggSupport: false, customCssIds: false, swfPath: "."
+			});
 
 			var target = $("#target");
 			target.delegate("a", "click", function() {
@@ -28,7 +30,9 @@
 					populate(target, this.href);
 					return false;
 				} else {
-					return true;
+					$("#jplayer").jPlayer("setFile", this.href)
+					$("#jplayer").jPlayer("play");
+					return false;
 				}
 			});
 
@@ -74,6 +78,7 @@
 		<div id="target">
 			Loading data...
 		</div>
+		<div id="jplayer"></div>
 	</div>
 </body>
 
