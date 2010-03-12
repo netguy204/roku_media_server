@@ -1,0 +1,80 @@
+<html>
+<head>
+	<script src="jquery.js" type="text/javascript"></script>
+	<script src="parseuri.js" type="text/javascript"></script>
+	<script src="swfobject.js" type="text/javascript"></script>
+	<script>
+		$(document).ready(function() {
+			var populate = function(container, url) {
+				container.hide("fast");
+
+				$.get(url, function(xml) {
+					var new_html = $("item", xml).map(function() {
+						var url = parseUri($("link", this).text()).relative;
+						var type = $("filetype", this).text() || "none";
+						return '<a href="' + url + '" type="' + type + '">' + $("title", this).text() + '</a>';
+					}).get().join('<br/>');
+
+					container.html(new_html);
+					container.show("fast");
+				});
+			};
+
+			// var player = new SWFObject("player.swf","myplayer1","0","0","9");
+
+			var target = $("#target");
+			target.delegate("a", "click", function() {
+				if(this.type == "none") {
+					populate(target, this.href);
+					return false;
+				} else {
+					return true;
+				}
+			});
+
+			populate(target, "/feed");
+
+			// take us back to the main when title is clicked
+			$(".title").click(function() {
+				populate(target, "/feed");
+			});
+		});
+	</script>
+
+	<title>Demo Page</title>
+</head>
+
+<style type='text/css'>
+	.title {
+		background-color: #aaffff;
+		color: #333333;
+		width: 60%;
+		height: 25px;
+		border-style: solid;
+		border-width: 3px;
+		text-align: center;
+	}
+
+	.title :hover {
+		background-color: #66ff66;
+	}
+
+	.block {
+		background-color: #cccccc;
+		color: #333333;
+		width: 80%;
+		background-image: url('/media?key=client&name=images/media_wide.jpg');
+		background-repeat:no-repeat;
+	}
+</style>
+
+<body>
+	<div class="block">
+		<div class="title">My Music</div>
+		<div id="target">
+			Loading data...
+		</div>
+	</div>
+</body>
+
+</html>
