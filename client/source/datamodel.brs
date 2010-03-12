@@ -26,6 +26,8 @@ Function GetSongListFromFeed(feed_url) As Dynamic
         return invalid
     end if
     print "rss@verion=";rss@version
+'print "feed_url: ";feed_url
+'print "XML: ";xml
 
     items = CreateObject("roList")
 

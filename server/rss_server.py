@@ -166,6 +166,14 @@ def file2item(key, fname, base_dir, config, image=None):
     filetype = "image"
     ContentType = "image"
 
+  elif ext == ".m3u":
+
+    basename = os.path.split(fname)[1]
+    title = os.path.splitext(basename)[0]
+    description = "Playlist"
+    filetype = "m3u"
+    ContentType = "playlist"
+
   else:
     # don't know what this is
 
@@ -173,7 +181,10 @@ def file2item(key, fname, base_dir, config, image=None):
 
   size = os.stat(fname).st_size
   path = relpath26(fname, base_dir)
-  link="%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(path), 'key': key}))
+  if ContentType == "playlist":
+    link="%s/m3u?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(path), 'key': key}))
+  else:
+    link="%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(path), 'key': key}))
 
   if image:
     image = relpath26(image, base_dir)
@@ -394,7 +405,7 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
     minl = minl.lower()
     maxl = maxl.lower()
 
-  media_re = re.compile("\.mp3|\.wma|\.m4v|\.mp4|\.mov|\.wmv|\.jpg|\.jpeg|\.png|\.gif")
+  media_re = re.compile("\.m3u|\.mp3|\.wma|\.m4v|\.mp4|\.mov|\.wmv|\.jpg|\.jpeg|\.png|\.gif")
 
   for base, dirs, files in os.walk(path):
     if not recurse:
@@ -465,6 +476,39 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
   doc = RSSDoc(
       title="A Personal Music Feed",
       link="%s/feed?key=%s&dir=%s%s" % (key, server_base(config), relpath26(path, base_dir), range),
+      description="My Media",
+      lastBuildDate=datetime.datetime.now(),
+      items = items,
+      theme = key)
+
+  return doc
+
+def getpl(name, key, path, config):
+  "create a media feed document from an m3u playlist"
+
+  items = []
+
+  lpath = os.path.join(path, name)
+  filein = open(lpath,"r")
+  line = filein.readline()
+  while line:
+    line = line.rstrip()
+    if line[0] != "#":
+      base = os.path.dirname(line)
+      file = os.path.basename(line)
+      if base == "":
+        base = os.path.dirname(lpath)
+      fpath = os.path.join(base, file)
+      curr_image = getart(base)
+      image_icon = curr_image
+      item = file2item(key, fpath, path, config, image_icon)
+      if item:
+        items.append(item)
+    line = filein.readline()
+      
+  doc = RSSDoc(
+      title="A Personal Music Feed",
+      link="%s/feed?key=%s&dir=%s%s" % (key, server_base(config), relpath26(path, path), range),
       description="My Media",
       lastBuildDate=datetime.datetime.now(),
       items = items,
@@ -650,7 +694,17 @@ class RssHandler:
 class M3UHandler:
   def GET(self):
     "retrieve a feed in m3u format"
+    print "M3UHandler"
+    
+    config = parse_config(config_file)
+    web.header("Content-Type", "application/rss+xml")
+    feed = web.input(dir = None, name=None, key=None)
 
+    base_dir = key_to_path(config, feed.key)
+    return getpl(feed.name, feed.key, base_dir, config).to_xml()
+    
+    ########### Original routine follows ################
+    
     config = parse_config(config_file)
 
     web.header("Content-Type", "text/plain")

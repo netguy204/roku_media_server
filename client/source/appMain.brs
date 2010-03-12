@@ -627,6 +627,43 @@ if randgots = randgets then print "randgots = ";randgots
                         ss.Show()
                         ssBusyDlg.Close()
                         ssWait = true
+                    else if item.GetContentType() = "playlist" then
+                        busyDlg = ShowBusy("retrieving...")
+                        print "Playlist: "; item.GetTitle()                        
+                        pl = item.GetSubItems()
+                        if pl <> invalid and pl.items.Count() <> 0 then
+                            ptmp = makePosterScreen("","")
+                            ptmp.SetPlayList(pl)
+
+                            audioContent = CreateObject("roArray",1,true)
+                            buildAudioContent(audioContent,ptmp.GetPosters(),-1)
+                            if GetNextSong(audio,audioContent,true) >= 0 then
+                                audioPlaying = true
+                                currentSong = showSpringboardScreen(audio, port, audioContent, invalid, busyDlg, false, false)
+                                UpdateNowPlaying(pscr,currentSong.song.title,level)
+                                randgets = 0
+                                randgots = 0
+                                initTheme(app,pscr[level].theme)
+                            else
+                                busyDlg.Close()
+                                if ShowOkAbortDialog("Error in playlist","No audio items retrieved.") then
+                                    print "Outta here!"
+                                    exit while
+                                end if
+                            end if
+                        else if pl = invalid then
+                            busyDlg.Close()
+                            if ShowOkAbortDialog("Server Problem","Communications with the server has been lost.") then
+                                print "Outta here!"
+                                exit while
+                            end if
+                        else
+                            busyDlg.Close()
+                            if ShowOkAbortDialog("Empty playlist","No audio items retrieved.") then
+                                print "Outta here!"
+                                exit while
+                            end if
+                        end if
                     end if
 
                 else if item.IsSettings()
