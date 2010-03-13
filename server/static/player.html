@@ -56,8 +56,9 @@
 			// take us back to the main when title is clicked
 			$(".title").click(function() {
 				populate(target, root);
-				urlstack.clear();
+				urlstack.splice(0, urlstack.length); // erase the stack
 				urlstack.push(root);
+				updateBack();
 			});
 
 			$("#back").click(function() {
@@ -67,9 +68,6 @@
 			});
 		});
 	</script>
-
-	<title>Demo Page</title>
-</head>
 
 <style type='text/css'>
 	.title {
@@ -129,6 +127,10 @@
 	}
 
 </style>
+
+	<title>My Media: Music Player</title>
+</head>
+
 
 <body>
 	<div class="block">
