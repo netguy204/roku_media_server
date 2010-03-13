@@ -265,29 +265,32 @@ def key_to_path(config, key, base=None):
     return os.path.join(base_dir, base)
 
 def getimg(file):
-  tag = Tag()
-  tag.link(file)
-  imgs = tag.getImages()
-  valid_tags = (
-      ImageFrame.ICON,
-      ImageFrame.FRONT_COVER,
-      ImageFrame.BACK_COVER,
-      ImageFrame.OTHER_ICON)
+  try:
+    tag = Tag()
+    tag.link(file)
+    imgs = tag.getImages()
+    valid_tags = (
+        ImageFrame.ICON,
+        ImageFrame.FRONT_COVER,
+        ImageFrame.BACK_COVER,
+        ImageFrame.OTHER_ICON)
 
-  fimgs = []
-  min_img = (None, None)
-  for imgtg in imgs:
-    if imgtg.imageData and (imgtg.pictureType in valid_tags):
-      fimgs.append(imgtg)
+    fimgs = []
+    min_img = (None, None)
+    for imgtg in imgs:
+      if imgtg.imageData and (imgtg.pictureType in valid_tags):
+        fimgs.append(imgtg)
 
-      if (not min_img[0]) or min_img[1] > len(imgtg.imageData):
-        min_img = (imgtg, len(imgtg.imageData))
+        if (not min_img[0]) or min_img[1] > len(imgtg.imageData):
+          min_img = (imgtg, len(imgtg.imageData))
 
-  if min_img[0]:
-    r = imghdr.what(None, h=min_img[0].imageData)
-    return min_img[0].imageData, r
-  else:
-    return None, None
+    if min_img[0]:
+      r = imghdr.what(None, h=min_img[0].imageData)
+      return min_img[0].imageData, r
+    else:
+      return None, None
+  except Exception, e:
+    logging.debug("Error while looking for images in %s: %s" % (file, str(e))
   
 # from the roku component reference
 THB_SD_DIM = (223,200)
