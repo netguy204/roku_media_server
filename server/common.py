@@ -290,7 +290,7 @@ def getimg(file):
     else:
       return None, None
   except Exception, e:
-    logging.debug("Error while looking for images in %s: %s" % (file, str(e))
+    logging.debug("Error while looking for images in %s: %s" % (file, str(e)))
   
 # from the roku component reference
 THB_SD_DIM = (223,200)
