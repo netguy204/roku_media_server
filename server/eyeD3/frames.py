@@ -1899,8 +1899,7 @@ class FrameSet(list):
 
       # Play count frame (PCNT).  There may be only one
       if PLAYCOUNT_FRAME_RX.match(fid) and self[fid]:
-         pass # edit by el.wubo for mymedia... this is just a whiny error... who cares?
-         #raise FrameException("Multiple %s frames not allowed." % fid);
+         raise FrameException("Multiple %s frames not allowed." % fid);
 
       # Unique File identifier frame.  There may be only one with the same
       # owner_id
