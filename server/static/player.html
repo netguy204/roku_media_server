@@ -1,8 +1,8 @@
 <html>
 <head>
-	<script src="jquery.js" type="text/javascript"></script>
-	<script src="parseuri.js" type="text/javascript"></script>
-	<script src="jplayer.js" type="text/javascript"></script>
+	<script src="js/jquery.js" type="text/javascript"></script>
+	<script src="js/parseuri.js" type="text/javascript"></script>
+	<script src="js/jplayer.js" type="text/javascript"></script>
 	<script>
 		$(document).ready(function() {
 			var populate = function(container, url) {
@@ -36,7 +36,7 @@
 			};
 
 			$("#jplayer").jPlayer({
-				swfPath: "."
+				swfPath: "js"
 			}).jPlayer("onSoundComplete", function() {
 				$(".playing").removeClass('playing');
 				$("#controls").hide("slow");
@@ -169,9 +169,9 @@
 		
     <div id="controls">
 			<center>
-			<a href="#" class="button"><img src="play.png" id="jplayer_play"></img></a>
-			<a href="#" class="button"><img src="pause.png" id="jplayer_pause"></img></a>
-			<a href="#" class="button"><img src="stop.png" id="jplayer_stop"></img></a>
+			<a href="#" class="button"><img src="img/play.png" id="jplayer_play"></img></a>
+			<a href="#" class="button"><img src="img/pause.png" id="jplayer_pause"></img></a>
+			<a href="#" class="button"><img src="img/stop.png" id="jplayer_stop"></img></a>
 			</center>
 			<!--
 			<div class="jp-progress">
