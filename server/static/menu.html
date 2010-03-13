@@ -22,8 +22,8 @@
 
 			$("#jplayer").jPlayer({
 				nativeSupport: true, oggSupport: false, customCssIds: false, swfPath: "."
-			});
-
+			})
+			
 			var target = $("#target");
 			target.delegate("a", "click", function() {
 				if(this.type == "none") {
@@ -79,6 +79,16 @@
 			Loading data...
 		</div>
 		<div id="jplayer"></div>
+    <div id="controls">
+      <ul id="player_controls">
+        <li id="jplayer_play">play</li>
+        <li id="jplayer_pause">pause</li>
+        <li id="jplayer_stop">stop</li>
+        <li id="jplayer_volume_min">min volume</li>
+        <li id="jplayer_volume_max">max volume</li>
+      </ul>
+    </div>
+
 	</div>
 </body>
 
