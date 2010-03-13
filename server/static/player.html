@@ -31,9 +31,15 @@
 
 			$("#jplayer").jPlayer({
 				swfPath: "."
-			})
+			}).jPlayer("onSoundComplete", function() {
+				$(".playing").removeClass('playing');
+				$("#controls").hide("slow");
+			});
+			$("#controls").hide();
+
 			
 			var target = $("#target");
+			var nowPlaying = null;
 
 			target.delegate("a", "click", function() {
 				if(this.type == "none") {
@@ -44,6 +50,13 @@
 				} else {
 					$("#jplayer").jPlayer("setFile", this.href)
 					$("#jplayer").jPlayer("play");
+
+					// highlight playing
+					$(".playing").removeClass("playing");
+					$(this).addClass("playing");
+					$("#controls:hidden").show("slow");
+
+					nowPlaying = this.href;
 					return false;
 				}
 			});
@@ -118,6 +131,14 @@
 		text-decoration: underline;
 	}
 
+	.playing {
+		background-color: #ffffff;
+		color: #333333;
+		border-style: solid;
+		border-color: black;
+		border-width: 1px;
+	}
+
 	a.button {
 	}
 
@@ -146,6 +167,13 @@
 			<a href="#" class="button"><img src="pause.png" id="jplayer_pause"></img></a>
 			<a href="#" class="button"><img src="stop.png" id="jplayer_stop"></img></a>
 			</center>
+			<!--
+			<div class="jp-progress">
+				<div id="jplayer_load_bar" class="jp-load-bar">
+					<div id="jplayer_play_bar" class="jp-play-bar"></div>
+				</div>
+			</div>
+			-->
     </div>
 
 		<div id="jplayer"></div>
