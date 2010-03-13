@@ -251,8 +251,34 @@ def getart(path):
   if is_photo(path):
     return path
 
-  curr_image = None
   img_re = re.compile("\.jpg|\.jpeg|\.png")
+  curr_image = None
+
+  if is_music(path):
+    ext = os.path.splitext(path)[1].lower()
+    if ext == ".mp3":
+      # First see if there's an embedded image
+      data, type = getimg(path)
+      if data:
+        curr_image = path + ".image"
+        return curr_image
+      # No embedded image, check for albumName.jpg
+      album = None
+      try:
+        mp3 = Mp3AudioFile(path)
+        tag = mp3.getTag()
+      except:
+        logging.warning("library failed to parse ID3 tags for %s. Skipping." % fname)
+      if tag:
+        album = call_protected(tag.getAlbum, "Error Reading Album")
+        if album:
+          base = os.path.split(path)[0]
+          fp = os.path.join(base,album)
+
+          # look for a corresponding image
+          for test_ext in (".jpg", ".jpeg", ".png"):
+            if os.path.exists(fp + test_ext):
+              return fp + test_ext
 
   for base, dirs, files in os.walk(path):
     # don't recurse when searching for artwork
@@ -302,7 +328,7 @@ def item_sorter(lhs, rhs):
       return -1
     elif int(lhs.tracknum) > int(rhs.tracknum):
       return 1
-  
+
   # if the track numbers are the same or both don't
   # exist then sort by title
   if lhs.title.lower() < rhs.title.lower():
@@ -314,7 +340,7 @@ def item_sorter(lhs, rhs):
 
 def partition_by_firstletter(key, subdirs, basedir, minmax, config):
   "based on config, change subdirs into alphabet clumps if there are too many"
-  
+
   max_dirs = 10
   if config.has_option("config", "max_folders_before_split"):
     max_dirs = int(config.get("config", "max_folders_before_split"))
@@ -325,7 +351,7 @@ def partition_by_firstletter(key, subdirs, basedir, minmax, config):
 
   # figure out if we're doing a letter or number partition
   minl, maxl = minmax
-  
+
   if is_letter(minl):
     min_of_class = 'a'
   elif is_number(minl):
@@ -434,13 +460,10 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
       if not media_re.match(os.path.splitext(file)[1].lower()):
         logging.debug("rejecting %s" % file)
         continue
-      
+
       fpath = os.path.join(base, file)
 
-      if is_video(fpath) or is_photo(fpath):
-        image_icon = getart(fpath) or curr_image
-      else:
-        image_icon = curr_image
+      image_icon = getart(fpath) or curr_image
 
       # filter out items that don't match our current key
       if not file2key(fpath) == key:
@@ -505,7 +528,7 @@ def getpl(name, key, path, config):
       if item:
         items.append(item)
     line = filein.readline()
-      
+
   doc = RSSDoc(
       title="A Personal Music Feed",
       link="%s/feed?key=%s&dir=%s%s" % (key, server_base(config), relpath26(path, path), range),
@@ -574,7 +597,7 @@ def range_handler(fname):
         bytes = f.read(chunk_size)
 
       f.close()
-    
+
     # try a tail regex
     regex = re.compile('bytes=-(\d+)$')
     grp = regex.match(web.ctx.environ['HTTP_RANGE'])
@@ -594,7 +617,7 @@ def range_handler(fname):
     while not bytes == "":
       yield bytes
       bytes = f.read(CHUNK_SIZE)
-    
+
     f.close()
 
 class MediaHandler:
@@ -673,7 +696,7 @@ class RssHandler:
 
     web.header("Content-Type", "application/rss+xml")
     feed = web.input(dir = None, range=None, key=None)
-    
+
     if not feed.key in ("music", "video", "photo"):
       return main_menu_feed(config).to_xml()
 
@@ -694,26 +717,13 @@ class RssHandler:
 class M3UHandler:
   def GET(self):
     "retrieve a feed in m3u format"
-    print "M3UHandler"
-    
+
     config = parse_config(config_file)
     web.header("Content-Type", "application/rss+xml")
     feed = web.input(dir = None, name=None, key=None)
 
     base_dir = key_to_path(config, feed.key)
     return getpl(feed.name, feed.key, base_dir, config).to_xml()
-    
-    ########### Original routine follows ################
-    
-    config = parse_config(config_file)
-
-    web.header("Content-Type", "text/plain")
-    feed = web.input(dir = None)
-    if feed.dir:
-      path = os.path.join(music_dir(config), feed.dir)
-      return doc2m3u(getdoc("music", path, music_dir(config), config, True))
-    else:
-      return doc2m3u(getdoc("music", music_dir(config), music_dir(config), config, True))
 
 urls = (
     '/feed', 'RssHandler',

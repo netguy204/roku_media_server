@@ -235,7 +235,7 @@ def is_photo(path):
   return ext2mime(path) in ("image/jpeg", "image/png", "image/gif")
 
 def is_music(path):
-  return ext2mime(path) in ("audio/mpeg" "audio/x-ms-wma" "audio/x-mpegurl")
+  return ext2mime(path) in ("audio/mpeg", "audio/x-ms-wma", "audio/x-mpegurl")
 
 def file2key(path):
   if is_video(path):
