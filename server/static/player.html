@@ -48,15 +48,16 @@
 				}
 			});
 
-			populate(target, "/feed");
-			urlstack.push("/feed");
+			var root = "/feed?key=music&dir=.";
+			populate(target, root);
+			urlstack.push(root);
 			updateBack();
 
 			// take us back to the main when title is clicked
 			$(".title").click(function() {
-				populate(target, "/feed");
+				populate(target, root);
 				urlstack.clear();
-				urlstack.push("/feed");
+				urlstack.push(root);
 			});
 
 			$("#back").click(function() {
@@ -103,6 +104,11 @@
 		margin: 10px;
 	}
 
+	#controls {
+		border-style: solid;
+		border-width: 7px 0px 0px 0px;
+		border-color: black;
+	}
 	a {
 		color: #883333;
 		text-decoration: none;
@@ -131,11 +137,13 @@
 			Loading data...
 		</div>
 		<a href="#" id="back">[ Go Back]</a>
-		<hr/>
+		
     <div id="controls">
+			<center>
 			<a href="#" class="button"><img src="play.png" id="jplayer_play"></img></a>
 			<a href="#" class="button"><img src="pause.png" id="jplayer_pause"></img></a>
 			<a href="#" class="button"><img src="stop.png" id="jplayer_stop"></img></a>
+			</center>
     </div>
 
 		<div id="jplayer"></div>
