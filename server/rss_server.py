@@ -715,10 +715,24 @@ class M3UHandler:
     else:
       return doc2m3u(getdoc("music", music_dir(config), music_dir(config), config, True))
 
+class IndexHandler:
+  def GET(self):
+    "serve up the index page"
+    web.header("Content-Type", "text/html")
+    return open("static/index.html").read()
+
+class ReadmeTextileHandler:
+  def GET(self):
+    "serve up the readme textile"
+    web.header("Content-Type", "text/plain")
+    return open("../README.textile").read()
+    
 urls = (
     '/feed', 'RssHandler',
     '/media', 'MediaHandler',
-    '/m3u', 'M3UHandler')
+    '/m3u', 'M3UHandler',
+    '/', 'IndexHandler',
+    '/readme', 'ReadmeTextileHandler')
 
 app = web.application(urls, globals())
 
