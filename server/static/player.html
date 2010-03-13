@@ -7,15 +7,21 @@
 		$(document).ready(function() {
 			var populate = function(container, url) {
 				container.hide("fast");
+				container.empty();
 
 				$.get(url, function(xml) {
-					var new_html = $("item", xml).map(function() {
+					$("item", xml).each(function() {
 						var url = parseUri($("link", this).text()).relative;
 						var type = $("filetype", this).text() || "none";
-						return '<a href="' + url + '" type="' + type + '">' + $("title", this).text() + '</a>';
-					}).get().join('<br/>');
 
-					container.html(new_html);
+						var anchor = document.createElement("a");
+						anchor.setAttribute("href", url);
+						anchor.innerHTML = $("title", this).text() + "<br/>";
+						$.data(anchor, "type", type);
+
+						container.append(anchor);
+					});
+
 					container.show("fast");
 				});
 			};
@@ -42,7 +48,7 @@
 			var nowPlaying = null;
 
 			target.delegate("a", "click", function() {
-				if(this.type == "none") {
+				if($.data(this,"type") == "none") {
 					populate(target, this.href);
 					urlstack.push(this.href);
 					updateBack();
