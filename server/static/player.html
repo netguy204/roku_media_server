@@ -20,14 +20,26 @@
 				});
 			};
 
+			var urlstack = new Array();
+			var updateBack = function() {
+				if (urlstack.length > 1) {
+					$("#back").show();
+				} else {
+					$("#back").hide();
+				}
+			};
+
 			$("#jplayer").jPlayer({
-				nativeSupport: true, oggSupport: false, customCssIds: false, swfPath: "."
+				swfPath: "."
 			})
 			
 			var target = $("#target");
+
 			target.delegate("a", "click", function() {
 				if(this.type == "none") {
 					populate(target, this.href);
+					urlstack.push(this.href);
+					updateBack();
 					return false;
 				} else {
 					$("#jplayer").jPlayer("setFile", this.href)
@@ -37,10 +49,20 @@
 			});
 
 			populate(target, "/feed");
+			urlstack.push("/feed");
+			updateBack();
 
 			// take us back to the main when title is clicked
 			$(".title").click(function() {
 				populate(target, "/feed");
+				urlstack.clear();
+				urlstack.push("/feed");
+			});
+
+			$("#back").click(function() {
+				urlstack.pop(); // the top is where we are right now
+				populate(target, urlstack[urlstack.length - 1]);
+				updateBack();
 			});
 		});
 	</script>
@@ -50,25 +72,35 @@
 
 <style type='text/css'>
 	.title {
-		background-color: #aaffff;
-		color: #333333;
-		width: 60%;
+		background-color: #1994ff;
+		color: #ffffff;
 		height: 25px;
 		border-style: solid;
-		border-width: 3px;
+		border-width: 0px 0px 7px 0px;
+		border-color: black;
 		text-align: center;
+		font-family: sans-serif;
+		font-size: 16pt;
+		font-style: bold;
+		padding: 5px;
 	}
 
-	.title :hover {
-		background-color: #66ff66;
+	div.title:hover {
+		background-color: #84c6ff;
 	}
 
 	.block {
-		background-color: #cccccc;
+		background-color: #e6e6e6;
 		color: #333333;
 		width: 80%;
-		background-image: url('/media?key=client&name=images/media_wide.jpg');
-		background-repeat:no-repeat;
+		border-style:solid;
+		border-width:3px
+	}
+
+	#target {
+		font-size: 10pt;
+		font-family: serif;
+		margin: 10px;
 	}
 
 	a {
@@ -76,6 +108,20 @@
 		text-decoration: none;
 		font-family: sans-serif;
 	}
+
+	a:hover {
+		color: #1994ff;
+		text-decoration: underline;
+	}
+
+	a.button {
+	}
+
+	img {
+		border-width: 0px;
+		padding: 5px;
+	}
+
 </style>
 
 <body>
@@ -84,17 +130,15 @@
 		<div id="target">
 			Loading data...
 		</div>
-		<div id="jplayer"></div>
+		<a href="#" id="back">[ Go Back]</a>
+		<hr/>
     <div id="controls">
-      <ul id="player_controls">
-        <li id="jplayer_play">play</li>
-        <li id="jplayer_pause">pause</li>
-        <li id="jplayer_stop">stop</li>
-        <li id="jplayer_volume_min">min volume</li>
-        <li id="jplayer_volume_max">max volume</li>
-      </ul>
+			<a href="#" class="button"><img src="play.png" id="jplayer_play"></img></a>
+			<a href="#" class="button"><img src="pause.png" id="jplayer_pause"></img></a>
+			<a href="#" class="button"><img src="stop.png" id="jplayer_stop"></img></a>
     </div>
 
+		<div id="jplayer"></div>
 	</div>
 </body>
 
