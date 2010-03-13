@@ -1,14 +1,95 @@
 <html>
 	<head>
+		<script src="js/jquery.js" type="text/javascript"></script>
 		<script type="text/javascript">
 			$(document).ready(function() {
+					zebraStripes = function() {
+						// fix zebra stripes
+						$(".item:nth-child(odd)").addClass("item_odd");
+					}
+					addItem = function(item) {
+						$(".item_list").append(item);
+						zebraStripes();
+					};
 
+					$("#add").click(function() {
+						addItem('<div class="item">Another</div>');
+					});
+
+					$("#save").click(function() {
+						$(".item_list").empty();
+					});
+
+					$(".item_list").delegate(".item", "mouseover", function() {
+						$(this).addClass("item_hover");
+					});
+
+					$(".item_list").delegate(".item", "mouseout", function() {
+						$(this).removeClass("item_hover");
+					});
+
+					$(".item_list").delegate(".item", "click", function() {
+						// close any existing editors
+						/*
+						$(".editor").each(function() {
+							alert($("input", this).text());
+							$(this).text($("input", this).text());
+						});
+						*/
+
+						// replace the text with the editor
+						var editor = '<input width="100%">' + $(this).text() + '</input>';
+						$(this).empty();
+						$(this).html(editor);
+					});
+
+					zebraStripes();
 			});
 		</script>
 
+		<style type='text/css'>
+			.container {
+				width: 600px;
+				background: #f0f0f0;
+			}
+
+			.item_list {
+				background: #ffffff;
+			}
+
+			.item {
+				border-style: solid;
+				border-color: black;
+				border-width: 0px 0px 1px 0px;
+			}
+
+			.item_odd {
+				background: #e6e6e6;
+			}
+
+			.item_hover {
+				background: #ccccee;
+			}
+
+			.editor {
+			}
+
+		</style>
 		<title>Playlist Editor</title>
+
 	</head>
 
 	<body>
+		<div class="container">
+			<div class="item_list">
+				<div class="item">File one</div>
+				<div class="item">File two</div>
+				<div class="item">File three</div>
+			</div>
+			<div class="controls">
+				<button id="add">Add</button>
+				<button id="save">Save</button>
+			</div>
+		</div>
 	</body>
 </html>
