@@ -152,6 +152,8 @@ def ext2mime(ext):
   ext = ext[-3:].lower()
   if ext == "mp3":
     return "audio/mpeg"
+  elif ext == "m3u":
+    return "audio/x-mpegurl"
   elif ext in ("m4v", "mp4", "mov"):
     return "video/mp4"
   elif ext == "wma":
@@ -233,7 +235,7 @@ def is_photo(path):
   return ext2mime(path) in ("image/jpeg", "image/png", "image/gif")
 
 def is_music(path):
-  return ext2mime(path) in ("audio/mpeg" "audio/x-ms-wma")
+  return ext2mime(path) in ("audio/mpeg" "audio/x-ms-wma" "audio/x-mpegurl")
 
 def file2key(path):
   if is_video(path):

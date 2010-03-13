@@ -1,6 +1,6 @@
-' started as 229baae
+' started as next-dfb2d56
 ' ********************************************************************'
-' **  MyMedia - Springboard/SlideShow version'
+' **  MyMedia - Springboard/SlideShow/Shuffle version'
 ' **'
 ' **  Initial revision'
 ' **  Brian Taylor el.wubo@gmail.com'
@@ -124,7 +124,7 @@ Sub RegDelete(key as String, section as String)
 End Sub
 
 Sub RegSave(key as String, value as String, section as String)
-    print "RegSave"
+    'print "RegSave"
 
     reg = CreateObject("roRegistry")
     sect = CreateObject("roRegistrySection", section)
@@ -205,7 +205,7 @@ Function ShowSettings(currentSettings as Object, toolate=true) as Object
         settings = CreateObject("roParagraphScreen")
         settings.SetMessagePort(port)
         settings.AddHeaderText("Current configuration:")
-        settings.AddParagraph("Server:"+chr(10)+currentServer)
+        settings.AddParagraph("Server:"+chr(9)+chr(9)+chr(9)+currentServer)
         settings.AddParagraph("Slide show delay:"+chr(10)+currentDelay+" seconds")
         settings.AddParagraph("Autoplay subfolders:"+chr(10)+currentAutoplay)
         settings.AddButton(1,"Edit server")
@@ -363,10 +363,25 @@ Function GetOffset(title as String) as Integer
     end if
 End Function
 
-Function ShowBusy() as Object
+Sub UpdateNowPlaying(pscrns as Object, text as String, level as Integer)
+    print "UpdateNowPlaying"
+    
+    tmpposters = pscrns[0].screen.GetContentList()
+    for each p in tmpposters
+        ' This is ugly, but I'm tired of these stupid encapsulated objects
+        if p.ShortDescriptionLine1 = "Now Playing" then
+            p.ShortDescriptionLine2 = text
+            exit for
+        end if
+    end for
+    pscrns[0].screen.SetContentList(tmpposters)
+    if level = 0 then pscrns[0].screen.show()
+End Sub    
+
+Function ShowBusy(text as String) as Object
     port = CreateObject("roMessagePort")
     busyDlg = CreateObject("roOneLineDialog")
-    busyDlg.SetTitle("retrieving...")
+    busyDlg.SetTitle(text)
     busyDlg.showBusyAnimation()
     busyDlg.SetMessagePort(port)
     busyDlg.Show()
@@ -407,7 +422,7 @@ Function GetConfig() as Object
     return {server: server, ssDelay: ssDelay, autoplay: autoplay}
 End Function
 
-Function FolderPrompt() as Boolean
+Function FolderPrompt() as Integer
     print "FolderPrompt"
 
     port = CreateObject("roMessagePort")
@@ -416,13 +431,14 @@ Function FolderPrompt() as Boolean
 
     dialog.SetTitle("What would you like to do?")
     dialog.SetText("Play all songs in this folder or browse folder?")
-    dialog.AddButton(1, "Play")
-    dialog.AddButton(2, "Browse")
+    dialog.AddButton(1, "Browse")
+    dialog.AddButton(2, "Play")
+    dialog.AddButton(3, "Shuffle")
     dialog.Show()
 
     dlgMsg = wait(0, dialog.GetMessagePort())
-    if dlgMsg.GetIndex() = 1 then return true
-    return false
+    return dlgMsg.GetIndex()  ' = 2 then return true
+    'return false
 End Function
 
 Sub Main()
@@ -446,7 +462,7 @@ Sub Main()
     currentConfig = GetConfig()
 
     while true
-        busyDlg = ShowBusy()
+        busyDlg = ShowBusy("retrieving...")
 
         pl = rss.GetSongListFromFeed(currentConfig.server)
         if pl = invalid then
@@ -455,7 +471,7 @@ Sub Main()
             pl = {items: items, theme: "media"}
         else
             svrContact = true
-            CreateWhatsPlayingPoster(pl.items)
+            CreateNowPlayingPoster(pl.items)
         end if
 
         ' Add the "settings" poster before proceeding (may be only poster if no contact w/server established)
@@ -493,6 +509,7 @@ Sub Main()
                 initTheme(app, "settings")
                 tmpscr.screen.Show()
                 currentConfig = ShowSettings(currentConfig,false)
+                autoplay = GetAutoplay()
                 initTheme(app, "media")
                 tmpscr.screen.Close()
                 exit while
@@ -500,6 +517,9 @@ Sub Main()
         end while
     end while
 
+    ' Create simple script we can call to cause/allow garbage collection to happen (at least I think it does)
+    gc="Function Main()"+chr(10)+"return 999"+chr(10)+"End Function"+chr(10)
+    WriteAsciiFile("tmp:/gc.brs",gc)
     ' Create an array to store Poster screens as we traverse the hierarchy
     pscr = CreateObject("roArray",1,true)
 
@@ -510,6 +530,9 @@ Sub Main()
 
     audio = CreateObject("roAudioPlayer")
     audioPlaying = false
+    shuffleMode = false
+    randgets = 0
+    randgots = 0
 
     currentBaseSong = 0
     currentTheme = "media"
@@ -518,12 +541,18 @@ Sub Main()
     busyDlg.Close()
     port = pscr[level].screen.GetMessagePort()
     audio.SetMessagePort(port)
+    autoplay = GetAutoplay()
 
     while true
-        msg = wait(0, port)
-        'print "mainloop msg = "; type(msg)
-        'print "type = "; msg.GetType()
-        'print "index = "; msg.GetIndex()
+        msg = wait(10, port)
+        if audioPlaying and shuffleMode then
+            if randgots < randgets then
+                idx = GetNextSong(audio,audioContent,autoplay)
+                '!!!*** if gns = -1 ***!!!
+                randgots = randgots + 1
+if randgots = randgets then print "randgots = ";randgots
+            end if
+        end if
 
         if type(msg) = "roPosterScreenEvent" then
             if msg.isScreenClosed() then
@@ -553,6 +582,7 @@ Sub Main()
                         audio.Stop()
                         audio.ClearContent()
                         audioPlaying = false
+                        UpdateNowPlaying(pscr,"",level)
                         offset = GetOffset(item.GetTitle())
                         if offset > 0 then
                             if not ShowResumeDialog() then offset = 0
@@ -573,12 +603,15 @@ Sub Main()
                         audioPlaying = false
                         ' Create an array to store audio playlists as we traverse the hierarchy
                         audioContent = CreateObject("roArray",1,true)
-                        buildAudioContent(audioContent,posters)
-                        currentSong = itemIndex
+                        buildAudioContent(audioContent,posters,itemIndex)
                         audioPlaying = true
-                        currentSong = showSpringboardScreen(audio, port, audioContent, currentSong)
+                        shuffleMode = false
+                        currentSong = showSpringboardScreen(audio, port, audioContent)
+                        UpdateNowPlaying(pscr,currentSong.song.title,level)
+                        randgets = 0
+                        randgots = 0
                     else if item.GetType() = "image" then
-                        ssBusyDlg = ShowBusy()
+                        ssBusyDlg = ShowBusy("retrieving...")
                         print "Photo: "; item.GetTitle()
                         print item.GetMedia()
                         ss = CreateObject("roSlideShow")
@@ -594,49 +627,106 @@ Sub Main()
                         ss.Show()
                         ssBusyDlg.Close()
                         ssWait = true
+                    else if item.GetContentType() = "playlist" then
+                        busyDlg = ShowBusy("retrieving...")
+                        print "Playlist: "; item.GetTitle()                        
+                        pl = item.GetSubItems()
+                        if pl <> invalid and pl.items.Count() <> 0 then
+                            ptmp = makePosterScreen("","")
+                            ptmp.SetPlayList(pl)
+
+                            audioContent = CreateObject("roArray",1,true)
+                            buildAudioContent(audioContent,ptmp.GetPosters(),-1)
+                            if GetNextSong(audio,audioContent,true) >= 0 then
+                                audioPlaying = true
+                                currentSong = showSpringboardScreen(audio, port, audioContent, invalid, busyDlg, false, false)
+                                UpdateNowPlaying(pscr,currentSong.song.title,level)
+                                randgets = 0
+                                randgots = 0
+                                initTheme(app,pscr[level].theme)
+                            else
+                                busyDlg.Close()
+                                if ShowOkAbortDialog("Error in playlist","No audio items retrieved.") then
+                                    print "Outta here!"
+                                    exit while
+                                end if
+                            end if
+                        else if pl = invalid then
+                            busyDlg.Close()
+                            if ShowOkAbortDialog("Server Problem","Communications with the server has been lost.") then
+                                print "Outta here!"
+                                exit while
+                            end if
+                        else
+                            busyDlg.Close()
+                            if ShowOkAbortDialog("Empty playlist","No audio items retrieved.") then
+                                print "Outta here!"
+                                exit while
+                            end if
+                        end if
                     end if
 
                 else if item.IsSettings()
                     initTheme(app, "settings")
                     pscr[0].screen.Show()
                     currentConfig = ShowSettings(currentConfig)
+                    autoplay = GetAutoplay()
                     initTheme(app, "media")
                     pscr[0].screen.Show()
-                else if item.IsWhatsPlaying()
-                    if not audioPlaying then 
+                else if item.IsNowPlaying()
+                    if not audioPlaying then
                         ShowOkDialog("Audio Player Control","There's nothing playing at the moment")
                     else
                         initTheme(app,"music")
-                        currentSong = showSpringboardScreen(audio, port, audioContent, currentSong,invalid,true)
+                        currentSong = showSpringboardScreen(audio, port, audioContent, currentSong,invalid,true,shuffleMode)
+                        UpdateNowPlaying(pscr,currentSong.song.title,level)
+                        randgets = 0
+                        randgots = 0
                         initTheme(app,"media")
                     end if
                 else
                     browse = true
-                    if GetAutoplay() and ((level = 0 and item.GetTitle() = "My Music") or pscr[level].theme = "music") then
+                    if autoplay and ((level = 0 and item.GetTitle() = "My Music") or pscr[level].theme = "music") then
                         ' prompt to play folder if it's music
-                        if FolderPrompt() then
-                            busyDlg = ShowBusy()
+                        choice = FolderPrompt()
+                        if choice > 1 then
+                            if choice = 3 then
+                                busyDlg = ShowBusy("shuffling...")
+                                shuffleMode = true
+                            else                        
+                                busyDlg = ShowBusy("retrieving...")
+                                shuffleMode = false
+                            end if
                             initTheme(app, "music") ' sets theme to "music" if top level "My Music" folder was selected
                             browse = false
                             audio.Stop()
                             audio.ClearContent()
                             audioPlaying = false
+                            UpdateNowPlaying(pscr,"",level)
                             ' Create an array to store audio playlists as we traverse the hierarchy
                             audioContent = CreateObject("roArray",1,true)
                             pl = item.GetSubItems()
                             if pl <> invalid and pl.items.Count() <> 0 then
                                 ptmp = makePosterScreen("","")
                                 ptmp.SetPlayList(pl)
-                                buildAudioContent(audioContent,ptmp.GetPosters())
-                                top = audioContent.Peek()
-                                songs = top.songs
-                                audio.SetContentList(songs)
-                                currentSong = GetNextSong(audio,audioContent,-1,true)
-                                if currentSong >= 0 then
+
+                                buildAudioContent(audioContent,ptmp.GetPosters(),-1)
+                                if GetNextSong(audio,audioContent,true) >= 0 then
+                                    if shuffleMode then
+                                        randget = rnd(200)
+                                        for randgot = 0 to randget
+                                            GetNextSong(audio,audioContent,true)
+                                '!!!*** if gns = -1 ***!!!
+                                        end for
+                                    end if
                                     audioPlaying = true
-                                    currentSong = showSpringboardScreen(audio, port, audioContent, currentSong, busyDlg)
+                                    currentSong = showSpringboardScreen(audio, port, audioContent, invalid, busyDlg, false, shuffleMode)
+                                    UpdateNowPlaying(pscr,currentSong.song.title,level)
+                                    randgets = 0
+                                    randgots = 0
+randgots = 9999 '!!!***
                                     initTheme(app,pscr[level].theme)
-                                else 
+                                else
                                     busyDlg.Close()
                                     if ShowOkAbortDialog("Empty folder","No audio items retrieved.  Is the media path set correctly? Does the selected path contain playable files?") then
                                         print "Outta here!"
@@ -649,7 +739,7 @@ Sub Main()
                                     print "Outta here!"
                                     exit while
                                 end if
-                            else 
+                            else
                                 busyDlg.Close()
                                 if ShowOkAbortDialog("Empty folder","No audio items retrieved.  Is the media path set correctly? Does the selected path contain playable files?") then
                                     print "Outta here!"
@@ -661,7 +751,7 @@ Sub Main()
 
                     if browse then
                         'load the sub items and display those'
-                        busyDlg = ShowBusy()
+                        busyDlg = ShowBusy("retrieving...")
                         print "loading subitems for "; itemIndex; " - "; item.GetTitle()
                         pl = item.GetSubItems()
                         if pl <> invalid and pl.items.Count() <> 0 then
@@ -756,16 +846,80 @@ Sub Main()
         else if type(msg) = "roAudioPlayerEvent" then
             if msg.isStatusMessage() then
                 print "audio status: ";msg.GetMessage()
-                if msg.GetMessage() = "end of stream" then
-                    currentSong = GetNextSong(audio,audioContent,currentSong,GetAutoplay())
+                if msg.GetMessage() = "start of play" then
+                    UpdateNowPlaying(pscr,currentSong.song.title,level)
+                    dt = CreateObject("roDateTime")
+                    now = dt.asSeconds()
+                    currentSong.starttime = now
+                    currentSong.paused = false
+                    if shuffleMode then
+                        randgots = 0
+                        top = audioContent.Peek()
+                        songs = top.songs
+                        length = currentSong.song.Length
+                        if length < 5 then
+                            randgets = 1
+                        else if length < 10 then
+                                randgets = rnd(9)
+                        else
+                            if not autoplay then
+                                ' if we're not traversing directories, just pick a number between 1
+                                ' and the number of songs in the list
+                                randgets = rnd(songs.Count() - 1)
+                            else
+                                ' otherwise pick a number loosely based on the length of the song
+                                ' (longer songs give more time to "randomize")
+                                randgets = length + rnd(length)
+                            end if
+                        end if
+                    end if
+                else if msg.GetMessage() = "end of stream" then
+                    audio.Stop()
+                    if not shuffleMode then
+                        idx = GetNextSong(audio,audioContent,autoplay)
+                '!!!*** if gns = -1 ***!!!
+                    end if
                     top = audioContent.Peek()
                     songs = top.songs
-                    print "Song "; currentSong; " - "+songs[currentSong].Title +" should be next"
-                    audio.SetNext(currentSong)
+                    idx = top.idxsave
+                    audio.ClearContent()
+                    audio.SetContentList(songs)
+                    audio.SetNext(idx)
+                    song = songs[idx]
+                    print "Song "; idx; " - "+song.Title +" should be next"
                     audio.Play()
+                    dt = CreateObject("roDateTime")
+                    now = dt.asSeconds()
+                    currentSong.song = song
+                    currentSong.starttime = now
+                    currentSong.paused = false
                 end if
             end if
             print "end roAudioPlayerEvent"
+'Test start
+        REM else if randgots >= randgets and randgots <> 0 then
+REM dt = CreateObject("roDateTime")
+REM now = dt.asSeconds()
+REM if now - currentSong.starttime > 10 then
+            REM randgots = 0
+            REM audio.Stop()
+            REM if not shuffleMode then
+                REM idx = GetNextSong(audio,audioContent,autoplay)
+                REM '!!!*** if gns = -1 ***!!!
+            REM end if
+            REM top = audioContent.Peek()
+            REM songs = top.songs
+            REM idx = top.idxsave
+            REM audio.ClearContent()
+            REM audio.SetContentList(songs)
+            REM audio.SetNext(idx)
+            REM song = songs[idx]
+            REM print "Song "; idx; " - "+song.Title +" should be next"
+            REM audio.Play()
+            REM currentSong.song = song
+REM currentSong.starttime = now
+REM end if
+'Test end
         end if
     end while
 
@@ -859,7 +1013,15 @@ Function buildSlideShowContent(posters as object, idx as Integer, pics as Object
     return newidx
 End Function
 
-Function buildAudioContent(ac as object, posters as object) as Object
+REM Function GetSong(ac as object, idx as Integer) as Object
+    REM print "GetSong"
+
+    REM top = ac.Peek()
+    REM songs = top.songs
+    REM return songs[idx]
+REM End Function
+
+Function buildAudioContent(ac as object, posters as object, idx as Integer) as Object
     print "buildAudioContent"
 
     songs = CreateObject("roArray",1,true)
@@ -879,16 +1041,17 @@ print posters.Count(); " posters"
             items.Push(item)
         end if
     end for
-    ac.Push({songs: songs,items: items, idxsave: 0, playable: playable})
+    ac.Push({songs: songs, items: items, idxsave: idx, playable: playable})
     return ac
 End Function
 
-Function GetNextSong(audio as Object, ac as Object, idx as Integer,autoplay=false) as Integer
-    print "GetNextSong"
+Function GetNextSong(audio as Object, ac as Object, autoplay=false) as Integer
+    'print "GetNextSong"
 
     top = ac.Peek()
     songs = top.songs
     items = top.items
+    idx = top.idxsave
     maxidx = songs.Count() - 1
 
     if not autoplay then
@@ -898,97 +1061,99 @@ Function GetNextSong(audio as Object, ac as Object, idx as Integer,autoplay=fals
             idx = idx + 1
             if idx > maxidx then idx = 0
         end while
+        top.idxsave = idx
     else
         idx = idx + 1
         if idx > maxidx then
 print "ac.Count() = ";ac.Count()
             if ac.Count() = 1 then
 print "wrapping around"
-                if not top.playable then return -1
-                return GetNextSong(audio,ac,-1,true)
+x=              Run("tmp:/gc.brs")  ' call script to allow garbage collection
+print x;"****************************** Garbage Collection ******************************";x
+                ' If we got back here without finding anything playable, return -1
+                if not top.playable then return -1  
+                top.idxsave = -1
+                return GetNextSong(audio,ac,true)
             else
 print "popping"
                 playable = top.playable
                 ac.Pop()
                 top = ac.Peek()
                 if playable then top.playable = true
-                songs = top.songs
-                audio.ClearContent()
-                audio.SetContentList(songs)
-                return GetNextSong(audio,ac,top.idxsave,true)
+                return GetNextSong(audio,ac,true)
             end if
         end if
         if songs[idx].ContentType = "audio" then
-print "simple case"
+'print "simple case"
+            top.idxsave = idx
             return idx
         end if
         if songs[idx].Length = 0 and songs[idx].Artist = "Folder" then '!!!*** change this to IsFolder
             ' Must be a folder
-print "folder"
+print "folder - ";songs[idx].Title
             pl = items[idx].GetSubItems()
             if pl <> invalid and pl.items.Count() <> 0 then
 print "going down"
                 ptmp = makePosterScreen("","")
                 ptmp.SetPlayList(pl)
                 top.idxsave = idx
-                buildAudioContent(ac,ptmp.GetPosters())
-                top = ac.Peek()
-                songs = top.songs
-                audio.ClearContent()
-                audio.SetContentList(songs)
-                return GetNextSong(audio,ac,-1,true)
+                buildAudioContent(ac,ptmp.GetPosters(),-1)
+                return GetNextSong(audio,ac,true)
             else if pl = invalid then
                 '????
-                return 0    '!!!***
+                return -1    '!!!***
                 REM if ShowOkAbortDialog("Server Problem","Communications with the server has been lost.") then
                     REM print "Outta here!"
                     REM exit while
                 REM end if
             else 'empty folder
 print "empty folder"
-                return GetNextSong(audio,ac,idx,true)
+                top.idxsave = idx
+                return GetNextSong(audio,ac,true)
             end if
         end if
     end if
+    top.idxsave = idx
     return idx
 End Function
 
-Function GetPreviousSong(audio as Object, ac as Object, idx as Integer,autoplay=false) as Integer
+Function GetPreviousSong(audio as Object, ac as Object,autoplay=false) as Integer
     print "GetPreviousSong"
 
     top = ac.Peek()
+    idx = top.idxsave
     songs = top.songs
     items = top.items
     maxidx = songs.Count() - 1
 
+    idx = idx - 1
     if not autoplay then
-        idx = idx - 1
         if idx < 0 then idx = maxidx
         while songs[idx].ContentType <> "audio"
             idx = idx - 1
             if idx < 0 then idx = maxidx
         end while
     else
-        idx = idx -1
         if idx < 0 then
 print "ac.Count() = ";ac.Count()
             if ac.Count() = 1 then
 print "wrapping around"
-                return GetPreviousSong(audio,ac,maxidx+1,true)
+                top.idxsave = maxidx + 1
+                return GetPreviousSong(audio,ac,true)
             else
 print "popping"
                 ac.Pop()
-                top = ac.Peek()
-                songs = top.songs
-                audio.ClearContent()
-                audio.SetContentList(songs)
-                return GetPreviousSong(audio,ac,top.idxsave,true)
+                return GetPreviousSong(audio,ac,true)
             end if
         end if
+
+        ' idx is not less than 0
         if songs[idx].ContentType = "audio" then
 print "simple case"
+            top.idxsave = idx
             return idx
         end if
+
         if songs[idx].Length = 0 and songs[idx].Artist = "Folder" then '!!!*** change this to IsFolder
             ' Must be a folder
 print "folder"
@@ -998,25 +1163,27 @@ print "going down"
                 ptmp = makePosterScreen("","")
                 ptmp.SetPlayList(pl)
                 top.idxsave = idx
-                buildAudioContent(ac,ptmp.GetPosters())
+                buildAudioContent(ac,ptmp.GetPosters(),0)
                 top = ac.Peek()
                 songs = top.songs
-                audio.ClearContent()
-                audio.SetContentList(songs)
-                return GetPreviousSong(audio,ac,songs.Count(),true)
+                top.idxsave = songs.Count()
+                return GetPreviousSong(audio,ac,true)
             else if pl = invalid then
                 '????
-                return 0    '!!!***
+                return -1    '!!!***
                 REM if ShowOkAbortDialog("Server Problem","Communications with the server has been lost.") then
                     REM print "Outta here!"
                     REM exit while
                 REM end if
             else 'empty folder
 print "empty folder"
-                return GetPreviousSong(audio,ac,idx,true)
+                return GetPreviousSong(audio,ac,true)
             end if
         end if
     end if
+
+    ' should never get here
+    top.idxsave = idx
     return idx
 End Function
 
@@ -1024,29 +1191,52 @@ End Function
 '** showSpringboardScreen()'
 '*************************************************************'
 
-Function showSpringboardScreen(audio as object, port as object, ac as object, idx as Integer,busyDlg=invalid,redisplay=false) As Integer
+Function showSpringboardScreen(audio as object, port as object, ac as object, currentSong=invalid,busyDlg=invalid,redisplay=false,shuffle=false) As Object
     print "showSpringboardScreen"
 
     top = ac.Peek()
     songs = top.songs
+    idx = top.idxsave
+
     screen = CreateObject("roSpringboardScreen")
     screen.SetMessagePort(port)
     screen.AllowUpdates(false)
 
     print songs.Count(); " songs in playlist"
-    maxidx = songs.Count() - 1
-    
+
+    timer = CreateObject("roTimespan")
+    lastupdate = 0
+
     if not redisplay then
         audio.ClearContent()
         audio.SetContentList(songs)
         audio.SetNext(idx)
-        audio.SetLoop(false)
+        audio.SetLoop(true) '!!!***
+        song = songs[idx]
+        progress = -1
+        paused = false
+        cumulative = 0
+    else
+        song = currentSong.song
+        dt = CreateObject("roDateTime")
+        now = dt.asSeconds()
+        cumulative = now - currentSong.starttime
+        progress = 0
+        timer.Mark()
+        paused = currentSong.paused
+        if paused then
+            screen.SetProgressIndicator(cumulative, song.length)
+        end if
     end if
 
-    screen.SetContent(songs[idx])
+    screen.SetContent(song)
     screen.SetDescriptionStyle("audio")
     screen.ClearButtons()
-    screen.AddButton(1,"Pause")
+    if paused then
+        screen.AddButton(1,"Play")
+    else
+        screen.AddButton(1,"Pause")
+    end if
     screen.AddButton(2,"Go Back")
     screen.SetStaticRatingEnabled(false)
     screen.SetProgressIndicatorEnabled(true)
@@ -1062,25 +1252,37 @@ Function showSpringboardScreen(audio as object, port as object, ac as object, id
     remoteLeft = 4
     remoteRight = 5
 
-    paused = false
+    length = song.Length
 
-    progress = -1
-    length = songs[idx].LookUp("Length")
-
-    cumulative = 0
-    timer = CreateObject("roTimespan")
-    
-    if not redisplay then 
+    if not redisplay then
         audio.Play()
     end if
-    
+
     neverstarted = false
+    shuffling = false
+    randgets = 0
+    randgots = 0
+    autoplay = GetAutoplay()
+
     while true
-        msg = wait(1000, port)  ' wait no more than a second so progress bar can be updated
+        msg = wait(10, port)
+
         if not paused and progress >= 0 then
             progress = cumulative + timer.TotalSeconds()
-            screen.SetProgressIndicator(progress, length)
+            if progress <> lastupdate then
+                screen.SetProgressIndicator(progress, length)
+                lastupdate = progress
+            end if
         end if
+
+        if shuffle
+            if randgots < randgets then
+                idx = GetNextSong(audio,ac,autoplay)
+                '!!!*** if gns = -1 ***!!!
+                randgots = randgots + 1
+            end if
+        end if
+
         if msg <> invalid then
             print "Message: "; msg.GetIndex(); " "; msg.GetData()
             if type(msg) = "roSpringboardScreenEvent"
@@ -1119,18 +1321,25 @@ Function showSpringboardScreen(audio as object, port as object, ac as object, id
                         exit while
                     end if
                 else if msg.GetIndex() = remoteLeft or msg.GetIndex() = remoteRight then
+                    'randgots = 0
                     if msg.GetIndex() = remoteLeft then
-                        idx = GetPreviousSong(audio,ac,idx,GetAutoplay())
+                        idx = GetPreviousSong(audio,ac,autoplay)
+                '!!!*** if gns = -1 ***!!!
                     else
-                        idx = GetNextSong(audio,ac,idx,GetAutoplay())
+                        idx = GetNextSong(audio,ac,autoplay)
+                '!!!*** if gns = -1 ***!!!
                     end if
                     audio.Stop()
-                    audio.SetNext(idx)
                     screen.AllowUpdates(false)
+                    audio.ClearContent()
                     top = ac.Peek()
+                    idx = top.idxsave
                     songs = top.songs
-                    screen.SetContent(songs[idx])
-                    length = songs[idx].Length
+                    song = songs[idx]
+                    audio.SetContentList(songs)
+                    audio.SetNext(idx)
+                    screen.SetContent(song)
+                    length = song.Length
                     screen.SetProgressIndicator(0, length)
                     screen.AllowUpdates(true)
                     progress = -1
@@ -1149,17 +1358,44 @@ Function showSpringboardScreen(audio as object, port as object, ac as object, id
                     if msg.GetMessage() = "start of play" then
                         timer.Mark()
                         progress = 0    ' allows code to update progress bar
+                        if shuffle and cumulative = 0 then
+                            ' only start shuffling if this is really the start of the song, not just a resume
+                            randgots = 0
+                            if length < 5 then
+                                randgets = 1
+                            else if length < 10 then
+                                    randgets = rnd(9)
+                            else
+                                if not autoplay then
+                                    ' if we're not traversing directories, just pick a number between 1
+                                    ' and the number of songs in the list
+                                    randgets = rnd(songs.Count() - 1)
+                                else
+                                    ' otherwise pick a number loosely based on the length of the song
+                                    ' (longer songs give more time to "randomize")
+                                    randgets = length + rnd(length)
+                                end if
+                            end if
+                        end if
                     else if msg.GetMessage() = "end of stream" then
-                        progress = -1   ' flag so code won't update progress bar
+                        audio.Stop()
+                        progress = -1   ' flag so code won't update progress bar anymore; wait for next song to start
                         cumulative = 0
-                        idx = GetNextSong(audio,ac,idx,GetAutoplay())
-                        print "Song "; idx; " - "+songs[idx].Title +" should be next"
-                        audio.SetNext(idx)
-                        screen.AllowUpdates(false)
+                        if not shuffle then
+                            idx = GetNextSong(audio,ac,autoplay)
+                        '!!!*** if gns = -1 ***!!!
+                        end if
                         top = ac.Peek()
                         songs = top.songs
-                        screen.SetContent(songs[idx])
-                        length = songs[idx].Length
+                        idx = top.idxsave
+                        audio.ClearContent()
+                        audio.SetContentList(songs)
+                        audio.SetNext(idx)
+                        screen.AllowUpdates(false)
+                        song = songs[idx]
+                        print "Song "; idx; " - "+song.Title +" should be next"
+                        screen.SetContent(song)
+                        length = song.Length
                         screen.SetProgressIndicator(0, length)
                         screen.AllowUpdates(true)
                         audio.Play()
@@ -1171,7 +1407,14 @@ Function showSpringboardScreen(audio as object, port as object, ac as object, id
         end if
     end while
 
-    return idx
+    dt = CreateObject("roDateTime")
+    now = dt.asSeconds()
+    if paused then
+        starttime = now - cumulative
+    else
+        starttime = now - progress
+    end if
+    return {song: song, starttime: starttime, paused: paused}
 End Function
 
 
