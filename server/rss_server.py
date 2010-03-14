@@ -77,14 +77,14 @@ def main_menu_feed(config):
     items.append(item)
 
   # user created link playlist... when it's ready
-  #pl_image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': "images/music_square.jpg", 'key': "client"}))
-  #items.append(RSSImageItem(
-  #  title="Server Playlist",
-  #  link="%s/remotes" % server_base(config),
-  #  description="Folder",
-  #  guid=Guid("/remotes", isPermaLink=0),
-  #  pubDate=datetime.datetime.now(),
-  #  image=pl_image))
+  pl_image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': "images/music_square.jpg", 'key': "client"}))
+  items.append(RSSImageItem(
+    title="Server Playlist",
+    link="%s/remotes" % server_base(config),
+    description="Folder",
+    guid=Guid("/remotes", isPermaLink=0),
+    pubDate=datetime.datetime.now(),
+    image=pl_image))
 
   doc = RSSDoc(
       title="A Personal Music Feed",
@@ -562,9 +562,15 @@ def remotepl2doc(name):
       enclosure = Enclosure(
         url=song,
         type="audio/mpeg",
-        length="0"),
+        length="10000"),
       guid=Guid(song, isPermaLink=0),
-      filetype="audio/mpeg"))
+      filetype="audio/mpeg",
+      image = None,
+      tracknum = 0,
+      ContentType = "audio",
+      playtime = 100,
+      album = "None",
+      bitrate = "128"))
 
   doc = RSSDoc(
       title="A Personal Music Feed",
