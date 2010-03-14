@@ -17,12 +17,9 @@
 					}
 
 					function addItem(text) {
-						var node = document.createElement("div");
-						$(node).addClass('item');
-						$(node).text(text);
-						$(node).editable({onEdit:itemEdit, onSubmit:itemSubmitted});
-
-						$(".item_list").append(node);
+						var item = $('<div class="item">' + text + '</div>');
+						item.appendTo('.item_list');
+						item.editable({onEdit:itemEdit, onSubmit:itemSubmitted});
 						zebraStripes();
 					};
 
@@ -31,20 +28,30 @@
 					});
 
 					$("#save").click(function() {
-						$(".item_list").empty();
+						var items = $(".item_list").children(".item").map(function () {
+							return $(this).text();
+						}).get();
+						$.post('/dynplay', $.param({ song:items }, true));
 					});
 
 					$(".item_list").delegate(".item", "mouseover", function() {
 						$(this).addClass("item_hover");
+						//$('<a href="#" class="delete">[delete]</a>').appendTo(this);
 					});
 
 					$(".item_list").delegate(".item", "mouseout", function() {
 						$(this).removeClass("item_hover");
+						//$(".delete", this).remove();
 					});
 
-					addItem('First item');
-					addItem('Second item');
-					addItem('Third item');
+					// load what's on the server now
+					$.get('/dynplay', function(txt) {
+						$.each(txt.split("\n"), function() {
+							if(this != "") {
+								addItem(this);
+							}
+						});
+					});
 			});
 		</script>
 
@@ -75,6 +82,11 @@
 			#status {
 				font-size: 10pt;
 				color: #444;
+			}
+
+			.delete {
+				font-size: 9pt;
+				color: #c55;
 			}
 		</style>
 		<title>Playlist Editor</title>

@@ -22,6 +22,7 @@ from common import *
 from PyRSS2Gen import *
 
 logging.basicConfig(filename=log_file, level=logging.DEBUG)
+DYNAMIC_PLAYLIST = "dynamic.m3u"
 
 class PublishMixin:
   def publish_extensions(self, handler):
@@ -736,13 +737,33 @@ class ReadmeTextileHandler:
     "serve up the readme textile"
     web.header("Content-Type", "text/plain")
     return open("../README.textile").read()
-    
+
+class DynamicPlaylist:
+  def GET(self):
+    "serve the current dynamic playlist"
+    web.header("Content-Type", "text/plain")
+
+    if os.path.exists(DYNAMIC_PLAYLIST):
+      return open(DYNAMIC_PLAYLIST).read()
+    else:
+      return ""
+ 
+  def POST(self):
+    "update the dynamic playlist"
+    args = web.input(song = [])
+    logging.debug("got arguments: %s" % str(args))
+
+    f = open(DYNAMIC_PLAYLIST, "w")
+    f.write("\n".join(args.song))
+    f.close()
+
 urls = (
     '/feed', 'RssHandler',
     '/media', 'MediaHandler',
     '/m3u', 'M3UHandler',
     '/', 'IndexHandler',
-    '/readme', 'ReadmeTextileHandler')
+    '/readme', 'ReadmeTextileHandler',
+    '/dynplay', 'DynamicPlaylist')
 
 app = web.application(urls, globals())
 
