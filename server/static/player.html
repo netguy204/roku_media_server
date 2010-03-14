@@ -5,7 +5,7 @@
 	<script src="jplayer.js" type="text/javascript"></script>
 	<script>
 		$(document).ready(function() {
-			var populate = function(container, url) {
+			function populate(container, url) {
 				container.hide("fast");
 				container.empty();
 
@@ -27,7 +27,7 @@
 			};
 
 			var urlstack = new Array();
-			var updateBack = function() {
+			function updateBack() {
 				if (urlstack.length > 1) {
 					$("#back").show();
 				} else {
@@ -35,17 +35,29 @@
 				}
 			};
 
+			var target = $("#target");
+
 			$("#jplayer").jPlayer({
 				swfPath: "."
 			}).jPlayer("onSoundComplete", function() {
 				$(".playing").removeClass('playing');
-				$("#controls").hide("slow");
-			});
-			$("#controls").hide();
 
-			
-			var target = $("#target");
-			var nowPlaying = null;
+				// find the next thing to play
+				var last = $.data(target, "now_playing");
+				if(last) {
+					var next = $(last).next("a").get(0);
+					if(!next) {
+						// loop back to the first
+						next = $(last).parent().children("a").get(0);
+					}
+					playSong(next);
+				} else {
+					$("#controls").hide("slow");
+				}
+			});
+
+			// start with controls hidden
+			$("#controls").hide();
 
 			target.delegate("a", "click", function() {
 				if($.data(this,"type") == "none") {
@@ -54,18 +66,23 @@
 					updateBack();
 					return false;
 				} else {
-					$("#jplayer").jPlayer("setFile", this.href)
-					$("#jplayer").jPlayer("play");
-
-					// highlight playing
-					$(".playing").removeClass("playing");
-					$(this).addClass("playing");
-					$("#controls:hidden").show("slow");
-
-					nowPlaying = this.href;
+					playSong(this);
 					return false;
 				}
 			});
+
+			function playSong(song) {
+				$("#jplayer").jPlayer("setFile", song.href)
+				$("#jplayer").jPlayer("play");
+				$.data(target, "now_playing", song);
+
+				// highlight playing
+				$(".playing").removeClass("playing");
+				$(song).addClass("playing");
+
+				// show the controls if they're hidden
+				$("#controls:hidden").show("slow");
+			}
 
 			var root = "/feed?key=music&dir=.";
 			populate(target, root);
