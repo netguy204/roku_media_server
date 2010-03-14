@@ -76,6 +76,16 @@ def main_menu_feed(config):
     item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': "images/photos_square.jpg", 'key': "client"}))
     items.append(item)
 
+  # user created link playlist... when it's ready
+  #pl_image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': "images/music_square.jpg", 'key': "client"}))
+  #items.append(RSSImageItem(
+  #  title="Server Playlist",
+  #  link="%s/remotes" % server_base(config),
+  #  description="Folder",
+  #  guid=Guid("/remotes", isPermaLink=0),
+  #  pubDate=datetime.datetime.now(),
+  #  image=pl_image))
+
   doc = RSSDoc(
       title="A Personal Music Feed",
       link="%s/feed" % server_base(config),
@@ -269,7 +279,9 @@ def getart(path):
         mp3 = Mp3AudioFile(path)
         tag = mp3.getTag()
       except:
-        logging.warning("library failed to parse ID3 tags for %s. Skipping." % fname)
+        logging.warning("library failed to parse ID3 tags for %s. Skipping." % path)
+        tag = None
+
       if tag:
         album = call_protected(tag.getAlbum, "Error Reading Album")
         if album:
@@ -507,28 +519,27 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
 
   return doc
 
+def pl2songs(pl):
+  filein = open(pl)
+  lines = [ ln.rstrip() for ln in filein if ln[0] != '#' ]
+  filein.close()
+  return lines
+
 def getpl(name, key, path, config):
   "create a media feed document from an m3u playlist"
-
   items = []
 
   lpath = os.path.join(path, name)
-  filein = open(lpath,"r")
-  line = filein.readline()
-  while line:
-    line = line.rstrip()
-    if line[0] != "#":
-      base = os.path.dirname(line)
-      file = os.path.basename(line)
-      if base == "":
-        base = os.path.dirname(lpath)
-      fpath = os.path.join(base, file)
-      curr_image = getart(base)
-      image_icon = curr_image
-      item = file2item(key, fpath, path, config, image_icon)
-      if item:
-        items.append(item)
-    line = filein.readline()
+  for line in pl2songs(lpath):
+    base = os.path.dirname(line)
+    file = os.path.basename(line)
+    if base == "":
+      base = os.path.dirname(lpath)
+    fpath = os.path.join(base, file)
+    image_icon = getart(base)
+    item = file2item(key, fpath, path, config, image_icon)
+    if item:
+      items.append(item)
 
   doc = RSSDoc(
       title="A Personal Music Feed",
@@ -538,6 +549,30 @@ def getpl(name, key, path, config):
       items = items,
       theme = key)
 
+  return doc
+
+def remotepl2doc(name):
+  "convert a playlist with remote urls into a document. music only for now"
+  items = []
+  config = parse_config(config_file)
+  for song in pl2songs(name):
+    items.append(RSSImageItem(
+      title=song,
+      link=song,
+      enclosure = Enclosure(
+        url=song,
+        type="audio/mpeg",
+        length="0"),
+      guid=Guid(song, isPermaLink=0),
+      filetype="audio/mpeg"))
+
+  doc = RSSDoc(
+      title="A Personal Music Feed",
+      link="%s/remotes" % (server_base(config)),
+      description="My Media",
+      lastBuildDate=datetime.datetime.now(),
+      items = items,
+      theme = "music")
   return doc
 
 def doc2m3u(doc):
@@ -757,13 +792,20 @@ class DynamicPlaylist:
     f.write("\n".join(args.song))
     f.close()
 
+class DynamicPlaylistDoc:
+  def GET(self):
+    "the user created dynamic playlist in rss form"
+    web.header("Content-Type", "application/rss+xml")
+    return remotepl2doc(DYNAMIC_PLAYLIST).to_xml()
+
 urls = (
     '/feed', 'RssHandler',
     '/media', 'MediaHandler',
     '/m3u', 'M3UHandler',
     '/', 'IndexHandler',
     '/readme', 'ReadmeTextileHandler',
-    '/dynplay', 'DynamicPlaylist')
+    '/dynplay', 'DynamicPlaylist',
+    '/remotes', 'DynamicPlaylistDoc')
 
 app = web.application(urls, globals())
 
