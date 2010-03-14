@@ -17,8 +17,10 @@
 					}
 
 					function addItem(text) {
-						var item = $('<div class="item">' + text + '</div>');
-						item.appendTo('.item_list');
+						var item_row = $('<div class="item_row"/>');
+						var item = $('<span class="item">' + text + '</span>');
+						item.appendTo(item_row);
+						item_row.appendTo('.item_list');
 						item.editable({onEdit:itemEdit, onSubmit:itemSubmitted});
 						zebraStripes();
 					};
@@ -28,7 +30,7 @@
 					});
 
 					$("#save").click(function() {
-						var items = $(".item_list").children(".item").map(function () {
+						var items = $(".item_list").children(".item_row").children(".item").map(function () {
 							return $(this).text();
 						}).get();
 						$.post('/dynplay', $.param({ song:items }, true));
@@ -36,12 +38,16 @@
 
 					$(".item_list").delegate(".item", "mouseover", function() {
 						$(this).addClass("item_hover");
-						//$('<a href="#" class="delete">[delete]</a>').appendTo(this);
+						$(".delete").remove();
+						$(this).after('<a href="#" class="delete">[delete]</a>');
 					});
 
 					$(".item_list").delegate(".item", "mouseout", function() {
 						$(this).removeClass("item_hover");
-						//$(".delete", this).remove();
+					});
+
+					$(".item_list").delegate(".delete", "click", function() {
+						$(this).parent().remove();
 					});
 
 					// load what's on the server now

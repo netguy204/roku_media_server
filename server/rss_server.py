@@ -792,6 +792,8 @@ class DynamicPlaylist:
     f.write("\n".join(args.song))
     f.close()
 
+    return "<b>done</b>";
+
 class DynamicPlaylistDoc:
   def GET(self):
     "the user created dynamic playlist in rss form"
