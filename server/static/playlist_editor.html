@@ -6,7 +6,7 @@
 			$(document).ready(function() {
 					function zebraStripes() {
 						// fix zebra stripes
-						$(".item:nth-child(odd)").addClass("item_odd");
+						$(".item_row:nth-child(odd)").addClass("item_row_odd");
 					}
 
 					function itemEdit() {
@@ -72,12 +72,15 @@
 			}
 
 			.item {
+			}
+
+			.item_row {
 				border-style: solid;
 				border-color: black;
 				border-width: 0px 0px 1px 0px;
 			}
 
-			.item_odd {
+			.item_row_odd {
 				background: #e6e6e6;
 			}
 
