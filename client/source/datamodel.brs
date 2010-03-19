@@ -41,54 +41,29 @@ Function GetSongListFromFeed(feed_url) As Dynamic
     return { items:items, theme:theme }
 End Function
 
-Sub CreateSettingsPoster(items)
-' Creates a bare minimum XML entry for the "settings" poster.
+Sub CreateSimplePoster(items as Object, title as String, image as String, description as String, name as String)
+' Creates a bare minimum XML entry for a simple poster.
 ' Most of the item.GetXxx functions are not valid.
-' Use item.IsSettings() to check for the settings entry before 
+' Use item.IsSimple(name) to check for the simple poster entry before 
 ' proceeding with other functions.
-    print "CreateSettingsPoster"
+    print "CreateSimplePoster"
 
-    settingsXML = CreateObject("roXMLElement")
-    settingsXML.SetName("Settings root")
-    ne=settingsXML.AddBodyElement()
+    simpleXML = CreateObject("roXMLElement")
+    simpleXML.SetName(title + " root")
+    ne=simpleXML.AddBodyElement()
     ne.SetName("title")
-    ne.SetBody("My Settings")
-    ne=settingsXML.AddBodyElement()
+    ne.SetBody(title)
+    ne=simpleXML.AddBodyElement()
     ne.SetName("image")
-    ne.SetBody("pkg:/images/settings_square.jpg")
-    ne=settingsXML.AddBodyElement()
+    ne.SetBody(image)
+    ne=simpleXML.AddBodyElement()
     ne.SetName("description")
-    ne.SetBody("Channel Settings")
-    ne=settingsXML.AddBodyElement()
-    ne.SetName("settings")
-    'ne.SetBody("settings")
-    items.Push(newMediaFromXML(invalid, settingsXML))
+    ne.SetBody(description)
+    ne=simpleXML.AddBodyElement()
+    ne.SetName("name")
+    ne.SetBody(name)
+    items.Push(newMediaFromXML(invalid, simpleXML))
 End Sub
-
-Sub CreateNowPlayingPoster(items)
-' Creates a bare minimum XML entry for the "Now Playing" poster.
-' Most of the item.GetXxx functions are not valid.
-' Use item.IsNowPlaying() to check for the settings entry before 
-' proceeding with other functions.
-    print "CreateNowPlayingPoster"
-
-    settingsXML = CreateObject("roXMLElement")
-    settingsXML.SetName("Now Playing root")
-    ne=settingsXML.AddBodyElement()
-    ne.SetName("title")
-    ne.SetBody("Now Playing")
-    ne=settingsXML.AddBodyElement()
-    ne.SetName("image")
-    ne.SetBody("pkg:/images/nowplaying_square.jpg")
-    ne=settingsXML.AddBodyElement()
-    ne.SetName("description")
-    ne.SetBody("Return to Audio Player")
-    ne=settingsXML.AddBodyElement()
-    ne.SetName("playerctl")
-    'ne.SetBody("settings")
-    items.Push(newMediaFromXML(invalid, settingsXML))
-End Sub
-
 
 Sub PrintXML(element As Object, depth As Integer)
     if depth = 0 then print "PrintXML"
@@ -133,8 +108,7 @@ Function newMediaFromXML(rss As Object, xml As Object) As Object
         GetAlbum:itemGetAlbum,
         GetArtist:itemGetArtist,
         IsPlayable:itemIsPlayable
-        IsSettings:itemIsSettings,
-        IsNowPlaying:itemIsNowPlaying,
+        IsSimple:itemIsSimple,
         GetSubItems:itemGetSubItems }
 
     return item
@@ -217,12 +191,9 @@ Function itemIsPlayable()
     return m.xml.enclosure.Count() > 0
 End Function
 
-Function itemIsSettings()
-    return m.xml.settings.Count() > 0
-End Function
-
-Function itemIsNowPlaying()
-    return m.xml.playerctl.Count() > 0
+Function itemIsSimple(name)
+    if m.xml.name.Count() > 0 then return m.xml.name.GetText() = name
+    return false
 End Function
 
 Function itemGetSubItems()

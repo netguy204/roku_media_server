@@ -1,6 +1,6 @@
 ' started as next-dfb2d56
 ' ********************************************************************'
-' **  MyMedia - Springboard/SlideShow/Shuffle version'
+' **  MyMedia - Springboard/SlideShow/Playall&Shuffle Posters version'
 ' **'
 ' **  Initial revision'
 ' **  Brian Taylor el.wubo@gmail.com'
@@ -422,25 +422,6 @@ Function GetConfig() as Object
     return {server: server, ssDelay: ssDelay, autoplay: autoplay}
 End Function
 
-Function FolderPrompt() as Integer
-    print "FolderPrompt"
-
-    port = CreateObject("roMessagePort")
-    dialog = CreateObject("roMessageDialog")
-    dialog.SetMessagePort(port)
-
-    dialog.SetTitle("What would you like to do?")
-    dialog.SetText("Play all songs in this folder or browse folder?")
-    dialog.AddButton(1, "Browse")
-    dialog.AddButton(2, "Play")
-    dialog.AddButton(3, "Shuffle")
-    dialog.Show()
-
-    dlgMsg = wait(0, dialog.GetMessagePort())
-    return dlgMsg.GetIndex()  ' = 2 then return true
-    'return false
-End Function
-
 Sub Main()
     print "Main"
 
@@ -471,11 +452,11 @@ Sub Main()
             pl = {items: items, theme: "media"}
         else
             svrContact = true
-            CreateNowPlayingPoster(pl.items)
+            CreateSimplePoster(pl.items, "Now Playing", "pkg:/images/nowplaying_square.jpg", "Return to Audio Player", "playerctl")
         end if
 
         ' Add the "settings" poster before proceeding (may be only poster if no contact w/server established)
-        CreateSettingsPoster(pl.items)
+        CreateSimplePoster(pl.items, "My Settings", "pkg:/images/settings_square.jpg", "Channel Settings", "settings")
 
         if svrContact then exit while
 
@@ -637,7 +618,7 @@ if randgots = randgets then print "randgots = ";randgots
 
                             audioContent = CreateObject("roArray",1,true)
                             buildAudioContent(audioContent,ptmp.GetPosters(),-1)
-                            if GetNextSong(audio,audioContent,true) >= 0 then
+                            if GetNextSong(audio,audioContent,false) >= 0 then
                                 audioPlaying = true
                                 currentSong = showSpringboardScreen(audio, port, audioContent, invalid, busyDlg, false, false)
                                 UpdateNowPlaying(pscr,currentSong.song.title,level)
@@ -666,132 +647,121 @@ if randgots = randgets then print "randgots = ";randgots
                         end if
                     end if
 
-                else if item.IsSettings()
+                else if item.IsSimple("settings")
                     initTheme(app, "settings")
                     pscr[0].screen.Show()
                     currentConfig = ShowSettings(currentConfig)
                     autoplay = GetAutoplay()
                     initTheme(app, "media")
                     pscr[0].screen.Show()
-                else if item.IsNowPlaying()
+                else if item.IsSimple("playerctl")
                     if not audioPlaying then
                         ShowOkDialog("Audio Player Control","There's nothing playing at the moment")
                     else
                         initTheme(app,"music")
                         currentSong = showSpringboardScreen(audio, port, audioContent, currentSong,invalid,true,shuffleMode)
+                        initTheme(app,"media")
                         UpdateNowPlaying(pscr,currentSong.song.title,level)
                         randgets = 0
                         randgots = 0
-                        initTheme(app,"media")
                     end if
-                else
-                    browse = true
-                    if autoplay and ((level = 0 and item.GetTitle() = "My Music") or pscr[level].theme = "music") then
-                        ' prompt to play folder if it's music
-                        choice = FolderPrompt()
-                        if choice > 1 then
-                            if choice = 3 then
-                                busyDlg = ShowBusy("shuffling...")
-                                shuffleMode = true
-                            else                        
-                                busyDlg = ShowBusy("retrieving...")
-                                shuffleMode = false
-                            end if
-                            initTheme(app, "music") ' sets theme to "music" if top level "My Music" folder was selected
-                            browse = false
-                            audio.Stop()
-                            audio.ClearContent()
-                            audioPlaying = false
-                            UpdateNowPlaying(pscr,"",level)
-                            ' Create an array to store audio playlists as we traverse the hierarchy
-                            audioContent = CreateObject("roArray",1,true)
-                            pl = item.GetSubItems()
-                            if pl <> invalid and pl.items.Count() <> 0 then
-                                ptmp = makePosterScreen("","")
-                                ptmp.SetPlayList(pl)
-
-                                buildAudioContent(audioContent,ptmp.GetPosters(),-1)
-                                if GetNextSong(audio,audioContent,true) >= 0 then
-                                    if shuffleMode then
-                                        randget = rnd(200)
-                                        for randgot = 0 to randget
-                                            GetNextSong(audio,audioContent,true)
-                                '!!!*** if gns = -1 ***!!!
-                                        end for
-                                    end if
-                                    audioPlaying = true
-                                    currentSong = showSpringboardScreen(audio, port, audioContent, invalid, busyDlg, false, shuffleMode)
-                                    UpdateNowPlaying(pscr,currentSong.song.title,level)
-                                    randgets = 0
-                                    randgots = 0
-randgots = 9999 '!!!***
-                                    initTheme(app,pscr[level].theme)
-                                else
-                                    busyDlg.Close()
-                                    if ShowOkAbortDialog("Empty folder","No audio items retrieved.  Is the media path set correctly? Does the selected path contain playable files?") then
-                                        print "Outta here!"
-                                        exit while
-                                    end if
-                                end if
-                            else if pl = invalid then
-                                busyDlg.Close()
-                                if ShowOkAbortDialog("Server Problem","Communications with the server has been lost.") then
-                                    print "Outta here!"
-                                    exit while
-                                end if
-                            else
-                                busyDlg.Close()
-                                if ShowOkAbortDialog("Empty folder","No audio items retrieved.  Is the media path set correctly? Does the selected path contain playable files?") then
-                                    print "Outta here!"
-                                    exit while
-                                end if
-                            end if
-                        end if
-                    end if
-
-                    if browse then
-                        'load the sub items and display those'
+                else if item.IsSimple("playall") or item.IsSimple("shuffleall") then
+                    if item.IsSimple("shuffleall") then
+                        busyDlg = ShowBusy("shuffling...")
+                        shuffleMode = true
+                    else                        
                         busyDlg = ShowBusy("retrieving...")
-                        print "loading subitems for "; itemIndex; " - "; item.GetTitle()
-                        pl = item.GetSubItems()
-                        if pl <> invalid and pl.items.Count() <> 0 then
-                            if pl.theme <> currentTheme then
-                                currentTheme = pl.theme
-                                initTheme(app, currentTheme)
-                            end if
-
-                            ' increment the level we're on
-                            level = level + 1
-
-                            ' setup breadcrumbs for new poster screen
-                            if level = 1 then
-                                bc1 = item.GetTitle()
-                                bc2 = ""
-                            else if level = 2
-                                bc1 = pscr[level-1].GetBC1()
-                                bc2 = item.GetTitle()
+                        shuffleMode = false
+                    end if
+                    audio.Stop()
+                    audio.ClearContent()
+                    audioPlaying = false
+                    UpdateNowPlaying(pscr,"",level)
+                    ' Create an array to store audio playlists as we traverse the hierarchy
+                    audioContent = CreateObject("roArray",1,true)
+                    buildAudioContent(audioContent,posters,-1)
+                    if GetNextSong(audio,audioContent,autoplay) >= 0 then
+                        if shuffleMode then
+                            if autoplay then
+                                randget = rnd(250)
                             else
-                                bc1 = pscr[level-1].GetBC2()
-                                bc2 = item.GetTitle()
+                                top = audioContent.Peek()
+                                songs = top.songs
+                                randget = rnd(songs.Count())
                             end if
-                            ' create a new poster screen
-                            pscr[level] = makePosterScreen(bc1,bc2)
-                            pscr[level].SetPlayList(pl)
-                            pscr[level].screen.Show()
-                            port = pscr[level].screen.GetMessagePort()
-                            audio.SetMessagePort(port)
-                            currentBaseSong = 0
-                        else if pl = invalid then
-                            if ShowOkAbortDialog("Server Problem","Communications with the server has been lost.") then
-                                print "Outta here!"
-                                exit while
-                            end if
-                        else if ShowOkAbortDialog("Empty folder","No media items retrieved.  Is the media path set correctly? Does the selected path contain playable files?") then
+                            for randgot = 0 to randget
+                                GetNextSong(audio,audioContent,autoplay)
+                    '!!!*** if gns = -1 ***!!!
+                            end for
+                        end if
+                        audioPlaying = true
+                        currentSong = showSpringboardScreen(audio, port, audioContent, invalid, busyDlg, false, shuffleMode)
+                        UpdateNowPlaying(pscr,currentSong.song.title,level)
+                        randgets = 0
+                        randgots = 0
+                    else
+                        busyDlg.Close()
+                        if ShowOkAbortDialog("Empty folder","No audio items retrieved.  Is the media path set correctly? Does the selected path contain playable files?") then
                             print "Outta here!"
                             exit while
                         end if
-                        busyDlg.Close()
+                    end if                    
+                else
+                    startidx = 0
+                    items = CreateObject("roList")
+                    pl1 = {items: items, theme: "media"}
+                    if (level = 0 and item.GetTitle() = "My Music") or pscr[level].theme = "music" then
+                        CreateSimplePoster(pl1.items, "Shuffle All", "pkg:/images/blank.jpg", "Shuffle everything", "shuffleall")
+                        CreateSimplePoster(pl1.items, "Play All", "pkg:/images/blank.jpg", "Play everything", "playall")
+                        startidx = 2
                     end if
+        
+                    'load the sub items and display those'
+                    busyDlg = ShowBusy("retrieving...")
+                    print "loading subitems for "; itemIndex; " - "; item.GetTitle()
+                    pl = item.GetSubItems()
+                    if pl <> invalid and pl.items.Count() <> 0 then
+                        for each i in pl1.items
+                            pl.items.AddHead(i)
+                        end for
+                        
+                        if pl.theme <> currentTheme then
+                            currentTheme = pl.theme
+                            initTheme(app, currentTheme)
+                        end if
+
+                        ' increment the level we're on
+                        level = level + 1
+
+                        ' setup breadcrumbs for new poster screen
+                        if level = 1 then
+                            bc1 = item.GetTitle()
+                            bc2 = ""
+                        else if level = 2
+                            bc1 = pscr[level-1].GetBC1()
+                            bc2 = item.GetTitle()
+                        else
+                            bc1 = pscr[level-1].GetBC2()
+                            bc2 = item.GetTitle()
+                        end if
+                        ' create a new poster screen
+                        pscr[level] = makePosterScreen(bc1,bc2)
+                        pscr[level].SetPlayList(pl)
+                        pscr[level].screen.SetFocusedListItem(startidx)
+                        pscr[level].screen.Show()
+                        port = pscr[level].screen.GetMessagePort()
+                        audio.SetMessagePort(port)
+                        currentBaseSong = 0
+                    else if pl = invalid then
+                        if ShowOkAbortDialog("Server Problem","Communications with the server has been lost.") then
+                            print "Outta here!"
+                            exit while
+                        end if
+                    else if ShowOkAbortDialog("Empty folder","No media items retrieved.  Is the media path set correctly? Does the selected path contain playable files?") then
+                        print "Outta here!"
+                        exit while
+                    end if
+                    busyDlg.Close()
                 end if
             end if
         else if type(msg) = "roSlideShowEvent" then
@@ -1069,7 +1039,7 @@ print "ac.Count() = ";ac.Count()
             if ac.Count() = 1 then
 print "wrapping around"
 x=              Run("tmp:/gc.brs")  ' call script to allow garbage collection
-print x;"****************************** Garbage Collection ******************************";x
+print x;"************************** Garbage Collection **************************";x
                 ' If we got back here without finding anything playable, return -1
                 if not top.playable then return -1  
                 top.idxsave = -1
@@ -1280,11 +1250,12 @@ Function showSpringboardScreen(audio as object, port as object, ac as object, cu
                 idx = GetNextSong(audio,ac,autoplay)
                 '!!!*** if gns = -1 ***!!!
                 randgots = randgots + 1
+if randgots = randgets then print "randgots = ";randgots
             end if
         end if
 
         if msg <> invalid then
-            print "Message: "; msg.GetIndex(); " "; msg.GetData()
+            'print "Message: "; msg.GetIndex(); " "; msg.GetData()
             if type(msg) = "roSpringboardScreenEvent"
                 if msg.isScreenClosed()
                     print "Springboard Screen closed"
