@@ -711,8 +711,8 @@ if randgots = randgets then print "randgots = ";randgots
                     items = CreateObject("roList")
                     pl1 = {items: items, theme: "media"}
                     if (level = 0 and item.GetTitle() = "My Music") or pscr[level].theme = "music" then
-                        CreateSimplePoster(pl1.items, "Shuffle All", "pkg:/images/blank.jpg", "Shuffle everything", "shuffleall")
-                        CreateSimplePoster(pl1.items, "Play All", "pkg:/images/blank.jpg", "Play everything", "playall")
+                        CreateSimplePoster(pl1.items, "Shuffle All", "pkg:/images/shuffleall_square.jpg", "Shuffle everything", "shuffleall")
+                        CreateSimplePoster(pl1.items, "Play All", "pkg:/images/playall_square.jpg", "Play everything", "playall")
                         startidx = 2
                     end if
         

@@ -61,30 +61,31 @@ def main_menu_feed(config):
 
   items = []
   item = dir2item("music", music_dir(config), music_dir(config), config, image=None, name="My Music")
-  item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': "images/music_square.jpg", 'key': "client"}))
+  item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': "images/music_square.jpg", 'key': "client", 'res': tuple2str(THB_DIM)}))
   items.append(item)
 
   dir = video_dir(config)
   if dir and os.path.exists(dir):
     item = dir2item("video", dir, dir, config, image=None, name="My Videos")
-    item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': "images/videos_square.jpg", 'key': "client"}))
+    item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': "images/videos_square.jpg", 'key': "client", 'res': tuple2str(THB_DIM)}))
     items.append(item)
 
   dir = photo_dir(config)
   if dir and os.path.exists(dir):
     item = dir2item("photo", dir, dir, config, image=None, name="My Photos")
-    item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': "images/photos_square.jpg", 'key': "client"}))
+    item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': "images/photos_square.jpg", 'key': "client", 'res': tuple2str(THB_DIM)}))
     items.append(item)
 
   # user created link playlist... when it's ready
-  pl_image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': "images/music_square.jpg", 'key': "client"}))
-  items.append(RSSImageItem(
-    title="Server Playlist",
-    link="%s/remotes" % server_base(config),
-    description="Folder",
-    guid=Guid("/remotes", isPermaLink=0),
-    pubDate=datetime.datetime.now(),
-    image=pl_image))
+  if os.path.exists(DYNAMIC_PLAYLIST):
+    pl_image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': "images/serverpl_square.jpg", 'key': "client", 'res': tuple2str(THB_DIM)}))
+    items.append(RSSImageItem(
+      title="Server Playlist",
+      link="%s/remotes" % server_base(config),
+      description="Folder",
+      guid=Guid("/remotes", isPermaLink=0),
+      pubDate=datetime.datetime.now(),
+      image=pl_image))
 
   doc = RSSDoc(
       title="A Personal Music Feed",
