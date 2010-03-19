@@ -4,59 +4,24 @@
 		<script src="js/editable.js" type="text/javascript"></script>
 		<script type="text/javascript">
 			$(document).ready(function() {
+					// zebra striper!
 					function zebraStripes() {
 						// fix zebra stripes
 						$(".item_row:nth-child(odd)").addClass("item_row_odd");
 					}
 
-					function itemEdit() {
-						$("#status").text("Press tab to stop editing");
-					}
-					function itemSubmitted() {
-						$("#status").empty();
-					}
+					// grab the form element and stash it away
+					var theForm = $(".item_row");
+					theForm.detach();
 
-					function addItem(text) {
-						var item_row = $('<div class="item_row"/>');
-						var item = $('<span class="item">' + text + '</span>');
-						item.appendTo(item_row);
-						item_row.appendTo('.item_list');
-						item.editable({onEdit:itemEdit, onSubmit:itemSubmitted});
-						zebraStripes();
-					};
+					// clone and reattach a first one
+					theForm.clone().appendTo(".item_list");
+					zebraStripes();
 
+					// attach new instances when add is clicked
 					$("#add").click(function() {
-						addItem('Click to edit...');
-					});
-
-					$("#save").click(function() {
-						var items = $(".item_list").children(".item_row").children(".item").map(function () {
-							return $(this).text();
-						}).get();
-						$.post('/dynplay', $.param({ song:items }, true));
-					});
-
-					$(".item_list").delegate(".item", "mouseover", function() {
-						$(this).addClass("item_hover");
-						$(".delete").remove();
-						$(this).after('<a href="#" class="delete">[delete]</a>');
-					});
-
-					$(".item_list").delegate(".item", "mouseout", function() {
-						$(this).removeClass("item_hover");
-					});
-
-					$(".item_list").delegate(".delete", "click", function() {
-						$(this).parent().remove();
-					});
-
-					// load what's on the server now
-					$.get('/dynplay', function(txt) {
-						$.each(txt.split("\n"), function() {
-							if(this != "") {
-								addItem(this);
-							}
-						});
+						theForm.clone().appendTo(".item_list");
+						zebraStripes();
 					});
 			});
 		</script>
@@ -72,12 +37,14 @@
 			}
 
 			.item {
+				padding: 5px;
 			}
 
 			.item_row {
 				border-style: solid;
 				border-color: black;
 				border-width: 0px 0px 1px 0px;
+				padding: 5px;
 			}
 
 			.item_row_odd {
@@ -86,6 +53,11 @@
 
 			.item_hover {
 				background: #ccccee;
+			}
+
+			.item_name {
+				font-family: sans-serif;
+				font-size: 10pt;
 			}
 
 			#status {
@@ -105,6 +77,24 @@
 	<body>
 		<div class="container">
 			<div class="item_list">
+				<div class="item_row">
+					<div class="item" style="display:inline;">
+						<span class="item_name">Title</span>
+						<input name="title"/>
+					</div>
+					<div class="item" style="display:inline;">
+						<span class="item_name">URL</span>
+						<input name="url"/>
+					</div>
+					<div class="item">
+						<span class="item_name">Media Type</span>
+						<select name="type">
+							<option value="video">Video</option>
+							<option value="video">Audio</option>
+							<option value="video">Photos</option>
+						</select>
+					</div>
+				</div>
 			</div>
 			<div class="controls">
 				<button id="add">Add</button>
