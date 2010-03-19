@@ -536,7 +536,7 @@ def getpl(name, key, path, config):
     if base == "":
       base = os.path.dirname(lpath)
     fpath = os.path.join(base, file)
-    image_icon = getart(base)
+    image_icon = getart(fpath)
     item = file2item(key, fpath, path, config, image_icon)
     if item:
       items.append(item)
