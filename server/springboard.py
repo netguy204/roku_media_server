@@ -32,6 +32,7 @@ ensure("server_ip", socket.gethostbyname(socket.gethostname()))
 ensure("server_port", "8001")
 ensure("collapse_collections", "False")
 ensure("max_folders_before_split", "10")
+ensure("theme", "default")
 
 # make a reasonable guess at where the user keeps their music
 default_music_path = "Music"
@@ -84,13 +85,36 @@ def build_client_zip(config, client_path, target_zip):
 
   zip = zipfile.ZipFile(target_zip, "w")
 
+  # if a theme was selected, override those images
+  theme = config.get("config", "theme")
+  image_override = {}
+  if theme != "default":
+    theme_path = os.path.join(client_path, "themes", theme)
+    if os.path.exists(theme_path):
+      for base, dirs, files in os.walk(theme_path):
+        # no subdirs
+        del dirs[:]
+
+        # override the default theme images in the zip file
+        for file in files:
+          realpath = os.path.join(base, file)
+          fakepath = os.path.join("images", file)
+          image_override[fakepath] = realpath
+    else:
+      print "Theme path %s does not exist. Did you remove it while springboard was running?" % theme_path
+
   for base, dirs, files in os.walk(client_path):
+    if "themes" in dirs:
+      # don't include the themes directory
+      dirs.remove("themes")
+
     for file in files:
       # exclude the makefile
       if file == 'Makefile':
         pass
 
       fullpath = os.path.join(base, file)
+      relpath = relpath26(fullpath, client_path)
 
       f = None
       
@@ -108,9 +132,12 @@ def build_client_zip(config, client_path, target_zip):
         tf.seek(0)
         f = tf
       else:
+        # override theme images
+        if relpath in image_override:
+          fullpath = image_override[relpath]
+
         f = open(fullpath, 'rb')
         
-      relpath = relpath26(fullpath, client_path)
       zip.writestr(relpath, f.read())
       f.close()
       print "added %s to zip as %s" % (fullpath, relpath)
@@ -142,6 +169,10 @@ class ConfigPanel:
         text="Install Client", command=self.install_client)
     self.install_client.grid(row=self.row_num, column=1, sticky=E)
 
+  def _get_themes(self):
+    theme_dir = os.path.join(os.path.pardir, "client", "themes")
+    return os.listdir(theme_dir)
+
   def _make_entry(self, parent, name, value):
     if not hasattr(self, 'row_num'):
       self.row_num = 0
@@ -151,11 +182,20 @@ class ConfigPanel:
     w = Label(parent, text=name)
     w.grid(row=self.row_num, sticky=W)
 
-    w = Entry(parent)
-    w.insert(0, value)
-    w.grid(row=self.row_num, column=1, sticky=NSEW)
+    if name=="theme":
+      # make the theme combo box instead
+      v = StringVar(parent)
+      theme = config.get("config", "theme")
+      v.set(theme)
+      w = apply(OptionMenu, (parent, v, "default") + tuple(self._get_themes()))
+      w.grid(row=self.row_num, column=1, sticky=NSEW)
+      self.configvars[name] = v
 
-    self.configvars[name] = w
+    else:
+      w = Entry(parent)
+      w.insert(0, value)
+      w.grid(row=self.row_num, column=1, sticky=NSEW)
+      self.configvars[name] = w
 
     self.row_num += 1
 

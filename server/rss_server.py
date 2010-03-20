@@ -61,26 +61,39 @@ class RSSDoc(PublishMixin, RSS2):
 def main_menu_feed(config):
   "create the root feed for the main menu"
 
+  def get_themed_image(name):
+    client = client_dir(config)
+
+    theme = config.get("config", "theme")
+    if theme != "default":
+      theme_img = os.path.join(client, "themes", theme, name)
+      if os.path.exists(theme_img):
+        return "themes/%s/%s" % (theme, name)
+      else:
+        return "images/%s" % name
+    else:
+      return "images/%s" % name
+
   items = []
   item = dir2item("music", music_dir(config), music_dir(config), config, image=None, name="My Music")
-  item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': "images/music_square.jpg", 'key': "client", 'res': tuple2str(THB_DIM)}))
+  item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': get_themed_image("music_square.jpg"), 'key': "client", 'res': tuple2str(THB_DIM)}))
   items.append(item)
 
   dir = video_dir(config)
   if dir and os.path.exists(dir):
     item = dir2item("video", dir, dir, config, image=None, name="My Videos")
-    item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': "images/videos_square.jpg", 'key': "client", 'res': tuple2str(THB_DIM)}))
+    item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': get_themed_image("videos_square.jpg"), 'key': "client", 'res': tuple2str(THB_DIM)}))
     items.append(item)
 
   dir = photo_dir(config)
   if dir and os.path.exists(dir):
     item = dir2item("photo", dir, dir, config, image=None, name="My Photos")
-    item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': "images/photos_square.jpg", 'key': "client", 'res': tuple2str(THB_DIM)}))
+    item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': get_themed_image("photos_square.jpg"), 'key': "client", 'res': tuple2str(THB_DIM)}))
     items.append(item)
 
   # user created link playlist... when it's ready
   if os.path.exists(MY_STREAMS):
-    pl_image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': "images/serverpl_square.jpg", 'key': "client", 'res': tuple2str(THB_DIM)}))
+    pl_image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': get_themed_image("serverpl_square.jpg"), 'key': "client", 'res': tuple2str(THB_DIM)}))
     items.append(RSSImageItem(
       title="Server Playlist",
       link="%s/remotes" % server_base(config),
@@ -577,7 +590,6 @@ def pickle2doc(name):
       album = "None",
       bitrate = "128"))
 
-  print str(items)
   doc = RSSDoc(
       title="A Personal Music Feed",
       link="%s/remotes" % (server_base(config)),

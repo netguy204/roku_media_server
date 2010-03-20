@@ -57,9 +57,9 @@
 
 							$.each(json, function() {
 								item = theForm.clone();
-								$("input[name*='title']", item).attr("value", this.title);
-								$("input[name*='url']", item).attr("value", this.url);
-								$("option[value*='"+this.type+"']", item).attr("selected", "selected");
+								$("input[name*='title']", item).val(this.title);
+								$("input[name*='url']", item).val(this.url);
+								$("select[name*='type']", item).val(this.type);
 								item.appendTo(".item_list");
 							});
 						}
