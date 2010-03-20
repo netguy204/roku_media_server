@@ -573,14 +573,19 @@ def pickle2doc(name):
   f = open(name, "rb")
   records = pickle.load(f)
   for record in records:
-    if record['type'] == "audio":
+    if record['type'] == "mp3audio":
       sf = "mp3"
       ct = "audio"
-      ft = "audio/mpeg"
-      img = "pkg:/images/serverpl_square.jpg"
+      ft = ext2mime(sf)
+    elif record['type'] == "wmaaudio":
+      sf = "wma"
+      ct = "audio"
+      ft = ext2mime(sf)
     else:
       # can't handle this yet
       continue
+    
+    img = "pkg:/images/serverpl_square.jpg"
 
     items.append(RSSImageItem(
       title=record['title'],
