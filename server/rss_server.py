@@ -25,6 +25,7 @@ from PyRSS2Gen import *
 
 logging.basicConfig(filename=log_file, level=logging.DEBUG)
 MY_STREAMS = "my_streams.pickle"
+DEFAULT_STREAMS = "default_streams.pickle"
 
 class PublishMixin:
   def publish_extensions(self, handler):
@@ -91,16 +92,14 @@ def main_menu_feed(config):
     item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': get_themed_image("photos_square.jpg"), 'key': "client", 'res': tuple2str(THB_DIM)}))
     items.append(item)
 
-  # user created link playlist... when it's ready
-  if os.path.exists(MY_STREAMS):
-    pl_image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': get_themed_image("serverpl_square.jpg"), 'key': "client", 'res': tuple2str(THB_DIM)}))
-    items.append(RSSImageItem(
-      title="Server Playlist",
-      link="%s/remotes" % server_base(config),
-      description="Folder",
-      guid=Guid("/remotes", isPermaLink=0),
-      pubDate=datetime.datetime.now(),
-      image=pl_image))
+  pl_image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': get_themed_image("serverpl_square.jpg"), 'key': "client", 'res': tuple2str(THB_DIM)}))
+  items.append(RSSImageItem(
+    title="Server Playlist",
+    link="%s/remotes" % server_base(config),
+    description="Folder",
+    guid=Guid("/remotes", isPermaLink=0),
+    pubDate=datetime.datetime.now(),
+    image=pl_image))
 
   doc = RSSDoc(
       title="A Personal Music Feed",
@@ -574,21 +573,30 @@ def pickle2doc(name):
   f = open(name, "rb")
   records = pickle.load(f)
   for record in records:
+    if record['type'] == "audio":
+      sf = "mp3"
+      ct = "audio"
+      ft = "audio/mpeg"
+      img = "pkg:/images/serverpl_square.jpg"
+    else:
+      # can't handle this yet
+      continue
+
     items.append(RSSImageItem(
       title=record['title'],
       link=record['url'],
       enclosure = Enclosure(
         url=record['url'],
-        type="audio/mpeg",
-        length="10000"),
+        type=ft,
+        length=None),
       guid=Guid(record['url'], isPermaLink=0),
-      filetype="audio/mpeg",
-      image = None,
+      pubDate = datetime.datetime.now(),
+      filetype=ft,
+      image = img,
       tracknum = 0,
-      ContentType = "audio",
-      playtime = 100,
-      album = "None",
-      bitrate = "128"))
+      ContentType = ct,
+      StreamFormat = sf,
+      album = "None"))
 
   doc = RSSDoc(
       title="A Personal Music Feed",
@@ -804,9 +812,12 @@ class DynamicPlaylist:
 
     if os.path.exists(MY_STREAMS):
       f = open(MY_STREAMS, "rb")
-      return simplejson.dumps(pickle.load(f))
+    elif os.path.exists(DEFAULT_STREAMS):
+      f = open(DEFAULT_STREAMS, "rb")
     else:
       return "[]" # empty list
+    
+    return simplejson.dumps(pickle.load(f))
  
   def POST(self):
     "update the dynamic playlist"
@@ -832,7 +843,11 @@ class DynamicPlaylistDoc:
   def GET(self):
     "the user created dynamic playlist in rss form"
     web.header("Content-Type", "application/rss+xml")
-    return pickle2doc(MY_STREAMS).to_xml()
+
+    if os.path.exists(MY_STREAMS):
+      return pickle2doc(MY_STREAMS).to_xml()
+    else:
+      return pickle2doc(DEFAULT_STREAMS).to_xml()
 
 urls = (
     '/feed', 'RssHandler',
