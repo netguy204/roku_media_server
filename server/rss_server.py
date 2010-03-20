@@ -16,13 +16,15 @@ import urllib
 import ConfigParser
 import math
 import logging
+import pickle
+import simplejson
 
 from eyeD3 import *
 from common import *
 from PyRSS2Gen import *
 
 logging.basicConfig(filename=log_file, level=logging.DEBUG)
-DYNAMIC_PLAYLIST = "dynamic.m3u"
+MY_STREAMS = "my_streams.pickle"
 
 class PublishMixin:
   def publish_extensions(self, handler):
@@ -77,7 +79,7 @@ def main_menu_feed(config):
     items.append(item)
 
   # user created link playlist... when it's ready
-  if os.path.exists(DYNAMIC_PLAYLIST):
+  if os.path.exists(MY_STREAMS):
     pl_image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': "images/serverpl_square.jpg", 'key': "client", 'res': tuple2str(THB_DIM)}))
     items.append(RSSImageItem(
       title="Server Playlist",
@@ -552,19 +554,21 @@ def getpl(name, key, path, config):
 
   return doc
 
-def remotepl2doc(name):
-  "convert a playlist with remote urls into a document. music only for now"
+def pickle2doc(name):
+  "convert a pickle file into a document"
   items = []
   config = parse_config(config_file)
-  for song in pl2songs(name):
+  f = open(name, "rb")
+  records = pickle.load(f)
+  for record in records:
     items.append(RSSImageItem(
-      title=song,
-      link=song,
+      title=record['title'],
+      link=record['url'],
       enclosure = Enclosure(
-        url=song,
+        url=record['url'],
         type="audio/mpeg",
         length="10000"),
-      guid=Guid(song, isPermaLink=0),
+      guid=Guid(record['url'], isPermaLink=0),
       filetype="audio/mpeg",
       image = None,
       tracknum = 0,
@@ -573,6 +577,7 @@ def remotepl2doc(name):
       album = "None",
       bitrate = "128"))
 
+  print str(items)
   doc = RSSDoc(
       title="A Personal Music Feed",
       link="%s/remotes" % (server_base(config)),
@@ -783,20 +788,30 @@ class ReadmeTextileHandler:
 class DynamicPlaylist:
   def GET(self):
     "serve the current dynamic playlist"
-    web.header("Content-Type", "text/plain")
+    web.header("Content-Type", "text/javascript")
 
-    if os.path.exists(DYNAMIC_PLAYLIST):
-      return open(DYNAMIC_PLAYLIST).read()
+    if os.path.exists(MY_STREAMS):
+      f = open(MY_STREAMS, "rb")
+      return simplejson.dumps(pickle.load(f))
     else:
-      return ""
+      return "[]" # empty list
  
   def POST(self):
     "update the dynamic playlist"
-    args = web.input(song = [])
+    args = web.input(title = [], type = [], url = [])
     logging.debug("got arguments: %s" % str(args))
 
-    f = open(DYNAMIC_PLAYLIST, "w")
-    f.write("\n".join(args.song))
+    # repack the arguments
+    data = []
+    for i in range(len(args.title)):
+      data.append({
+        'title': args.title[i],
+        'type': args.type[i],
+        'url': args.url[i]})
+
+
+    f = open(MY_STREAMS, "wb")
+    pickle.dump(data, f)
     f.close()
 
     return "<b>done</b>";
@@ -805,7 +820,7 @@ class DynamicPlaylistDoc:
   def GET(self):
     "the user created dynamic playlist in rss form"
     web.header("Content-Type", "application/rss+xml")
-    return remotepl2doc(DYNAMIC_PLAYLIST).to_xml()
+    return pickle2doc(MY_STREAMS).to_xml()
 
 urls = (
     '/feed', 'RssHandler',

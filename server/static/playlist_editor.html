@@ -10,25 +10,70 @@
 						$(".item_row:nth-child(odd)").addClass("item_row_odd");
 					}
 
+					function flashStatus(txt, fade) {
+						if(fade) {
+							$("#status").text(txt).show().fadeOut(1200);
+						} else {
+							$("#status").text(txt).show();
+						}
+					}
+
+
 					// grab the form element and stash it away
 					var theForm = $(".item_row");
 					theForm.detach();
 
-					// clone and reattach a first one
-					theForm.clone().appendTo(".item_list");
-					zebraStripes();
+					// blank the fields
+					$("input", theForm).attr("value", "");
 
 					// attach new instances when add is clicked
 					$("#add").click(function() {
 						theForm.clone().appendTo(".item_list");
 						zebraStripes();
+						return false;
 					});
+
+					$("form").submit(function() {
+						flashStatus("Saving data...", false);
+						$.post('/dynplay', $(this).serialize(), function(txt) {
+							flashStatus("Data saved", true);
+						});
+						return false;
+					});
+
+					$(".item_list").delegate(".delete", "click", function() {
+						$(this).parent().parent().remove();
+						flashStatus("Item removed", true);
+					});
+
+					// populate the form
+					$.get('/dynplay', function(json) {
+						json = $.parseJSON(json);
+						if (json.length == 0) {
+							// clone and reattach a first one
+							theForm.clone().appendTo(".item_list");
+							return;
+						} else {
+
+							$.each(json, function() {
+								item = theForm.clone();
+								$("input[name*='title']", item).attr("value", this.title);
+								$("input[name*='url']", item).attr("value", this.url);
+								$("option[value*='"+this.type+"']", item).attr("selected", "selected");
+								item.appendTo(".item_list");
+							});
+						}
+						zebraStripes();
+						flashStatus("Data loaded", true);
+					});
+
+					flashStatus("Loading data...", false);
 			});
 		</script>
 
 		<style type='text/css'>
 			.container {
-				width: 600px;
+				width: 90%
 				background: #f0f0f0;
 			}
 
@@ -38,6 +83,7 @@
 
 			.item {
 				padding: 5px;
+				display: inline-block;
 			}
 
 			.item_row {
@@ -62,45 +108,58 @@
 
 			#status {
 				font-size: 10pt;
-				color: #444;
+				color: #933;
 			}
 
 			.delete {
 				font-size: 9pt;
 				color: #c55;
 			}
+
+			.controls {
+				border-style: solid;
+				border-width: 5px;
+				border-color: #333;
+				padding: 5px;
+			}
 		</style>
-		<title>Playlist Editor</title>
+		<title>My Streams</title>
 
 	</head>
 
 	<body>
 		<div class="container">
-			<div class="item_list">
-				<div class="item_row">
-					<div class="item" style="display:inline;">
-						<span class="item_name">Title</span>
-						<input name="title"/>
-					</div>
-					<div class="item" style="display:inline;">
-						<span class="item_name">URL</span>
-						<input name="url"/>
-					</div>
-					<div class="item">
-						<span class="item_name">Media Type</span>
-						<select name="type">
-							<option value="video">Video</option>
-							<option value="video">Audio</option>
-							<option value="video">Photos</option>
-						</select>
+			<h1>My Streams</h1>
+			<form>
+				<div class="item_list">
+					<div class="item_row">
+						<div class="item">
+							<span class="item_name">Title</span>
+							<input name="title"/>
+						</div>
+						<div class="item">
+							<span class="item_name">URL</span>
+							<input name="url"/>
+						</div>
+						<div class="item">
+							<span class="item_name">Media Type</span>
+							<select name="type">
+								<option value="video">Video</option>
+								<option value="audio">Audio</option>
+								<option value="photos">Photos</option>
+							</select>
+						</div>
+						<div class="item">
+							<button class="delete">Remove</button>
+						</div>
 					</div>
 				</div>
-			</div>
-			<div class="controls">
-				<button id="add">Add</button>
-				<button id="save">Save</button>
-				<span id="status"></span>
-			</div>
+				<div class="controls">
+					<button id="add">Add</button>
+					<input type="submit" name="submit" value="Save"/>
+					<span id="status"></span>
+				</div>
+			</form>
 		</div>
 	</body>
 </html>

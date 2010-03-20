@@ -365,7 +365,7 @@ End Function
 
 Sub UpdateNowPlaying(pscrns as Object, text as String, level as Integer)
     print "UpdateNowPlaying"
-    
+
     tmpposters = pscrns[0].screen.GetContentList()
     for each p in tmpposters
         ' This is ugly, but I'm tired of these stupid encapsulated objects
@@ -376,7 +376,7 @@ Sub UpdateNowPlaying(pscrns as Object, text as String, level as Integer)
     end for
     pscrns[0].screen.SetContentList(tmpposters)
     if level = 0 then pscrns[0].screen.show()
-End Sub    
+End Sub
 
 Function ShowBusy(text as String) as Object
     port = CreateObject("roMessagePort")
@@ -610,7 +610,7 @@ if randgots = randgets then print "randgots = ";randgots
                         ssWait = true
                     else if item.GetContentType() = "playlist" then
                         busyDlg = ShowBusy("retrieving...")
-                        print "Playlist: "; item.GetTitle()                        
+                        print "Playlist: "; item.GetTitle()
                         pl = item.GetSubItems()
                         if pl <> invalid and pl.items.Count() <> 0 then
                             ptmp = makePosterScreen("","")
@@ -669,7 +669,7 @@ if randgots = randgets then print "randgots = ";randgots
                     if item.IsSimple("shuffleall") then
                         busyDlg = ShowBusy("shuffling...")
                         shuffleMode = true
-                    else                        
+                    else
                         busyDlg = ShowBusy("retrieving...")
                         shuffleMode = false
                     end if
@@ -705,17 +705,17 @@ if randgots = randgets then print "randgots = ";randgots
                             print "Outta here!"
                             exit while
                         end if
-                    end if                    
+                    end if
                 else
                     startidx = 0
                     items = CreateObject("roList")
                     pl1 = {items: items, theme: "media"}
                     if (level = 0 and item.GetTitle() = "My Music") or pscr[level].theme = "music" then
-                        CreateSimplePoster(pl1.items, "Shuffle All", "pkg:/images/shuffleall_square.jpg", "Shuffle everything", "shuffleall")
-                        CreateSimplePoster(pl1.items, "Play All", "pkg:/images/playall_square.jpg", "Play everything", "playall")
+                        CreateSimplePoster(pl1.items, "Shuffle All", "pkg:/images/blank.jpg", "Shuffle everything", "shuffleall")
+                        CreateSimplePoster(pl1.items, "Play All", "pkg:/images/blank.jpg", "Play everything", "playall")
                         startidx = 2
                     end if
-        
+
                     'load the sub items and display those'
                     busyDlg = ShowBusy("retrieving...")
                     print "loading subitems for "; itemIndex; " - "; item.GetTitle()
@@ -724,7 +724,7 @@ if randgots = randgets then print "randgots = ";randgots
                         for each i in pl1.items
                             pl.items.AddHead(i)
                         end for
-                        
+
                         if pl.theme <> currentTheme then
                             currentTheme = pl.theme
                             initTheme(app, currentTheme)
@@ -976,7 +976,7 @@ Function buildSlideShowContent(posters as object, idx as Integer, pics as Object
             pic.TextOverlayUR = numpic.toStr()
             numpic = numpic + 1
             pics.Push(pic)
-        else
+        else if i < idx then
             newidx = newidx - 1
         end if
     end for
@@ -997,6 +997,7 @@ Function buildAudioContent(ac as object, posters as object, idx as Integer) as O
     songs = CreateObject("roArray",1,true)
     items = CreateObject("roArray",1,true)
     playable = false
+    idxsave = idx
 print posters.Count(); " posters"
     maxidx = posters.Count() - 1
     for i = 0 to maxidx
@@ -1009,9 +1010,11 @@ print posters.Count(); " posters"
             song.HDPosterURL = poster.HDPosterURL
             songs.Push(song)
             items.Push(item)
+        else if i < idx
+            idxsave = idxsave - 1
         end if
     end for
-    ac.Push({songs: songs, items: items, idxsave: idx, playable: playable})
+    ac.Push({songs: songs, items: items, idxsave: idxsave, playable: playable})
     return ac
 End Function
 
@@ -1041,7 +1044,7 @@ print "wrapping around"
 x=              Run("tmp:/gc.brs")  ' call script to allow garbage collection
 print x;"************************** Garbage Collection **************************";x
                 ' If we got back here without finding anything playable, return -1
-                if not top.playable then return -1  
+                if not top.playable then return -1
                 top.idxsave = -1
                 return GetNextSong(audio,ac,true)
             else
