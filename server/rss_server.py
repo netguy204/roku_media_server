@@ -92,9 +92,9 @@ def main_menu_feed(config):
     item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': get_themed_image("photos_square.jpg"), 'key': "client", 'res': tuple2str(THB_DIM)}))
     items.append(item)
 
-  pl_image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': get_themed_image("serverpl_square.jpg"), 'key': "client", 'res': tuple2str(THB_DIM)}))
+  pl_image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': get_themed_image("mystreams_square.jpg"), 'key': "client", 'res': tuple2str(THB_DIM)}))
   items.append(RSSImageItem(
-    title="Server Playlist",
+    title="My Streams",
     link="%s/remotes" % server_base(config),
     description="Folder",
     guid=Guid("/remotes", isPermaLink=0),
