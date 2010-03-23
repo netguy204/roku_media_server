@@ -11,7 +11,7 @@ class StreamMeta:
     
     data = {}
     lines = str.split(';')
-    item_re = re.compile("^([^=]+)='?([^']+)'?$")
+    item_re = re.compile("^([^=]*)='?([^']*)'?$")
 
     for ln in lines:
       m = item_re.match(ln)
@@ -48,7 +48,12 @@ class Stream:
       else:
         print >>sys.stderr, "missed mid character, got", ln
     
-    self.meta_interval = int(self.hdr['icy-metaint'])
+    try:
+      self.meta_interval = int(self.hdr['icy-metaint'])
+    except:
+      # assume no meta
+      self.meta_interval = -1
+
     self.sent_since_meta = 0
 
     # everything else should be data
@@ -71,7 +76,7 @@ class Stream:
     while self.has_data:
       # does the requested chunk span metadata?
       next_meta = self.meta_interval - self.sent_since_meta
-      if next_meta < cs:
+      if next_meta < cs and self.meta_interval != -1:
         # make sure we have the metadata
         self.data = self._extend_buffer(self.data, next_meta+1, self.resp)
 
@@ -110,7 +115,7 @@ class Stream:
 def getstream(url):
   purl = urlparse.urlparse(url)
   conn = httplib.HTTPConnection(purl.netloc)
-  conn.request("GET", purl.path, None, { 'Icy-MetaData' : '1' })
+  conn.request("GET", purl.path, None, {'Icy-MetaData' : '1' })
   resp = conn.getresponse()
   return resp
 

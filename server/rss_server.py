@@ -877,11 +877,19 @@ class StreamHandler:
       yield None
       return
 
-    # assume mp3
-    web.header("Content-Type", ext2mime(".mp3"))
+    # parse out the stream headers
+    stream = parsemeta.Stream(resp)
+
+    # set the headers
+    for name, value in stream.hdr.items():
+      if name != 'icy-metaint':
+        web.header(name, value)
+    web.header('Accept-Ranges', 'none')
+    web.header('x-audiocast-name', 'test')
+
+    print str(web.ctx.environ)
 
     # begin streaming to client
-    stream = parsemeta.Stream(resp)
     last_meta = None
     for data, meta in stream.stream():
       if meta != last_meta:
@@ -889,7 +897,7 @@ class StreamHandler:
         last_meta = meta
       yield data
 
-
+    print "DONE DONE DONE"
 
 urls = (
     '/feed', 'RssHandler',
