@@ -18,6 +18,7 @@ import math
 import logging
 import pickle
 import simplejson
+import parsemeta
 
 from eyeD3 import *
 from common import *
@@ -566,7 +567,7 @@ def getpl(name, key, path, config):
 
   return doc
 
-def pickle2doc(name):
+def pickle2doc(config, name):
   "convert a pickle file into a document"
   items = []
   config = parse_config(config_file)
@@ -586,15 +587,16 @@ def pickle2doc(name):
       continue
     
     img = "pkg:/images/serverpl_square.jpg"
+    url = "%s/stream?%s" % (server_base(config), urllib.urlencode({'url': record['url']}))
 
     items.append(RSSImageItem(
       title=record['title'],
-      link=record['url'],
+      link=url,
       enclosure = Enclosure(
-        url=record['url'],
+        url=url,
         type=ft,
         length=None),
-      guid=Guid(record['url'], isPermaLink=0),
+      guid=Guid(url, isPermaLink=0),
       pubDate = datetime.datetime.now(),
       filetype=ft,
       image = img,
@@ -848,11 +850,46 @@ class DynamicPlaylistDoc:
   def GET(self):
     "the user created dynamic playlist in rss form"
     web.header("Content-Type", "application/rss+xml")
+    config = parse_config(config_file)
 
     if os.path.exists(MY_STREAMS):
-      return pickle2doc(MY_STREAMS).to_xml()
+      return pickle2doc(config, MY_STREAMS).to_xml()
     else:
-      return pickle2doc(DEFAULT_STREAMS).to_xml()
+      return pickle2doc(config, DEFAULT_STREAMS).to_xml()
+
+class StreamHandler:
+  def save_meta(self, meta):
+    "write out meta info to a file that can be served up later"
+    f = open("streammeta.pickle")
+    pickle.dump(f, {'song': meta.song(), 'img_url': meta.img_url()})
+    f.close()
+
+  def GET(self):
+    "proxy an mp3 stream to the user while parsing out the song data"
+    args = web.input(url = None)
+    if not args.url:
+      yield None
+      return
+
+    resp = parsemeta.getstream(args.url)
+    if resp.status != 200:
+      print >>sys.stderr, "server %s didn't respond favorably" % args.url, resp.status, resp.reason
+      yield None
+      return
+
+    # assume mp3
+    web.header("Content-Type", ext2mime(".mp3"))
+
+    # begin streaming to client
+    stream = parsemeta.Stream(resp)
+    last_meta = None
+    for data, meta in stream.stream():
+      if meta != last_meta:
+        self.save_meta(meta)
+        last_meta = meta
+      yield data
+
+
 
 urls = (
     '/feed', 'RssHandler',
@@ -861,7 +898,8 @@ urls = (
     '/', 'IndexHandler',
     '/readme', 'ReadmeTextileHandler',
     '/dynplay', 'DynamicPlaylist',
-    '/remotes', 'DynamicPlaylistDoc')
+    '/remotes', 'DynamicPlaylistDoc',
+    '/stream', 'StreamHandler')
 
 app = web.application(urls, globals())
 
