@@ -38,6 +38,7 @@ class Stream:
     sio = StringIO.StringIO(buffer)
 
     self.hdr = {}
+    relayhdrs = []
     for ln in sio:
       ln = ln.rstrip()
       if ln == "": break
@@ -45,6 +46,8 @@ class Stream:
       name, mid, value = ln.partition(":")
       if mid:
         self.hdr[name.lower()] = value.lstrip().rstrip()
+        if name.lower() != 'icy-metaint':
+          relayhdrs.append(ln)
       else:
         print >>sys.stderr, "missed mid character, got", ln
     
@@ -54,10 +57,12 @@ class Stream:
       # assume no meta
       self.meta_interval = -1
 
+    relayhdrs.extend(("",""))
     self.sent_since_meta = 0
 
-    # everything else should be data
-    self.data = sio.read()
+    # everything else should be data. repack the headers
+    # we'll be relaying to the client
+    self.data = "\r\n".join(relayhdrs) + sio.read()
     self.last_meta = None
     self.has_data = True
 

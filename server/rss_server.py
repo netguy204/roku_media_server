@@ -873,19 +873,22 @@ class StreamHandler:
 
     resp = parsemeta.getstream(args.url)
     if resp.status != 200:
-      print >>sys.stderr, "server %s didn't respond favorably" % args.url, resp.status, resp.reason
+      print >>sys.stderr, "server %s didn't respond favorably (%s, %s)" % (args.url, resp.status, resp.reason)
       yield None
       return
 
     # parse out the stream headers
+    web.ctx.environ['ACTUAL_SERVER_PROTOCOL'] = 'ICY'
+    web.ctx.sent_headers = True
     stream = parsemeta.Stream(resp)
 
     # set the headers
-    for name, value in stream.hdr.items():
-      if name != 'icy-metaint':
-        web.header(name, value)
-    web.header('Accept-Ranges', 'none')
-    web.header('x-audiocast-name', 'test')
+    #for name, value in stream.hdr.items():
+    #  if name != 'icy-metaint':
+    #    web.header(name, value)
+    #web.header('Accept-Ranges', 'none')
+    #web.header('x-audiocast-name', 'test')
+    #web.ctx.status = None
 
     print str(web.ctx.environ)
 
@@ -896,8 +899,6 @@ class StreamHandler:
         self.save_meta(meta)
         last_meta = meta
       yield data
-
-    print "DONE DONE DONE"
 
 urls = (
     '/feed', 'RssHandler',
