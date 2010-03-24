@@ -218,7 +218,7 @@ Function ShowSettings(currentSettings as Object, toolate=true) as Object
         msg = wait(0, port)
 
         if msg.GetIndex() = 1 then
-            newserver = EditDialog("Enter server ip address and port",currentServer,"Example:  http://192.168.1.100:8001/feed",50)
+            newserver = EditDialog("Enter server ip address and port",currentServer,"Example:  http://192.168.1.100:8001/",50)
         else if msg.GetIndex() = 2 then
             newdelay = EditDialog("Enter slide show delay",currentDelay,"Slide show delay in seconds",4)
         else if msg.GetIndex() = 3 then
