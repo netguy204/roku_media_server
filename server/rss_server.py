@@ -92,7 +92,7 @@ def main_menu_feed(config):
     item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': get_themed_image("photos_square.jpg"), 'key': "client", 'res': tuple2str(THB_DIM)}))
     items.append(item)
 
-  pl_image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': get_themed_image("mystreams_square.jpg"), 'key': "client", 'res': tuple2str(THB_DIM)}))
+  pl_image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': get_themed_image("streams_square.jpg"), 'key': "client", 'res': tuple2str(THB_DIM)}))
   items.append(RSSImageItem(
     title="My Streams",
     link="%s/remotes" % server_base(config),
@@ -585,7 +585,7 @@ def pickle2doc(name):
       # can't handle this yet
       continue
     
-    img = "pkg:/images/serverpl_square.jpg"
+    img = "pkg:/images/livestream_square.jpg"
 
     items.append(RSSImageItem(
       title=record['title'],
@@ -609,7 +609,7 @@ def pickle2doc(name):
       description="My Media",
       lastBuildDate=datetime.datetime.now(),
       items = items,
-      theme = "music")
+      theme = "streams")
   return doc
 
 def doc2m3u(doc):
