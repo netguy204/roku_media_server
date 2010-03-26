@@ -22,7 +22,7 @@ _onecaribou_ - testing. contributing the DNS323 NAS installation guide.
 
 _umbighouse_ - helping debug the windows client and providing excellent beta testing feedback. Windows installation tips and scripts. Channel icon and theming.
 
-_witmar_ - high contrast theme
+_witmar_ (tdurrant420@gmail.com) - high contrast theme
 
 Initial development by:
 Brian Taylor (el.wubo@gmail.com)
