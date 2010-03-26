@@ -865,10 +865,56 @@ urls = (
 
 app = web.application(urls, globals())
 
+class IcyHandler:
+  "ICY isn't actually HTTP so we have to hack it into web.py"
+  def __init__(self, environ, start_response):
+    self.headers = []
+    self.environ = environ
+    self.start_response = start_response
+
+  def send_response(self, status, msg=""):
+    self.status = str(status) + " " + msg
+
+  def send_header(self, name, value):
+    self.headers.append((name, value))
+
+  def end_headers(self):
+    pass
+
+  def log_message(*a): pass
+
+  def __iter__(self):
+    environ = self.environ
+
+    w = self.start_response(self.status, self.headers)
+
+    w("ICY 200 OK\r\n")
+
+    while True:
+      buf = f.read(block_size)
+      if not buf:
+        break
+      yield buf
+    f.close()
+
+
+class IcyMiddleware:
+  "intercept stream requests so that we can respond in non HTTP"
+
+  def __init__(self, app):
+    self.app = app
+
+  def __call__(self, environ, start_response):
+    path = environ.get('PATH_INFO', '')
+    if path.startswith('/stream'):
+      return IcyHandler(environ, start_response)
+    else:
+      return self.app(environ, start_response)
+
 if __name__ == "__main__":
   import sys
 
   config = parse_config(config_file)
 
   sys.argv.append(config.get("config","server_port"))
-  app.run()
+  app.run(IcyMiddleware)
