@@ -1,0 +1,109 @@
+@CHARSET "UTF-8";
+/******* GENERAL RESET *******/
+html, body, div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pre, a, abbr, acronym, address, big, cite, code, del, dfn, em,
+font, img, ins, kbd, q, s, samp, small, strike, strong, sub, sup, tt, var, dl, dt, dd, ol, ul, li, fieldset, form, label, legend, table, caption, tbody,
+ tfoot, thead, tr, th, td {
+border: 0pt none;
+font-family: inherit;
+font-size: 100%;
+font-style: inherit;
+font-weight: inherit;
+margin: 0pt;
+padding: 0pt;
+vertical-align: baseline;
+}
+body{
+	line-height: 14px;
+	font-size: 12px;
+	background: #fff;
+	font-family: Tahoma, Verdana, Arial, Helvetica, sans-serif;
+	margin: 0pt;
+	cursor: default;
+}
+table{
+	border-collapse: separate;
+	border-spacing: 0pt;
+}
+caption, th, td{
+	font-weight: normal;
+	text-align: left;
+}
+blockquote:before, blockquote:after, q:before, q:after{
+	content: "";
+}
+blockquote, q{
+	quotes: "" "";
+}
+input, textarea, select{
+	font-family: Tahoma, Verdana, Arial, Helvetica, sans-serif;
+	font-size: 11px;
+}
+strong{
+	font-weight: 700;
+}
+ul{
+	list-style: outside;
+}
+a{
+	cursor: pointer;
+	color: #296ba5;
+	text-decoration: none;
+}
+.clear{
+	clear: both;
+	height: 0;
+	visibility: hidden;
+	display: block;
+}
+/******* /GENERAL RESET *******/
+h1{
+	font-weight: 700;
+	font-size: 18px;
+	line-height: 1.2em;
+	border-bottom: 1px dotted #6b9ef1;
+	color: #5f95ef;
+	margin-bottom: 1em;
+}
+/******* LOGO *******/
+#logo{
+	text-align: center;
+	margin-top: 1em;
+	display: block;
+}
+/******* /LOGO  *******/
+/******* CONTAINER *******/
+#container{
+	width: 600px;
+	margin: 40px auto;
+	text-align: left;
+}
+/******* /CONTAINER *******/
+/******* CONTENT *******/
+div.content span{
+	display: block;
+	font-weight: 700;
+	color: #898989;
+	margin-top: 10px;
+}
+div.content{
+	padding: 0 10px 20px 30px;
+	margin-bottom: 20px;
+}
+div.content a{
+	margin: 0 4px 0 4px;
+	color: #9a9a9a;
+}
+div.content a:hover{
+	color: #5f95ef;
+	text-decoration: underline;
+}
+div.content div.status{
+	font-size: 10px;
+	border-bottom: 1px solid #a5a5a5;
+	margin-bottom: 4px;
+	color: #5f95ef;
+}
+#player2{
+	margin-bottom: 10px;
+}
+/******* /CONTENT *******/
