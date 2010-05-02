@@ -28,6 +28,6 @@ public class Responder extends AbstractHandler {
             HttpServletResponse resp, int dispatch) throws IOException, ServletException {
         resp.setContentType("text/html");
         resp.setStatus(HttpServletResponse.SC_OK);
-        pyresponder.GET(new RequestArguments(req), resp);
+        pyresponder.GET(new RequestArguments(req, target), resp);
     }
 }

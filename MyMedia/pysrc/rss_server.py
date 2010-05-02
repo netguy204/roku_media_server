@@ -805,32 +805,32 @@ class RssHandler(PyResponderIfc):
       resp.getWriter().write(getdoc(feed.key, base_dir, base_dir, range, config).to_xml())
 
 class M3UHandler(PyResponderIfc):
-  def GET(self):
+  def GET(self, args, resp):
     "retrieve a feed in m3u format"
 
     config = parse_config(config_file)
-    web.header("Content-Type", "application/rss+xml")
-    feed = web.input(dir = None, name=None, key=None)
+    resp.setHeader("Content-Type", "application/rss+xml")
+    feed = Args(args,dir = None, name=None, key=None)
 
     base_dir = key_to_path(config, feed.key)
-    return getpl(feed.name, feed.key, base_dir, config).to_xml()
+    resp.getWriter().write(getpl(feed.name, feed.key, base_dir, config).to_xml())
 
-class IndexHandler:
-  def GET(self):
+class IndexHandler(PyResponderIfc):
+  def GET(self, args, resp):
     "serve up the index page"
-    web.header("Content-Type", "text/html")
-    return open("static/index.html").read()
+    resp.setHeader("Content-Type", "text/html")
+    resp.getWriter().write(open("static/index.html").read())
 
-class ReadmeTextileHandler:
-  def GET(self):
+class ReadmeTextileHandler(PyResponderIfc):
+  def GET(self, args, resp):
     "serve up the readme textile"
-    web.header("Content-Type", "text/plain")
-    return open("../README.textile").read()
+    resp.setHeader("Content-Type", "text/plain")
+    resp.getWriter().write(open("../README.textile").read())
 
-class DynamicPlaylist:
-  def GET(self):
+class DynamicPlaylist(PyResponderIfc):
+  def GET(self, args, resp):
     "serve the current dynamic playlist"
-    web.header("Content-Type", "text/javascript")
+    resp.setHeader("Content-Type", "text/javascript")
 
     if os.path.exists(MY_STREAMS):
       f = open(MY_STREAMS, "rb")
@@ -839,10 +839,11 @@ class DynamicPlaylist:
     else:
       return "[]" # empty list
     
-    return simplejson.dumps(pickle.load(f))
+    resp.getWriter().write(simplejson.dumps(pickle.load(f)))
  
   def POST(self):
     "update the dynamic playlist"
+    #FIXME
     args = web.input(title = [], type = [], url = [])
     logging.debug("got arguments: %s" % str(args))
 
@@ -861,15 +862,27 @@ class DynamicPlaylist:
 
     return "<b>done</b>";
 
-class DynamicPlaylistDoc:
-  def GET(self):
+class DynamicPlaylistDoc(PyResponderIfc):
+  def GET(self, args, resp):
     "the user created dynamic playlist in rss form"
-    web.header("Content-Type", "application/rss+xml")
+    resp.setHeader("Content-Type", "application/rss+xml")
 
     if os.path.exists(MY_STREAMS):
-      return pickle2doc(MY_STREAMS).to_xml()
+      resp.getWriter().write(pickle2doc(MY_STREAMS).to_xml())
     else:
-      return pickle2doc(DEFAULT_STREAMS).to_xml()
+      resp.getWriter().write(pickle2doc(DEFAULT_STREAMS).to_xml())
+
+class StaticHandler(PyResponderIfc):
+  def GET(self, args, resp):
+    "serve up content from the static directory"
+    resp.setHeader("Content-Type", "text/html")
+
+    # get the path elements
+    elems = [ el for el in args.getTarget().split('/') if el != "" ]
+    pth = os.path.join(*elems)
+
+    print "fetching %s" % pth
+    resp.getWriter().write(open(pth).read())
 
 urls = (
     '/feed', 'RssHandler',
@@ -886,6 +899,12 @@ def build_router(router):
   #router = Router()
   router.addRoute("/feed", RssHandler())
   router.addRoute("/media", MediaHandler())
+  router.addRoute("/m3u", M3UHandler())
+  router.addRoute("/readme", ReadmeTextileHandler())
+  router.addRoute("/dynplay", DynamicPlaylist())
+  router.addRoute("/remotes", DynamicPlaylistDoc())
+  router.addRoute("/static", StaticHandler())
+  router.addRoute("/", IndexHandler())
   return router
 
 def run():

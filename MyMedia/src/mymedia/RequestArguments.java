@@ -15,9 +15,11 @@ import org.python.core.PyString;
  */
 public class RequestArguments {
     private HttpServletRequest request;
+    private String target;
 
-    public RequestArguments(HttpServletRequest request) {
+    public RequestArguments(HttpServletRequest request, String target) {
         this.request = request;
+        this.target = target;
     }
 
     public String[] getArg(String name, String other) {
@@ -33,6 +35,10 @@ public class RequestArguments {
         }
     }
 
+    public String getTarget() {
+        return target;
+    }
+    
     public String getHeader(String name) {
         return request.getHeader(name);
     }
