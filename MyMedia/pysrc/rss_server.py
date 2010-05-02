@@ -3,6 +3,7 @@
 # Distribute under the terms of the GNU General Public License
 # Version 2 or better
 
+from mymedia import PyResponderIfc, Router
 
 # this file contains the configurable variables
 config_file = "config.ini"
@@ -18,6 +19,7 @@ import math
 import logging
 import pickle
 import simplejson
+import types
 
 from eyeD3 import *
 from common import *
@@ -620,7 +622,7 @@ def doc2m3u(doc):
     lines.append(item.link)
   return "\n".join(lines)
 
-def range_handler(fname):
+def range_handler(args, fname):
   "return all or part of the bytes of a file depending on whether we were called with the HTTP_RANGE header set"
   logging.debug("serving %s" % fname)
   f = open(fname, "rb")
@@ -630,12 +632,13 @@ def range_handler(fname):
 
   # is this a range request?
   # looks like: 'HTTP_RANGE': 'bytes=41017-'
-  if 'HTTP_RANGE' in web.ctx.environ:
-    logging.debug("server issued range query: %s" % web.ctx.environ['HTTP_RANGE'])
+  if args.getHeader('HTTP_RANGE'):
+    rng = args.getHeader('HTTP_RANGE')
+    logging.debug("server issued range query: %s" % rng)
 
     # try a start only regex
     regex = re.compile('bytes=(\d+)-$')
-    grp = regex.match(web.ctx.environ['HTTP_RANGE'])
+    grp = regex.match(rng)
     if grp:
       start = int(grp.group(1))
       logging.debug("player issued range request starting at %d" % start)
@@ -652,7 +655,7 @@ def range_handler(fname):
 
     # try a span regex
     regex = re.compile('bytes=(\d+)-(\d+)$')
-    grp = regex.match(web.ctx.environ['HTTP_RANGE'])
+    grp = regex.match(rng)
     if grp:
       start,end = int(grp.group(1)), int(grp.group(2))
       logging("player issued range request starting at %d and ending at %d" % (start, end))
@@ -673,7 +676,7 @@ def range_handler(fname):
 
     # try a tail regex
     regex = re.compile('bytes=-(\d+)$')
-    grp = regex.match(web.ctx.environ['HTTP_RANGE'])
+    grp = regex.match(rng)
     if grp:
       end = int(grp.group(1))
       logging.debug("player issued tail request beginning at %d from end" % end)
@@ -693,11 +696,24 @@ def range_handler(fname):
 
     f.close()
 
-class MediaHandler:
+class Args:
+  def __init__(self, args, **kw):
+    self.args = args
+    for k, v in kw.items():
+      svs = args.getArg(k, None)
+      if not svs:
+        sv = v
+      if svs and type(v) != types.ListType:
+        sv = to_unicode(to_utf8(svs[-1]))
+      else: sv = svs
+
+      setattr(self, k, sv)
+
+class MediaHandler(PyResponderIfc):
   "retrieve a song"
 
-  def GET(self):
-    song = web.input(name = None, key = None, res = tuple2str(FULL_DIM))
+  def GET(self, args, resp):
+    song = Args(args, name = None, key = None, res = tuple2str(FULL_DIM))
     if not song.name:
       return
 
@@ -722,9 +738,9 @@ class MediaHandler:
 
       data, type = getimg(mp3name)
       data, type = scaleimg(data, type, str2tuple(song.res))
-      web.header("Content-Type", "image/" + type)
-      web.header("Content-Length", "%d" % len(data))
-      yield data
+      resp.setContentType("image/" + type)
+      resp.setHeader("Content-Length", "%d" % len(data))
+      resp.getWriter().write(data)
       return
 
     # in all other cases if the file doesn't exist, bail
@@ -748,30 +764,31 @@ class MediaHandler:
       data, type = scaleimg(f.read(), "jpeg", str2tuple(song.res))
       f.close()
 
-      web.header("Content-Type", "image/" + type)
-      web.header("Content-Length", "%d" % len(data))
-      yield data
+      resp.setContentType("image/" + type)
+      resp.setHeader("Content-Length", "%d" % len(data))
+      resp.getWriter().write(data)
       return
 
     # otherwise return the data as is
-    web.header("Content-Type", mimetype)
-    web.header("Content-Length", "%d" % size)
-    for data in range_handler(name):
-      yield data
+    resp.setContentType(mimetype)
+    resp.setHeader("Content-Length", "%d" % size)
+    for data in range_handler(args, name):
+      resp.getWriter().write(data)
     return
 
-class RssHandler:
-  def GET(self):
+class RssHandler(PyResponderIfc):
+  def GET(self, args, resp):
     "retrieve a specific feed"
 
     config = parse_config(config_file)
     collapse_collections = config.get("config", "collapse_collections").lower() == "true"
 
-    web.header("Content-Type", "application/rss+xml")
-    feed = web.input(dir = None, range=None, key=None)
+    resp.setContentType("application/rss+xml")
+
+    feed = Args(args, dir=None, range=None, key=None)
 
     if not feed.key in ("music", "video", "photo"):
-      return main_menu_feed(config).to_xml()
+      resp.getWriter().write(main_menu_feed(config).to_xml())
 
     # get the range for partitioning
     range = feed.range
@@ -782,12 +799,12 @@ class RssHandler:
     if feed.dir:
       # the user has navigated to dir
       path = os.path.join(base_dir, feed.dir)
-      return getdoc(feed.key, path, base_dir, range, config, collapse_collections).to_xml()
+      resp.getWriter().write(getdoc(feed.key, path, base_dir, range, config, collapse_collections).to_xml())
     else:
       # if no dir was given we return the index view for this base_dir
-      return getdoc(feed.key, base_dir, base_dir, range, config).to_xml()
+      resp.getWriter().write(getdoc(feed.key, base_dir, base_dir, range, config).to_xml())
 
-class M3UHandler:
+class M3UHandler(PyResponderIfc):
   def GET(self):
     "retrieve a feed in m3u format"
 
@@ -864,6 +881,12 @@ urls = (
     '/remotes', 'DynamicPlaylistDoc')
 
 app = web.application(urls, globals())
+
+def build_router(router):
+  #router = Router()
+  router.addRoute("/feed", RssHandler())
+  router.addRoute("/media", MediaHandler())
+  return router
 
 def run():
   import sys
