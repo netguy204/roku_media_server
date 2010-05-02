@@ -75,7 +75,7 @@
         <jar jarfile="dist/Combined-dist.jar">
             <zipfileset src="${dist.jar}" excludes="META-INF/*" />
             <zipfileset src="lib/jython.jar" excludes="META-INF/*" />
-            <fileset dir="lib/resources" />
+	    <fileset dir="." includes="pysrc/" />
             <manifest>
                 <attribute name="Main-Class" value="mymedia.Main"/>
             </manifest>

@@ -5,6 +5,9 @@
 
 package mymedia;
 import java.io.InputStream;
+import org.python.core.PyException;
+import org.python.core.PyObject;
+import org.python.core.PySystemState;
 import org.python.util.PythonInterpreter;
 
 /**
@@ -17,17 +20,25 @@ public class Main {
 
     }
 
-    private void run() {
+    private void run() throws PyException {
+        java.util.Properties p = new java.util.Properties();
+        p.setProperty("python.path", "Lib/:pysrc/");
+        PySystemState.initialize(null, p);
+        
         PythonInterpreter interp = new PythonInterpreter();
-        //InputStream stream = this.getClass().getResourceAsStream("/python/rss_server.py");
-        //interp.execfile(stream);
-        interp.exec("import rss_server");
+        //interp.exec("import pysrc.rss_server");
+        //InputStream stream = this.getClass().getResourceAsStream("/pysrc/rss_server.py");
+        interp.exec("from rss_server import *");
+        interp.exec("from common import *");
+        interp.exec("config = parse_config(config_file)");
+        PyObject pyobj = interp.eval("getdoc('music', '.', key_to_path(config, 'music'), 'az', config, False).to_xml()");
+        System.out.println("result => " + pyobj.toString());
     }
+    
     /**
      * @param args the command line arguments
      */
-    public static void main(String[] args) {
-        System.getProperties().setProperty("python.path", "lib/resources/Lib/:lib/resources/python");
+    public static void main(String[] args) throws PyException{
         Main main = new Main();
         main.run();
     }
