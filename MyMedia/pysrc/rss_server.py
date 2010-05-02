@@ -706,6 +706,7 @@ class Args:
       if svs and type(v) != types.ListType:
         sv = to_unicode(to_utf8(svs[-1]))
       else: sv = svs
+      # fixme: handle non-empty list default args correctly
 
       setattr(self, k, sv)
 
@@ -837,14 +838,14 @@ class DynamicPlaylist(PyResponderIfc):
     elif os.path.exists(DEFAULT_STREAMS):
       f = open(DEFAULT_STREAMS, "rb")
     else:
-      return "[]" # empty list
-    
+      resp.getWriter().write("[]") # empty list
+      return
+
     resp.getWriter().write(simplejson.dumps(pickle.load(f)))
  
-  def POST(self):
+  def POST(self, args, resp):
     "update the dynamic playlist"
-    #FIXME
-    args = web.input(title = [], type = [], url = [])
+    args = Args(args, title = [], type = [], url = [])
     logging.debug("got arguments: %s" % str(args))
 
     # repack the arguments
@@ -860,7 +861,7 @@ class DynamicPlaylist(PyResponderIfc):
     pickle.dump(data, f)
     f.close()
 
-    return "<b>done</b>";
+    resp.getWriter().write("<b>done</b>")
 
 class DynamicPlaylistDoc(PyResponderIfc):
   def GET(self, args, resp):
