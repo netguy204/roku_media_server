@@ -10,7 +10,8 @@
 <project name="MyMedia" default="default" basedir=".">
     <description>Builds, tests, and runs the project MyMedia.</description>
     <import file="nbproject/build-impl.xml"/>
-    <!--
+
+    <import file="nbproject/profiler-build-impl.xml"/>    <!--
 
     There exist several targets which are by default empty and which can be 
     used for execution of your tasks. These targets are usually executed 
@@ -75,7 +76,10 @@
         <jar jarfile="dist/Combined-dist.jar">
             <zipfileset src="${dist.jar}" excludes="META-INF/*" />
             <zipfileset src="lib/jython.jar" excludes="META-INF/*" />
-	    <fileset dir="." includes="pysrc/" />
+	    <zipfileset src="lib/jetty-6.1.24.jar" excludes="META-INF/*" />
+	    <zipfileset src="lib/jetty-util-6.1.24.jar" excludes="META-INF/*" />
+	    <zipfileset src="lib/servlet-api-2.5-20081211.jar" excludes="META-INF/*" />
+	    <!--<fileset dir="." includes="pysrc/" />-->
             <manifest>
                 <attribute name="Main-Class" value="mymedia.Main"/>
             </manifest>

@@ -4,17 +4,25 @@
  */
 
 package mymedia;
+import java.awt.Image;
+import java.awt.MenuItem;
+import java.awt.PopupMenu;
+import java.awt.SystemTray;
+import java.awt.Toolkit;
+import java.awt.TrayIcon;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
+import java.util.prefs.Preferences;
 import javax.servlet.http.HttpServletResponse;
-import org.mortbay.jetty.Handler;
-import org.mortbay.jetty.Request;
+import org.ini4j.IniPreferences;
+import org.ini4j.IniPreferencesFactory;
 import org.mortbay.jetty.Server;
-import org.mortbay.jetty.handler.AbstractHandler;
 import org.python.core.PyException;
 import org.python.core.PyObject;
+import org.python.core.PyString;
 import org.python.core.PySystemState;
 import org.python.util.PythonInterpreter;
 
@@ -30,23 +38,48 @@ public class Main {
 
     private void run() throws PyException, Exception {
         java.util.Properties p = new java.util.Properties();
-        p.setProperty("python.path", "Lib/:pysrc/");
+
+        p.setProperty("python.path", "Lib" + File.pathSeparator + "pysrc");
         PySystemState.initialize(null, p);
         
         PythonInterpreter interp = new PythonInterpreter();
-        //interp.exec("import pysrc.rss_server");
-        //InputStream stream = this.getClass().getResourceAsStream("/pysrc/rss_server.py");
         interp.exec("import rss_server");
 
+        // ask python to build our url routes for us
         Router router = new Router();
         interp.set("router", router);
         PyObject obj = interp.get("rss_server").invoke("build_router", interp.get("router"));
-        
-        Server server = new Server(8009);
+
+        // add ourselves to the system tray if that's supported
+        if(SystemTray.isSupported()) {
+            SystemTray tray = SystemTray.getSystemTray();
+            Image img = Toolkit.getDefaultToolkit().getImage("lib/tray.png");
+
+            PopupMenu menu = new PopupMenu();
+            MenuItem item = new MenuItem("Stop Server");
+            item.addActionListener(new ActionListener() {
+                public void actionPerformed(ActionEvent e) {
+                    System.exit(0);
+                }
+            });
+            menu.add(item);
+
+            TrayIcon icon = new TrayIcon(img, "My media", menu);
+            tray.add(icon);
+        }
+
+        // figure out what port we're supposed to start on
+        File config = new File("config.ini");
+        String port = "8001";
+        if(config.exists()) {
+            IniPreferences prefs = new IniPreferences(new FileInputStream(config));
+            port = prefs.node("config").get("server_port", "8001");
+        }
+
+        // fire it off!
+        Server server = new Server(Integer.parseInt(port));
         server.setHandler(router);
         server.start();
-//        Router router = new Router();
-//        System.out.println(interp.get("rss_server").invoke("build_routes", router));
     }
 
     private void testServer() throws Exception {
