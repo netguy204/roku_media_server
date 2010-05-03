@@ -4,6 +4,7 @@
  */
 
 package mymedia;
+import java.awt.Desktop;
 import java.awt.Image;
 import java.awt.MenuItem;
 import java.awt.PopupMenu;
@@ -15,8 +16,10 @@ import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.URI;
 import java.util.prefs.Preferences;
 import javax.servlet.http.HttpServletResponse;
+import javax.swing.JOptionPane;
 import org.ini4j.IniPreferences;
 import org.ini4j.IniPreferencesFactory;
 import org.mortbay.jetty.Server;
@@ -50,30 +53,45 @@ public class Main {
         interp.set("router", router);
         PyObject obj = interp.get("rss_server").invoke("build_router", interp.get("router"));
 
+        // figure out what port we're supposed to start on
+        File config = new File("config.ini");
+        String _port = "8001";
+        if(config.exists()) {
+            IniPreferences prefs = new IniPreferences(new FileInputStream(config));
+            _port = prefs.node("config").get("server_port", "8001");
+        }
+        final String port = _port;
+
         // add ourselves to the system tray if that's supported
         if(SystemTray.isSupported()) {
             SystemTray tray = SystemTray.getSystemTray();
             Image img = Toolkit.getDefaultToolkit().getImage("lib/tray.png");
 
             PopupMenu menu = new PopupMenu();
-            MenuItem item = new MenuItem("Stop Server");
-            item.addActionListener(new ActionListener() {
+            MenuItem quit = new MenuItem("Stop Server");
+            quit.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
                     System.exit(0);
                 }
             });
-            menu.add(item);
+            menu.add(quit);
 
+            MenuItem browser = new MenuItem("Open Browser");
+            browser.addActionListener(new ActionListener() {
+                public void actionPerformed(ActionEvent e) {
+                    try {
+                        Desktop.getDesktop().browse(new URI("http://localhost:" + port));
+                    } catch (Exception err) {
+                        JOptionPane.showMessageDialog(null,
+                                "Could't launch your browser.\n" +
+                                "Open it manually and go to http://localhost:" + port);
+                    }
+                }
+            });
+            menu.add(browser);
+            
             TrayIcon icon = new TrayIcon(img, "My media", menu);
             tray.add(icon);
-        }
-
-        // figure out what port we're supposed to start on
-        File config = new File("config.ini");
-        String port = "8001";
-        if(config.exists()) {
-            IniPreferences prefs = new IniPreferences(new FileInputStream(config));
-            port = prefs.node("config").get("server_port", "8001");
         }
 
         // fire it off!
