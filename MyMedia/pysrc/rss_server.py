@@ -12,14 +12,13 @@ log_file = "my_media_log.txt"
 # main webapp
 import os
 import re
-import web
 import urllib
-import ConfigParser
 import math
 import logging
 import pickle
 import simplejson
 import types
+import profile
 
 from eyeD3 import *
 from common import *
@@ -149,12 +148,21 @@ def file2item(key, fname, base_dir, config, image=None):
       logging.warning("library failed to parse ID3 tags for %s. Skipping." % fname)
       return None
 
-    title = call_protected(tag.getTitle, "Error Reading Title")
-    description = call_protected(tag.getArtist, "Error Reading Artist")
-    album = call_protected(tag.getAlbum, "Error Reading Album")
-    playtime = call_protected(mp3.getPlayTime, "0")
-    bitrate = call_protected(mp3.getBitRateString, "Error Reading Bitrate")
-    tracknum = call_protected(tag.getTrackNum, ( 0, ))[0]
+    if tag:
+      title = call_protected(tag.getTitle, "Error Reading Title")
+      description = call_protected(tag.getArtist, "Error Reading Artist")
+      album = call_protected(tag.getAlbum, "Error Reading Album")
+      playtime = call_protected(mp3.getPlayTime, "0")
+      bitrate = call_protected(mp3.getBitRateString, "Error Reading Bitrate")
+      tracknum = call_protected(tag.getTrackNum, ( 0, ))[0]
+    else:
+      # couldn't read tag so do the best we can
+      title = os.path.split(fname)[1]
+      description = "Unknown"
+      album = "Unknown"
+      playtime = 0
+      bitrate = "Unknown"
+      tracknum = 0
 
     filetype = "mp3"
     ContentType = "audio"
@@ -632,8 +640,8 @@ def range_handler(args, fname):
 
   # is this a range request?
   # looks like: 'HTTP_RANGE': 'bytes=41017-'
-  if args.getHeader('HTTP_RANGE'):
-    rng = args.getHeader('HTTP_RANGE')
+  if args.getHeader('Range'):
+    rng = args.getHeader('Range')
     logging.debug("server issued range query: %s" % rng)
 
     # try a start only regex
@@ -658,18 +666,18 @@ def range_handler(args, fname):
     grp = regex.match(rng)
     if grp:
       start,end = int(grp.group(1)), int(grp.group(2))
-      logging("player issued range request starting at %d and ending at %d" % (start, end))
+      logging.debug("player issued range request starting at %d and ending at %d" % (start, end))
 
       f.seek(start)
       bytes_remaining = end-start+1 # +1 because range is inclusive
-      chunk_size = min(bytes_remaining, chunk_size)
+      chunk_size = min(bytes_remaining, CHUNK_SIZE)
       bytes = f.read(chunk_size)
 
       while not bytes == "":
         yield bytes
 
         bytes_remaining -= chunk_size
-        chunk_size = min(bytes_remaining, chunk_size)
+        chunk_size = min(bytes_remaining, CHUNK_SIZE)
         bytes = f.read(chunk_size)
 
       f.close()
@@ -702,11 +710,16 @@ class Args:
     for k, v in kw.items():
       svs = args.getArg(k, None)
       if not svs:
+        # if the option isn't there, use the default
         sv = v
-      if svs and type(v) != types.ListType:
+      elif svs and type(v) != types.ListType:
+        # if the option is there and this isn't a list, set it
         sv = to_unicode(to_utf8(svs[-1]))
-      else: sv = svs
-      # fixme: handle non-empty list default args correctly
+      else:
+        # otherwise set it in the list form
+        sv = []
+        for rv in svs:
+          sv.append(to_unicode(to_utf8(rv)))
 
       setattr(self, k, sv)
 
@@ -741,7 +754,7 @@ class MediaHandler(PyResponderIfc):
       data, type = scaleimg(data, type, str2tuple(song.res))
       resp.setContentType("image/" + type)
       resp.setHeader("Content-Length", "%d" % len(data))
-      resp.getWriter().write(data)
+      resp.getOutputStream().write(data)
       return
 
     # in all other cases if the file doesn't exist, bail
@@ -767,20 +780,30 @@ class MediaHandler(PyResponderIfc):
 
       resp.setContentType("image/" + type)
       resp.setHeader("Content-Length", "%d" % len(data))
-      resp.getWriter().write(data)
+      # data is an array of bytes, send one at a time
+      print "writing %d bytes" % len(data)
+      resp.getOutputStream().write(data);
       return
 
     # otherwise return the data as is
     resp.setContentType(mimetype)
     resp.setHeader("Content-Length", "%d" % size)
+    ostr = resp.getOutputStream()
     for data in range_handler(args, name):
-      resp.getWriter().write(data)
+      print "writing %d bytes" % len(data)
+      ostr.write(data)
     return
 
 class RssHandler(PyResponderIfc):
   def GET(self, args, resp):
+    print "in GET"
+    prof = profile.Profile()
+    prof.runcall(_GET, args, resp)
+    prof.print_stats()
+    
+def _GET(args, resp):
     "retrieve a specific feed"
-
+    print "in _GET"
     config = parse_config(config_file)
     collapse_collections = config.get("config", "collapse_collections").lower() == "true"
 
@@ -790,6 +813,7 @@ class RssHandler(PyResponderIfc):
 
     if not feed.key in ("music", "video", "photo"):
       resp.getWriter().write(main_menu_feed(config).to_xml())
+      return
 
     # get the range for partitioning
     range = feed.range
@@ -801,9 +825,11 @@ class RssHandler(PyResponderIfc):
       # the user has navigated to dir
       path = os.path.join(base_dir, feed.dir)
       resp.getWriter().write(getdoc(feed.key, path, base_dir, range, config, collapse_collections).to_xml())
+      return
     else:
       # if no dir was given we return the index view for this base_dir
       resp.getWriter().write(getdoc(feed.key, base_dir, base_dir, range, config).to_xml())
+      return
 
 class M3UHandler(PyResponderIfc):
   def GET(self, args, resp):
@@ -881,20 +907,7 @@ class StaticHandler(PyResponderIfc):
     # get the path elements
     elems = [ el for el in args.getTarget().split('/') if el != "" ]
     pth = os.path.join(*elems)
-
-    print "fetching %s" % pth
     resp.getWriter().write(open(pth).read())
-
-urls = (
-    '/feed', 'RssHandler',
-    '/media', 'MediaHandler',
-    '/m3u', 'M3UHandler',
-    '/', 'IndexHandler',
-    '/readme', 'ReadmeTextileHandler',
-    '/dynplay', 'DynamicPlaylist',
-    '/remotes', 'DynamicPlaylistDoc')
-
-app = web.application(urls, globals())
 
 def build_router(router):
   #router = Router()

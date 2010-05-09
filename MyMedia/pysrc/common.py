@@ -1,12 +1,15 @@
 import os
 import sys
 import ConfigParser
-import httplib, mimetypes
+import httplib
+import mimetypes
 import logging
 import types
+import jarray
 
 import imghdr
 from eyeD3 import *
+from mymedia import ImageHandle
 
 def server_base(config):
   return "http://%s:%s" % (config.get("config", "server_ip"), config.get("config", "server_port"))
@@ -304,28 +307,10 @@ THB_DIM = THB_SD_DIM
 FULL_DIM = FULL_SD_DIM
 
 def scaleimg(data, type, res=THB_DIM):
-  try:
-    import Image
-    import StringIO
-
-    logging.debug("Scaling the image to %s", str(res))
-    file = StringIO.StringIO(data)
-    im = Image.open(file)
-    im.thumbnail(res)
-
-    out = StringIO.StringIO()
-    im.save(out, type)
-
-    out.seek(0)
-    data = out.read()
-    return data, type
-  except:
-    # need to figure out what format the data was in
-    # since we won't be converting it to what the caller
-    # wanted
-    logging.debug("Passing on image unmodified")
-    r = imghdr.what(None, h=data)
-    return data, r
+  logging.debug("Scaling the image to %s", str(res))
+  img = ImageHandle(jarray.array(data,'b'))
+  data = img.getScaled(res[0], res[1], type)
+  return data, type
 
 def tuple2str(tup):
   return ",".join(map(str,tup))

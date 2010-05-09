@@ -7,6 +7,7 @@ package mymedia;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -45,11 +46,8 @@ public class Router extends AbstractHandler {
     public void handle(String target, HttpServletRequest req,
             HttpServletResponse resp, int dispatch) throws IOException, ServletException {
         
-        System.out.println("Handling request for " + target);
-        
         for(Route r : routes) {
             if(target.startsWith(r.getPrefix())) {
-                System.out.println("matched route with prefix " + r.getPrefix());
                 r.getResponder().handle(target, req, resp, dispatch);
                 ((Request)req).setHandled(true);
                 return;
@@ -61,6 +59,4 @@ public class Router extends AbstractHandler {
         resp.getWriter().write("No route found for " + target);
         ((Request)req).setHandled(true);
     }
-
-
 }
