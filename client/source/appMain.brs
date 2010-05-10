@@ -1845,10 +1845,22 @@ Function showStreamScreen(audio as object, port as object, stream as object, tit
         progress = -1
         paused = false
         pausedtime = 0
+        latency = 0
+        timediff = 0
+        rprss = invalid
+        rplist = invalid
+        rppl = invalid
+        rpupdate = invalid
     else
         paused = currentSong.paused
         pausedtime = currentSong.pausedtime
         latency = currentSong.latency
+        timediff = currentSong.timediff
+        cumulative = currentSong.cumulative
+        rprss = currentSong.rprss
+        rplist = currentSong.rplist
+        rppl = currentSong.rppl
+        rpupdate = currentSong.rpupdate
         progress = 0
     end if
 
