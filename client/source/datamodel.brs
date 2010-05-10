@@ -26,7 +26,7 @@ Function GetSongListFromFeed(feed_url) As Dynamic
         return invalid
     end if
     print "rss@verion=";rss@version
-'print "feed_url: ";feed_url
+print "feed_url: ";feed_url
 'print "XML: ";xml
 
     items = CreateObject("roList")
@@ -35,16 +35,82 @@ Function GetSongListFromFeed(feed_url) As Dynamic
 
     for each item in rss.channel.item
         items.Push(newMediaFromXML(m, item))
-        '!!!***print "got media item: "; items.Peek().GetTitle()
+        'print "got media item: "; items.Peek().GetTitle()
     next
 
     return { items:items, theme:theme }
 End Function
 
+Function CreateRadioParadiseRSSConnection() As Object
+    rss = {
+            port: CreateObject("roMessagePort"),
+            http: CreateObject("roUrlTransfer"),
+
+            GetInfo: GetRPInfo
+            }
+
+    return rss
+End Function
+
+Function RpInfoToSong(rpinfo as Object, song as Object) as Object
+    song.artist = rpinfo.artist
+    song.title = rpinfo.title
+    song.album = stripSlash(rpinfo.album)
+    song.length = rpinfo.refresh_time.toInt() - rpinfo.timestamp.toInt()
+    if rpinfo.asin = "0" then
+        arturl = "pkg:/images/streams_square.jpg"
+    else
+        arturl = "http://www.radioparadise.com/graphics/covers/l/"+rpinfo.asin+".jpg"
+    end if
+    song.HDPosterUrl = arturl
+    song.SDPosterUrl = arturl
+    song.streamFormat = "mp3"
+    song.contentType = "audio"
+    return song
+End Function
+
+Function GetRPInfo(s = invalid) As Dynamic
+    print "GetRPInfo"
+    m.http.SetUrl("http://www2.radioparadise.com/now_playing.xml")
+    xml = m.http.GetToString()
+    rppl=CreateObject("roXMLElement")
+    if not rppl.Parse(xml) then
+        print "No xml received from server"
+        return invalid
+    else
+        rpinfo = CreateObject("roAssociativeArray")
+        song = rppl.GetChildElements()
+        rpinfo.refresh_time = song.refresh_time.GetText()
+        rpinfo.playtime = song.playtime.GetText()
+        rpinfo.timestamp = song.timestamp.GetText()
+        rpinfo.artist = song.artist.GetText()
+        rpinfo.title = song.title.GetText()
+        rpinfo.songid = song.songid.GetText()
+        rpinfo.album = song.album.GetText()
+        rpinfo.asin = song.asin.GetText()
+        if s <> invalid then RpInfoToSong(rpinfo,s)
+    end if
+    return rpinfo
+End Function
+
+Function GetTimestamp(url=invalid) as Integer
+    print "GetTimestamp"
+    tsurl = CreateObject("roUrlTransfer")
+    if url = invalid
+        cfg = GetConfig()
+        url = cfg.server + "/timestamp"
+    end if
+    tsurl.setUrl(url)
+    ts = tsurl.GetToString()
+    print ts
+    return ts.toInt()
+end Function
+
+
 Sub CreateSimplePoster(items as Object, title as String, image as String, description as String, name as String)
 ' Creates a bare minimum XML entry for a simple poster.
 ' Most of the item.GetXxx functions are not valid.
-' Use item.IsSimple(name) to check for the simple poster entry before 
+' Use item.IsSimple(name) to check for the simple poster entry before
 ' proceeding with other functions.
     print "CreateSimplePoster"
 
@@ -67,7 +133,7 @@ End Sub
 
 Sub PrintXML(element As Object, depth As Integer)
     if depth = 0 then print "PrintXML"
-    
+
     print tab(depth*3);"Name: ";element.GetName()
     if not element.GetAttributes().IsEmpty() then
         print tab(depth*3);"Attributes: ";
@@ -178,10 +244,26 @@ Function itemGetPosterItem()
 'print "ShortDescriptionLine2: "; m.GetDescription()
 'print "HDPosterUrl: "; icon
 'print "SDPosterUrl: "; icon
+    sd1 = m.GetTitle()
+    sd2 = m.GetDescription()
+    if sd2 = "Video" then
+        offset = GetOffset(sd1)
+        if offset <> 0 then
+            if offset = -1 then
+                ts = RegGet(sd1, "Resume")
+                sec = Left(ts,10)
+                dt = CreateObject("roDateTime")
+                dt.fromSeconds(sec.toInt())
+                sd2 = "Watched " + dt.asDateString("long-date")
+            else
+                sd2 = "Progress:  " + SecsToHrMinSec(offset.toStr())
+            end if
+        end if
+    end if
 
     return {
-        ShortDescriptionLine1: m.GetTitle(),
-        ShortDescriptionLine2: m.GetDescription(),
+        ShortDescriptionLine1: sd1,
+        ShortDescriptionLine2: sd2,
         HDPosterUrl: icon,
         SDPosterUrl: icon,
         item: m }

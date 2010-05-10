@@ -147,13 +147,18 @@ class Memoize:
             self.memo[args] = self.fn(*args)
         return self.memo[args]
 
-def ext2mime(ext):
+def ext2mime(ext2):
   "get the mimetype for an extension"
-  ext = ext[-3:].lower()
+
+  ext = ext2[-4:].lower()
+  if ext == "m3u8":
+    return "application/vnd.apple.mpegurl"
+    
+  ext = ext2[-3:].lower()
   if ext == "mp3":
     return "audio/mpeg"
   elif ext == "m3u":
-    return "audio/x-mpegurl"
+    return "audio/mpegurl"
   elif ext in ("m4v", "mp4", "mov"):
     return "video/mp4"
   elif ext == "wma":
@@ -166,6 +171,10 @@ def ext2mime(ext):
     return "image/gif"
   elif ext == "wmv":
     return "video/x-ms-wmv"
+  
+  ext = ext2[-2:].lower()
+  if ext == "ts":
+    return "video/MP2T"    
   else:
     return None
 

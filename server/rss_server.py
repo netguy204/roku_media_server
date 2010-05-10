@@ -22,6 +22,7 @@ import simplejson
 from eyeD3 import *
 from common import *
 from PyRSS2Gen import *
+from time import time
 
 logging.basicConfig(filename=log_file, level=logging.DEBUG)
 MY_STREAMS = "my_streams.pickle"
@@ -200,6 +201,13 @@ def file2item(key, fname, base_dir, config, image=None):
     filetype = "m3u"
     ContentType = "playlist"
 
+  elif ext == ".m3u8":
+
+    basename = os.path.split(fname)[1]
+    title = os.path.splitext(basename)[0]
+    description = "Playlist"
+    filetype = "m3u8"
+
   else:
     # don't know what this is
 
@@ -338,6 +346,14 @@ def item_sorter(lhs, rhs):
   if rhs.description == "Folder" and lhs.description != "Folder":
     return 1
 
+  if lhs.album == rhs.album:
+    # if both have a track number, sort on that
+    if lhs.tracknum and rhs.tracknum:
+      if int(lhs.tracknum) < int(rhs.tracknum):
+        return -1
+      elif int(lhs.tracknum) > int(rhs.tracknum):
+        return 1
+
   # first sort by artist
   if lhs.description.lower() < rhs.description.lower():
     return -1
@@ -459,7 +475,7 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
     minl = minl.lower()
     maxl = maxl.lower()
 
-  media_re = re.compile("\.m3u|\.mp3|\.wma|\.m4v|\.mp4|\.mov|\.wmv|\.jpg|\.jpeg|\.png|\.gif")
+  media_re = re.compile("\.m3u|.m3u8|\.mp3|\.wma|\.m4v|\.mp4|\.mov|\.wmv|\.jpg|\.jpeg|\.png|\.gif")
 
   for base, dirs, files in os.walk(path):
     if not recurse:
@@ -584,7 +600,7 @@ def pickle2doc(name):
     else:
       # can't handle this yet
       continue
-    
+
     img = "pkg:/images/livestream_square.jpg"
 
     items.append(RSSImageItem(
@@ -798,6 +814,13 @@ class M3UHandler:
     base_dir = key_to_path(config, feed.key)
     return getpl(feed.name, feed.key, base_dir, config).to_xml()
 
+class TimestampHandler:
+  def GET(self):
+    "serve up the unix timestamp"
+    web.header("Content-Type", "text/plain")
+    ts = "%d" % (time() + 0.5)
+    return ts
+
 class IndexHandler:
   def GET(self):
     "serve up the index page"
@@ -821,9 +844,9 @@ class DynamicPlaylist:
       f = open(DEFAULT_STREAMS, "rb")
     else:
       return "[]" # empty list
-    
+
     return simplejson.dumps(pickle.load(f))
- 
+
   def POST(self):
     "update the dynamic playlist"
     args = web.input(title = [], type = [], url = [])
@@ -861,7 +884,8 @@ urls = (
     '/', 'IndexHandler',
     '/readme', 'ReadmeTextileHandler',
     '/dynplay', 'DynamicPlaylist',
-    '/remotes', 'DynamicPlaylistDoc')
+    '/remotes', 'DynamicPlaylistDoc',
+    '/timestamp','TimestampHandler')
 
 app = web.application(urls, globals())
 
