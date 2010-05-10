@@ -158,7 +158,7 @@ def ext2mime(ext2):
   if ext == "mp3":
     return "audio/mpeg"
   elif ext == "m3u":
-    return "audio/mpegurl"
+    return "audio/x-mpegurl"
   elif ext in ("m4v", "mp4", "mov"):
     return "video/mp4"
   elif ext == "wma":
