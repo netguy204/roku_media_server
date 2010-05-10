@@ -17,15 +17,12 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URI;
-import java.util.prefs.Preferences;
 import javax.servlet.http.HttpServletResponse;
 import javax.swing.JOptionPane;
 import org.ini4j.IniPreferences;
-import org.ini4j.IniPreferencesFactory;
 import org.mortbay.jetty.Server;
 import org.python.core.PyException;
 import org.python.core.PyObject;
-import org.python.core.PyString;
 import org.python.core.PySystemState;
 import org.python.util.PythonInterpreter;
 

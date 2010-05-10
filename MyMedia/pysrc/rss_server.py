@@ -3,7 +3,7 @@
 # Distribute under the terms of the GNU General Public License
 # Version 2 or better
 
-from mymedia import PyResponderIfc, Router
+from mymedia import PyResponderIfc
 
 # this file contains the configurable variables
 config_file = "config.ini"
@@ -135,7 +135,6 @@ def file2item(key, fname, base_dir, config, image=None):
   bitrate = None
 
   filetype = None
-  mimetype = None
   tracknum = None
 
   if ext == ".mp3":
@@ -378,7 +377,6 @@ def item_sorter(lhs, rhs):
 
 def partition_by_firstletter(key, subdirs, basedir, minmax, config):
   "based on config, change subdirs into alphabet clumps if there are too many"
-
   max_dirs = 10
   if config.has_option("config", "max_folders_before_split"):
     max_dirs = int(config.get("config", "max_folders_before_split"))
@@ -399,14 +397,14 @@ def partition_by_firstletter(key, subdirs, basedir, minmax, config):
     return subdirs
 
   # presort
-  subdirs.sort(key=lambda x: x.title.lower())
+  subdirs.sort(key=lambda x: x[1])
 
   # how many pivots? (round up)
   pivots = int(math.ceil(float(len(subdirs))/max_dirs))
   newsubdirs = []
 
   def get_letter(item):
-    return first_letter(item.title)
+    return first_letter(os.path.split(item[1])[1])
 
   last_index_ord = len(subdirs) - 1
   last_end = 0
@@ -470,7 +468,6 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
     maxl = maxl.lower()
 
   media_re = re.compile("\.m3u|\.mp3|\.wma|\.m4v|\.mp4|\.mov|\.wmv|\.jpg|\.jpeg|\.png|\.gif")
-
   for base, dirs, files in os.walk(path):
     if not recurse:
       for dir in dirs:
@@ -481,7 +478,8 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
           continue
 
         subdir = os.path.join(base,dir)
-        item = dir2item(key, subdir, base_dir, config, getart(subdir))
+        item = (key, subdir, base_dir, config)
+        #dir2item(key, subdir, base_dir, config,  getart(subdir))
         if is_number(first_chr):
           number_subdirs.append(item)
         elif is_letter(first_chr):
@@ -511,20 +509,31 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
       if item:
         items.append(item)
 
+  def expand_dirs_if_needed(dirs):
+    if(len(dirs) > 0 and type(dirs[0]) != types.TupleType):
+    # these are already entry types
+      return dirs
+    else:
+      expitems = []
+      for tup in dirs:
+        args = tup + (getart(tup[1]),)
+        expitems.append(dir2item(*args))
+      return expitems
+  
   # include our partitioned folders
   if dirrange:
     # the range must either have only letters or only numbers
     if len(number_subdirs) > 0:
-      items.extend(partition_by_firstletter(key, \
-          number_subdirs, path, (minl,maxl), config))
+      items.extend(expand_dirs_if_needed(partition_by_firstletter(key, \
+          number_subdirs, path, (minl,maxl), config)))
     elif len(letter_subdirs) > 0:
-      items.extend(partition_by_firstletter(key, \
-          letter_subdirs, path, (minl,maxl), config))
+      items.extend(expand_dirs_if_needed(partition_by_firstletter(key, \
+          letter_subdirs, path, (minl,maxl), config)))
   else:
-    items.extend(partition_by_firstletter(key, number_subdirs, path, ('0','9'), config))
-    items.extend(partition_by_firstletter(key, letter_subdirs, path, ('a','z'), config))
+    items.extend(expand_dirs_if_needed(partition_by_firstletter(key, number_subdirs, path, ('0','9'), config)))
+    items.extend(expand_dirs_if_needed(partition_by_firstletter(key, letter_subdirs, path, ('a','z'), config)))
 
-  items.extend(special_subdirs)
+  items.extend(expand_dirs_if_needed(special_subdirs))
 
   # sort the items
   items.sort(item_sorter)
@@ -780,8 +789,6 @@ class MediaHandler(PyResponderIfc):
 
       resp.setContentType("image/" + type)
       resp.setHeader("Content-Length", "%d" % len(data))
-      # data is an array of bytes, send one at a time
-      print "writing %d bytes" % len(data)
       resp.getOutputStream().write(data);
       return
 
@@ -790,20 +797,20 @@ class MediaHandler(PyResponderIfc):
     resp.setHeader("Content-Length", "%d" % size)
     ostr = resp.getOutputStream()
     for data in range_handler(args, name):
-      print "writing %d bytes" % len(data)
       ostr.write(data)
     return
 
 class RssHandler(PyResponderIfc):
   def GET(self, args, resp):
-    print "in GET"
-    prof = profile.Profile()
-    prof.runcall(_GET, args, resp)
-    prof.print_stats()
-    
-def _GET(args, resp):
     "retrieve a specific feed"
-    print "in _GET"
+#    print "in GET"
+#    prof = profile.Profile()
+#    prof.runcall(_GET, args, resp)
+#    prof.print_stats()
+#
+#    def _GET(args, resp):
+#    
+#    print "in _GET"
     config = parse_config(config_file)
     collapse_collections = config.get("config", "collapse_collections").lower() == "true"
 
