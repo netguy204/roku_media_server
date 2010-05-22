@@ -136,7 +136,6 @@ End Function
 Sub RegDelete(key as String, section as String)
     print "RegDelete"
 
-    reg = CreateObject("roRegistry")
     sect = CreateObject("roRegistrySection", section)
 
     if sect.Exists(key) then    ' the documentation is pretty poor
@@ -145,20 +144,18 @@ Sub RegDelete(key as String, section as String)
     end if
 End Sub
 
-Sub RegSave(key as String, value as String, section as String)
+Sub RegSave(key as String, value as String, section as String, flush=true)
     'print "RegSave"
 
-    reg = CreateObject("roRegistry")
     sect = CreateObject("roRegistrySection", section)
 
     sect.Write(key,value)
-    sect.Flush()
+    if flush then sect.Flush()
 End Sub
 
 Function RegGet(key as String, section as String) as Dynamic
-    print "RegGet"
+    'print "RegGet"
 
-    reg = CreateObject("roRegistry")
     sect = CreateObject("roRegistrySection", section)
 
     if sect.Exists(key) then
@@ -255,8 +252,8 @@ Function ShowSettings(currentSettings as Object, toolate=true) as Object
         settings.AddHeaderText("Current configuration:")
         settings.AddParagraph("Server:      "+currentServer)
         settings.AddParagraph("Slide show delay:      "+currentDelay+" seconds")
-        settings.AddParagraph("Display photo overlays:   "+po)
-        settings.AddParagraph("Autoplay music subfolders:      "+ap)
+        settings.AddParagraph("Display file name over photo:     "+po)
+        settings.AddParagraph("Autoplay music subfolders:       "+ap)
         settings.AddParagraph("Autorefresh folders:      "+ar)
         settings.AddParagraph("Automatically move to first unwatched video:      "+am)
         settings.AddButton(1,"Edit server")
@@ -411,7 +408,6 @@ End Sub
 Sub SaveOffset(title as String, offset as String)
     print "SaveOffset"
 
-    reg = CreateObject("roRegistry")
     sect = CreateObject("roRegistrySection", "Resume")
 
     dt = CreateObject("roDateTime")
@@ -420,7 +416,7 @@ Sub SaveOffset(title as String, offset as String)
     sect.Write(title,value)
     sect.Flush()
 
-    ' Check for more than 100 saved resume points
+    ' Check for more than 250 saved resume points
     keys = sect.GetKeyList()
     if keys.Count() > 250  then
         oldest = &h7fffffff
@@ -675,7 +671,6 @@ End Function
 Sub Main()
     print "Main"
 
-reg = CreateObject("roRegistry")
 sect = CreateObject("roRegistrySection", "Resume")
 kl = sect.GetKeyList()
 'print kl
@@ -786,6 +781,7 @@ print kl.Count(); " resume entries"
     rplastcheck = 0
     timeout = 0
     radioparadise = false
+    dynamicPlaylist = CreateObject("roList")
 
     while true
         msg = wait(timeout, port)
@@ -904,7 +900,8 @@ print kl.Count(); " resume entries"
                             ' Create an array to store audio playlists as we traverse the hierarchy
                             audioContent = CreateObject("roArray",1,true)
                             buildAudioContent(audioContent,posters,itemIndex)
-                            currentSong = showSpringboardScreen(audio, port, audioContent)
+                            currentSong = showSpringboardScreen(audio, port, audioContent, dynamicPlaylist)
+                            dynamicPlaylist = currentSong.playlist
                         else
                             stream = item.GetPlayable()
                             streamTitle = item.GetTitle()
@@ -922,16 +919,12 @@ print kl.Count(); " resume entries"
                         else
                             UpdateNowPlaying(pscr,currentSong.song.title,level)
                             audioPlaying = true
-                            if currentSong.isStream then
-                                if radioparadise then
-                                    timeout = 1000
-                                    tail = currentSong.rplist.GetTail()
-                                    rpinfo = tail.info
-                                    songid = rpinfo.songid
-                                    rprefresh = rpinfo.refresh_time.toInt()
-                                end if
-                            else if shuffleMode then
-                                timeout = 10
+                            if currentSong.isStream and radioparadise then
+                                timeout = 1000
+                                tail = currentSong.rplist.GetTail()
+                                rpinfo = tail.info
+                                songid = rpinfo.songid
+                                rprefresh = rpinfo.refresh_time.toInt()
                             end if
                         end if
                         if currentConfig.autorefresh then
@@ -960,6 +953,7 @@ print kl.Count(); " resume entries"
                         busyDlg = ShowBusy("retrieving...")
                         print "Playlist: "; item.GetTitle()
                         pl = item.GetSubItems()
+                        shuffleMode = false
                         if pl <> invalid and pl.items.Count() <> 0 then
                             ptmp = makePosterScreen("","")
                             ptmp.SetPlayList(pl)
@@ -968,7 +962,8 @@ print kl.Count(); " resume entries"
                             buildAudioContent(audioContent,ptmp.GetPosters(),-1)
                             if GetNextSong(audio,audioContent,false) >= 0 then
                                 audioPlaying = true
-                                currentSong = showSpringboardScreen(audio, port, audioContent, invalid, busyDlg, false, false)
+                                currentSong = showSpringboardScreen(audio, port, audioContent, dynamicPlaylist, invalid, busyDlg, false, false)
+                                dynamicPlaylist = currentSong.playlist
                                 UpdateNowPlaying(pscr,currentSong.song.title,level)
                                 if currentConfig.autorefresh then
                                     if RefreshPosters(pscr,level,app) then exit while
@@ -976,8 +971,6 @@ print kl.Count(); " resume entries"
                                     initTheme(app,pscr[level].theme)
                                     pscr[level].screen.show()
                                 end if
-                                randgets = 0
-                                randgots = 0
                             else
                                 busyDlg.Close()
                                 if ShowOkAbortDialog("Error in playlist","No audio items retrieved.") then
@@ -1012,7 +1005,10 @@ print kl.Count(); " resume entries"
                     else
                         if not currentSong.isStream then
                             initTheme(app,"music")
-                            currentSong = showSpringboardScreen(audio, port, audioContent, currentSong,invalid,true,shuffleMode)
+                            currentSong = showSpringboardScreen(audio, port, audioContent, dynamicPlaylist, currentSong,invalid,true,shuffleMode)
+                            dynamicPlaylist = currentSong.playlist
+                            shuffleMode = currentSong.shuffle
+                            if not shuffleMode then timeout = 0
                         else
                             initTheme(app,"streams")
                             currentSong = showStreamScreen(audio, port, stream, streamTitle, currentSong, true)
@@ -1044,9 +1040,11 @@ print kl.Count(); " resume entries"
                     if item.IsSimple("shuffleall") then
                         busyDlg = ShowBusy("shuffling...")
                         shuffleMode = true
+                        timeout = 10
                     else
                         busyDlg = ShowBusy("retrieving...")
                         shuffleMode = false
+                        timeout = 0
                     end if
                     audio.Stop()
                     audio.ClearContent()
@@ -1070,7 +1068,10 @@ print kl.Count(); " resume entries"
                             end for
                         end if
                         audioPlaying = true
-                        currentSong = showSpringboardScreen(audio, port, audioContent, invalid, busyDlg, false, shuffleMode)
+                        currentSong = showSpringboardScreen(audio, port, audioContent, dynamicPlaylist, invalid, busyDlg, false, shuffleMode)
+                        dynamicPlaylist = currentSong.playlist
+                        shuffleMode = currentSong.shuffle
+                        if not shuffleMode then timeout = 0
                         UpdateNowPlaying(pscr,currentSong.song.title,level)
                         if currentConfig.autorefresh then
                             if RefreshPosters(pscr,level,app) then exit while
@@ -1419,6 +1420,7 @@ Function GetNextSong(audio as Object, ac as Object, autoplay=false) as Integer
     items = top.items
     idx = top.idxsave
     maxidx = songs.Count() - 1
+'print "maxidx  =";maxidx
 
     if not autoplay then
         idx = idx + 1
@@ -1553,11 +1555,25 @@ print "empty folder"
     return idx
 End Function
 
+Function ShowPlaylist(playlist as Object, port as Object) as Object
+    pls = CreateObject("roMessageDialog")
+    pls.SetTitle("Playlist")
+    pls.AddButton(1,"Close")
+    pls.SetMessagePort(port)
+    pl = ""
+    for each s in playlist
+        pl = pl+s.title+"  by  "+s.artist+chr(10)
+    end for
+    pls.SetText(pl)
+    pls.show()
+    return pls
+End Function
+
 '*************************************************************'
 '** showSpringboardScreen()'
 '*************************************************************'
 
-Function showSpringboardScreen(audio as object, port as object, ac as object, currentSong=invalid,busyDlg=invalid,redisplay=false,shuffle=false) As Object
+Function showSpringboardScreen(audio as object, port as object, ac as object, playlist as object, currentSong=invalid,busyDlg=invalid,redisplay=false,shuffle=false) As Object
     print "showSpringboardScreen"
 
     top = ac.Peek()
@@ -1608,7 +1624,11 @@ Function showSpringboardScreen(audio as object, port as object, ac as object, cu
     else
         screen.AddButton(1,"Pause")
     end if
-    screen.AddButton(2,"Go Back")
+    screen.AddButton(2,"Add to playlist")
+    screen.AddButton(3,"Show playlist")
+    screen.AddButton(4,"Clear playlist")
+    screen.AddButton(5,"Start playlist")
+    'screen.AddButton(9,"Go Back")
     screen.SetStaticRatingEnabled(false)
     if length > 0 then
         screen.SetProgressIndicatorEnabled(true)
@@ -1675,19 +1695,61 @@ Function showSpringboardScreen(audio as object, port as object, ac as object, cu
                                 audio.Resume()
                             end if
                             screen.AddButton(1,"Pause")
-                            screen.AddButton(2,"Go Back")
                         else
                             cumulative = progress
                             progress = -1
                             paused = true
                             audio.Pause()
                             screen.AddButton(1,"Play")
-                            screen.AddButton(2,"Go Back")
                         end if
+                        screen.AddButton(2,"Add to playlist")
+                        screen.AddButton(3,"Show playlist")
+                        screen.AddButton(4,"Clear playlist")
+                        screen.AddButton(5,"Start playlist")
                         screen.AllowUpdates(true)
                     else if msg.GetIndex() = 2
-                        print "Outta here!"
-                        exit while
+                        playlist.AddTail(song)
+                        plscreen = ShowPlaylist(playlist,port)
+                        plup = true
+                    else if msg.GetIndex() = 3
+                        plscreen = ShowPlaylist(playlist,port)
+                        plup = true
+                    else if msg.GetIndex() = 4
+                        playlist = CreateObject("roList")
+                    else if msg.GetIndex() = 5
+                        if playlist.Count() > 0 then
+                            audio.Stop()
+                            shuffle = false
+                            ac.Clear()
+                            ac.Push({songs: playlist, items: invalid, idxsave: 0, playable: true})
+                            audio.ClearContent()
+                            idx = 0
+                            songs = playlist
+                            song = songs[0]
+                            audio.SetContentList(songs)
+                            audio.SetNext(0)
+                            screen.SetContent(song)
+                            length = song.Length
+                            screen.SetProgressIndicator(0, length)
+                            screen.AllowUpdates(true)
+                            progress = -1
+                            cumulative = 0
+                            if paused then
+                                screen.ClearButtons()
+                                paused = false
+                                neverstarted = false
+                                screen.AddButton(1,"Pause")
+                                screen.AddButton(2,"Add to playlist")
+                                screen.AddButton(3,"Show playlist")
+                                screen.AddButton(4,"Clear playlist")
+                                screen.AddButton(5,"Start playlist")
+                            end if
+                            audio.Play()
+                            screen.AllowUpdates(true)
+                        end if
+                    REM else if msg.GetIndex() = 9
+                        REM print "Outta here!"
+                        REM exit while
                     end if
                 else if msg.GetIndex() = remoteLeft or msg.GetIndex() = remoteRight then
                     'randgots = 0
@@ -1770,6 +1832,11 @@ Function showSpringboardScreen(audio as object, port as object, ac as object, cu
                         audio.Play()
                     end if
                 end if
+            else if type(msg) = "roMessageDialogEvent" then
+                if msg.isButtonPressed() then 'msg.GetIndex() = 1 then
+                    plscreen.Close()
+                    plup = false
+                end if
             else
                 print "unexpected type.... type=";msg.GetType(); " msg: "; msg.GetMessage()
             end if
@@ -1788,6 +1855,8 @@ Function showSpringboardScreen(audio as object, port as object, ac as object, cu
             neverstarted : neverstarted,
             starttime: starttime,
             paused: paused,
+            shuffle: shuffle,
+            playlist: playlist,
             isStream: false}
 End Function
 
@@ -1808,7 +1877,7 @@ Function stripSlash(s as String) as String
     return str
 End Function
 
-Function ShowPlaylist(rppl as Object, port as Object, plscreen=invalid) as Object
+Function ShowRPPlaylist(rppl as Object, port as Object, plscreen=invalid) as Object
     pls2 = CreateObject("roMessageDialog")
     pls2.SetTitle("Playlist")
     pls2.AddButton(1,"Close")
@@ -2021,7 +2090,7 @@ print "Head: ";sh.title, "Tail: ";st.title
                     end if
                     rppl.AddHead(song.title+"  by  "+song.artist)
                     if rpplup then
-                        plscreen = ShowPlaylist(rppl,port,plscreen)
+                        plscreen = ShowRPPlaylist(rppl,port,plscreen)
                     end if
                     if rplist.Count() > 1 then
                         rpinfo = rplist[1].info
@@ -2079,7 +2148,7 @@ print "new rpupdate =";rpupdate
                         end if
                         screen.AllowUpdates(true)
                     else if msg.GetIndex() = 2 then
-                        plscreen = ShowPlaylist(rppl,port)
+                        plscreen = ShowRPPlaylist(rppl,port)
                         rpplup = true
                     else if msg.GetIndex() = 3 then
                         print "Outta here!"
