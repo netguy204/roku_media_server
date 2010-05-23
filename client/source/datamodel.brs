@@ -9,7 +9,9 @@ Function CreateMediaRSSConnection() As Object
                 port: CreateObject("roMessagePort"),
                 http: CreateObject("roUrlTransfer"),
 
-                GetSongListFromFeed: GetSongListFromFeed
+                GetSongListFromFeed: GetSongListFromFeed,
+                AsyncGetSongListFromFeed: AsyncGetSongListFromFeed,
+                ParseSongListFromFeed: ParseSongListFromFeed
                 }
 
         return rss
@@ -38,7 +40,36 @@ print "feed_url: ";feed_url
         'print "got media item: "; items.Peek().GetTitle()
     next
 
+    return { items:items, theme:theme}
+End Function
+
+Function ParseSongListFromFeed(xml as String) as Dynamic
+    rss=CreateObject("roXMLElement")
+    if not rss.Parse(xml) then
+        print "No xml received from server"
+        return invalid
+    end if
+    'print "rss@verion=";rss@version
+'print "XML: ";xml
+
+    items = CreateObject("roList")
+
+    theme = rss.channel.theme.GetText()
+
+    for each item in rss.channel.item
+        items.Push(newMediaFromXML(m, item))
+        'print "got media item: "; items.Peek().GetTitle()
+    next
+
     return { items:items, theme:theme }
+End Function
+
+Function AsyncGetSongListFromFeed(feed_url,port) As Boolean
+    print "AsyncGetSongListFromFeed"
+
+    m.http.SetUrl(feed_url)
+    m.http.SetPort(port)
+    return m.http.AsyncGetToString()
 End Function
 
 Function CreateRadioParadiseRSSConnection() As Object
@@ -57,10 +88,12 @@ Function RpInfoToSong(rpinfo as Object, song as Object) as Object
     song.title = rpinfo.title
     song.album = stripSlash(rpinfo.album)
     song.length = rpinfo.refresh_time.toInt() - rpinfo.timestamp.toInt()
-    if rpinfo.asin = "0" then
+    song.ReleaseDate = rpinfo.release_date
+    if rpinfo.asin = "0" or rpinfo.asin = "" then
         arturl = "pkg:/images/streams_square.jpg"
     else
-        arturl = "http://www.radioparadise.com/graphics/covers/l/"+rpinfo.asin+".jpg"
+        'arturl = "http://www.radioparadise.com/graphics/covers/l/"+rpinfo.asin+".jpg"
+        arturl = rpinfo.coverart
     end if
     song.HDPosterUrl = arturl
     song.SDPosterUrl = arturl
@@ -87,6 +120,8 @@ Function GetRPInfo(s = invalid) As Dynamic
         rpinfo.title = song.title.GetText()
         rpinfo.songid = song.songid.GetText()
         rpinfo.album = song.album.GetText()
+        rpinfo.release_date = song.release_date.GetText()
+        rpinfo.coverart = song.coverart.GetText()
         rpinfo.asin = song.asin.GetText()
         if s <> invalid then RpInfoToSong(rpinfo,s)
     end if
@@ -173,9 +208,13 @@ Function newMediaFromXML(rss As Object, xml As Object) As Object
         GetLength:itemGetLength,
         GetAlbum:itemGetAlbum,
         GetArtist:itemGetArtist,
+        GetDate:itemGetDate,
         IsPlayable:itemIsPlayable
         IsSimple:itemIsSimple,
-        GetSubItems:itemGetSubItems }
+        GetSubItems:itemGetSubItems,
+        AsyncGetSubItems:itemAsyncGetSubItems,
+        ParseSongListFromFeed:itemParseSongListFromFeed
+        }
 
     return item
 End Function
@@ -217,13 +256,17 @@ Function itemGetArtist()
     return m.xml.description.GetText()
 End Function
 
+Function itemGetDate()
+    return m.xml.release_date.GetText()
+End Function
+
 Function itemGetPlayable()
-    '!!!***print "getting playable for ";m.GetMedia()
-    '!!!***print "type: "; m.GetType()
+    'print "getting playable for ";m.GetMedia()
+    'print "type: "; m.GetType()
     sf = m.GetStreamFormat()
     ct = m.GetContentType()
     return { Url: m.GetMedia(), ContentType: ct, Title: m.GetTitle(), StreamFormat: sf,
-             Length: m.GetLength(), Artist: m.GetArtist(), Album: m.GetAlbum() }
+             Length: m.GetLength(), Artist: m.GetArtist(), Album: m.GetAlbum(), ReleaseDate: m.GetDate()}
 End Function
 
 Function itemGetPosterItem()
@@ -281,3 +324,12 @@ End Function
 Function itemGetSubItems()
     return m.rss.GetSongListFromFeed(m.GetMedia())
 End Function
+
+Function itemAsyncGetSubItems(port)
+    return m.rss.AsyncGetSongListFromFeed(m.GetMedia(),port)
+End Function
+
+Function itemParseSongListFromFeed(xml as String) as Dynamic
+    return m.rss.ParseSongListFromFeed(xml)
+End Function
+

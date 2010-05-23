@@ -238,7 +238,7 @@ def client_dir(config):
   return os.path.join(os.path.pardir, "client")
 
 def is_video(path):
-  return ext2mime(path) in ("video/mp4", "video/x-ms-wmv")
+  return ext2mime(path) in ("video/mp4", "video/x-ms-wmv", "application/vnd.apple.mpegurl")
 
 def is_photo(path):
   return ext2mime(path) in ("image/jpeg", "image/png", "image/gif")

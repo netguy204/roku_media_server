@@ -49,7 +49,7 @@ class PublishMixin:
 class RSSImageItem(PublishMixin, RSSItem):
   "extending rss items to support our extended tags"
   def __init__(self, **kwargs):
-    self.TAGS = ('image', 'filetype', 'tracknum', 'ContentType', 'StreamFormat', 'playtime', 'album', 'bitrate')
+    self.TAGS = ('image', 'filetype', 'tracknum', 'ContentType', 'StreamFormat', 'playtime', 'album', 'bitrate', 'release_date')
     self.set_variables(kwargs)
     RSSItem.__init__(self, **kwargs)
 
@@ -137,6 +137,7 @@ def file2item(key, fname, base_dir, config, image=None):
   filetype = None
   mimetype = None
   tracknum = None
+  release_date = None
 
   if ext == ".mp3":
     # use the ID3 tags to fill out the mp3 data
@@ -149,11 +150,15 @@ def file2item(key, fname, base_dir, config, image=None):
       return None
 
     title = call_protected(tag.getTitle, "Error Reading Title")
+    if title == "":
+      basename = os.path.split(fname)[1]
+      title = os.path.splitext(basename)[0]
     description = call_protected(tag.getArtist, "Error Reading Artist")
     album = call_protected(tag.getAlbum, "Error Reading Album")
     playtime = call_protected(mp3.getPlayTime, "0")
     bitrate = call_protected(mp3.getBitRateString, "Error Reading Bitrate")
     tracknum = call_protected(tag.getTrackNum, ( 0, ))[0]
+    release_date = call_protected(tag.getYear, "Error Reading Release Date")
 
     filetype = "mp3"
     ContentType = "audio"
@@ -205,8 +210,9 @@ def file2item(key, fname, base_dir, config, image=None):
 
     basename = os.path.split(fname)[1]
     title = os.path.splitext(basename)[0]
-    description = "Playlist"
-    filetype = "m3u8"
+    description = "HLS Playlist"
+    filetype = "hls"
+    ContentType = "movie"
 
   else:
     # don't know what this is
@@ -242,6 +248,7 @@ def file2item(key, fname, base_dir, config, image=None):
       ContentType = ContentType,
       StreamFormat = filetype,
       playtime = playtime,
+      release_date = release_date,
       album = album,
       bitrate = bitrate)
 
@@ -615,6 +622,7 @@ def pickle2doc(name):
       filetype=ft,
       image = img,
       tracknum = 0,
+      release_date = "",
       ContentType = ct,
       StreamFormat = sf,
       album = "None"))

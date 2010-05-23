@@ -33,7 +33,7 @@ Function makePosterScreen(bread1 as String, bread2 as String) As Object
         screen: screen,
         port: port,
         itemIndex: -1,
-        GetSelection: psGetSelection,
+        'GetSelection: psGetSelection,
         SetPlayList: psSetPlayList,
         GetPosters: psGetPosters,
         GetBC1: psGetBC1,
@@ -69,24 +69,24 @@ Function psSetPlayList(pl)
     m.screen.SetFocusedListItem(0)
 End Function
 
-Function psGetSelection(timeout)
-    print "psGetSelection"
-    m.screen.Show()
+REM Function psGetSelection(timeout)
+    REM print "psGetSelection"
+    REM m.screen.Show()
 
-    while true
-        msg = wait(timeout, m.screen.GetMessagePort())
-        print "psGetSelection typemsg = "; type(msg)
+    REM while true
+        REM msg = wait(timeout, m.screen.GetMessagePort())
+        REM print "psGetSelection typemsg = "; type(msg)
 
-        if msg.isScreenClosed() then return -1
+        REM if msg.isScreenClosed() then return -1
 
-        if type(msg) = "roPosterScreenEvent" then
-            if msg.isListItemSelected() then
-                print "psGetSelection got: " + Stri(msg.GetIndex())
-                return msg.GetIndex()
-            end if
-        end if
-    end while
-End Function
+        REM if type(msg) = "roPosterScreenEvent" then
+            REM if msg.isListItemSelected() then
+                REM print "psGetSelection got: " + Stri(msg.GetIndex())
+                REM return msg.GetIndex()
+            REM end if
+        REM end if
+    REM end while
+REM End Function
 
 Function SecsToHrMinSec(secs as String) as String
     t = secs.toInt()
@@ -213,13 +213,11 @@ Function ShowSettings(currentSettings as Object, toolate=true) as Object
     currentServer = currentSettings.server
     currentDelay = currentSettings.ssDelay
     currentAutoplay = currentSettings.autoplay
-    currentAutorefresh = currentSettings.autorefresh
     currentAutomove = currentSettings.automove
     currentPhotoOverlay = currentSettings.photoOverlay
     newserver = currentServer
     newdelay = currentDelay
     newautoplay = currentAutoplay
-    newautorefresh = currentAutorefresh
     newautomove = currentAutomove
     newphotooverlay = currentPhotoOverlay
 
@@ -235,11 +233,6 @@ Function ShowSettings(currentSettings as Object, toolate=true) as Object
     else
         po = "No"
     end if
-    if currentAutorefresh then
-        ar = "Yes"
-    else
-        ar = "No"
-    end if
     if currentAutomove then
         am = "Yes"
     else
@@ -254,13 +247,11 @@ Function ShowSettings(currentSettings as Object, toolate=true) as Object
         settings.AddParagraph("Slide show delay:      "+currentDelay+" seconds")
         settings.AddParagraph("Display file name over photo:     "+po)
         settings.AddParagraph("Autoplay music subfolders:       "+ap)
-        settings.AddParagraph("Autorefresh folders:      "+ar)
-        settings.AddParagraph("Automatically move to first unwatched video:      "+am)
+        settings.AddParagraph("Automatically move to first video not viewed:      "+am)
         settings.AddButton(1,"Edit server")
         settings.AddButton(2,"Edit slide show delay")
         settings.AddButton(3,"Edit photo overlays")
         settings.AddButton(4,"Edit autoplay")
-        settings.AddButton(5,"Edit autorefresh")
         settings.AddButton(6,"Edit automove")
         settings.AddButton(9,"Finished")
 
@@ -276,8 +267,6 @@ Function ShowSettings(currentSettings as Object, toolate=true) as Object
             newphotooverlay = GetYesNo("Display photo overlays?")
         else if msg.GetIndex() = 4 then
             newautoplay = GetYesNo("Automatically play music subfolders?")
-        else if msg.GetIndex() = 5 then
-            newautorefresh = GetYesNo("Automatically refresh folders?")
         else if msg.GetIndex() = 6 then
             newautomove = GetYesNo("Automatically move to unwatched video?")
         else
@@ -310,14 +299,6 @@ Function ShowSettings(currentSettings as Object, toolate=true) as Object
             end if
             RegSave("Autoplay",ap,"Settings")
             currentAutoplay = newautoplay
-        else if newautorefresh <> currentAutorefresh
-            if newautorefresh then
-                ar = "Yes"
-            else
-                ar = "No"
-            end if
-            RegSave("Autorefresh",ar,"Settings")
-            currentAutorefresh = newautorefresh
         else if newautomove <> currentAutomove
             if newautomove then
                 am = "Yes"
@@ -329,12 +310,12 @@ Function ShowSettings(currentSettings as Object, toolate=true) as Object
         end if
     end  while
 
-print "New server: "; newserver; " New delay:";newdelay; " New photo overlay: ";newphotooverlay;" New autoplay: ";newautoplay; " New autorefresh: ";newautorefresh;
-    newSettings = {server: currentServer, ssDelay: currentDelay, autoplay: currentAutoplay, autorefresh: currentAutorefresh, photoOverlay: currentPhotoOverlay, automove: currentAutomove}
+print "New server: "; newserver; " New delay:";newdelay; " New photo overlay: ";newphotooverlay;" New autoplay: ";newautoplay;
+    newSettings = {server: currentServer, ssDelay: currentDelay, autoplay: currentAutoplay, photoOverlay: currentPhotoOverlay, automove: currentAutomove}
     return newSettings
 End Function
 
-Function EditDialog(title as String, val as String, hint as String, maxlen as Integer)
+Function EditDialog(title as String, val as String, hint as String, maxlen as Integer) as String
     port = CreateObject("roMessagePort")
     kb = CreateObject("roKeyboardScreen")
     kb.SetMessagePort(port)
@@ -540,17 +521,6 @@ Function GetConfig() as Object
     end if
     print "autoplay = "; autoplay
 
-    ar = RegGet("Autorefresh","Settings")
-    if ar = invalid then
-        autorefresh = true
-        RegSave("Autorefresh","Yes","Settings")
-    else if ar = "Yes" then
-        autorefresh = true
-    else
-        autorefresh = false
-    end if
-    print "autorefresh = "; autorefresh
-
     am = RegGet("Automove","Settings")
     if am = invalid then
         automove = true
@@ -562,8 +532,81 @@ Function GetConfig() as Object
     end if
     print "automove = "; automove
 
-    return {server: server, ssDelay: ssDelay, autoplay: autoplay, autorefresh: autorefresh, photoOverlay: photoOverlay, automove: automove}
+    return {server: server, ssDelay: ssDelay, autoplay: autoplay, photoOverlay: photoOverlay, automove: automove}
 End Function
+
+Sub SilentRefresh(pscrs as Object, level as Integer, app as Object, pl as Object, automove as Boolean)
+    print "SilentRefresh"
+
+    minidx = 0
+
+    ' Save the current selected poster so it can be restored
+    if pscrs[level].itemIndex <> -1 then
+        posters = pscrs[level].GetPosters()
+        item = posters[pscrs[level].itemIndex].item
+        oldSel = item.GetTitle()
+        port = pscrs[level].screen.GetMessagePort()
+print "Current poster:";pscrs[level].itemIndex, oldSel
+    end if
+
+    if pl <> invalid and pl.items.Count() <> 0 then
+        startidx = 0
+        if pl.theme = "music" then
+            items = CreateObject("roList")
+            pl1 = {items: items, theme: "media"}
+            CreateSimplePoster(pl1.items, "Shuffle All", "pkg:/images/shuffleall_square.jpg", "Shuffle everything", "shuffleall")
+            CreateSimplePoster(pl1.items, "Play All", "pkg:/images/playall_square.jpg", "Play everything", "playall")
+            minidx = 2
+            for each it in pl1.items
+                pl.items.AddHead(it)
+            end for
+        else if pl.theme = "video" then
+            items = CreateObject("roList")
+            pl1 = {items: items, theme: "media"}
+            CreateSimplePoster(pl1.items, "Play Unwatched", "pkg:/images/playall_square.jpg", "Play all unwatched", "playunwatched")
+            CreateSimplePoster(pl1.items, "Play All", "pkg:/images/playall_square.jpg", "Play everything", "playallvideo")
+            CreateSimplePoster(pl1.items, "Loop All", "pkg:/images/playall_square.jpg", "Loop everything", "loopallvideo")
+            minidx = 3
+            for each it in pl1.items
+                pl.items.AddHead(it)
+            end for
+        end if
+        startidx = minidx
+
+        pscrs[level].SetPlayList(pl)
+
+        if pl.theme = "video" and automove then
+            posters = pscrs[level].GetPosters()
+            skip = 0
+            for each p in posters
+                if skip < minidx then
+                    skip = skip + 1
+                else
+                    if Left(p.ShortDescriptionLine2,5) = "Watch" then
+                        startidx = startidx + 1
+                    else
+                        exit for
+                    end if
+                end if
+            end for
+        end if
+        if startIdx >= pl.items.Count() then startIdx = minidx
+
+        if pscrs[level].itemIndex = -1 then
+            i = startIdx
+        else
+            ' Try to restore the current selection
+            for i = 0 to pl.items.Count() - 1
+                if pl.items[i].GetTitle() = oldSel then exit for
+            end for
+            if i = pl.items.Count() then i = minidx   ' ???
+        end if
+        pscrs[level].screen.SetFocusedListItem(i)
+        pscrs[level].itemIndex = i
+        initTheme(app, pl.theme)
+        pscrs[level].screen.Show()
+    end if
+End Sub
 
 Function RefreshPosters(pscrs as Object, level as Integer, app as Object, automove=false) as Boolean
     print "RefreshPosters"
@@ -578,16 +621,6 @@ Function RefreshPosters(pscrs as Object, level as Integer, app as Object, automo
     if pscrs[level].itemIndex = -1 then
         busyDlg = ShowBusy("retrieving...")
 print "retrieving..."
-    else
-        busyDlg = ShowBusy("refreshing...")
-print "refreshing..."
-    end if
-
-    ' Save the current selected poster so it can be restored
-    if pscrs[level].itemIndex <> -1 then
-        posters = pscrs[level].GetPosters()
-        item = posters[pscrs[level].itemIndex].item
-        oldSel = item.GetTitle()
     end if
 
     ' Get the selected poster of the parent level
@@ -595,64 +628,19 @@ print "refreshing..."
     itemIndex = pscrs[level-1].itemIndex
     item = posters[itemIndex].item
 
+    if pscrs[level].itemIndex <> -1 then
+        port = pscrs[level].screen.GetMessagePort()
+        print "AGSI: ";item.AsyncGetSubItems(port)
+        return false
+    end if
+
     'load the sub items and display those'
     print "loading subitems for "; itemIndex; " - "; item.GetTitle()
     pl = item.GetSubItems()
-'print "theme is ";pl.theme
+
     if pl <> invalid and pl.items.Count() <> 0 then
-        startidx = 0
-        if pl.theme = "music" then
-            items = CreateObject("roList")
-            pl1 = {items: items, theme: "media"}
-            CreateSimplePoster(pl1.items, "Shuffle All", "pkg:/images/shuffleall_square.jpg", "Shuffle everything", "shuffleall")
-            CreateSimplePoster(pl1.items, "Play All", "pkg:/images/playall_square.jpg", "Play everything", "playall")
-            startidx = 2
-            for each it in pl1.items
-                pl.items.AddHead(it)
-            end for
-        else if pl.theme = "video" then
-            items = CreateObject("roList")
-            pl1 = {items: items, theme: "media"}
-            CreateSimplePoster(pl1.items, "Play Unwatched", "pkg:/images/playall_square.jpg", "Play all unwatched", "playunwatched")
-            CreateSimplePoster(pl1.items, "Play All", "pkg:/images/playall_square.jpg", "Play everything", "playallvideo")
-            startidx = 2
-            for each it in pl1.items
-                pl.items.AddHead(it)
-            end for
-        end if
-
-        pscrs[level].SetPlayList(pl)
-
-        if pl.theme = "video" and automove then
-            posters = pscrs[level].GetPosters()
-            skip = 0
-            for each p in posters
-                if skip < 2 then
-                    skip = skip + 1
-                else
-                    if Left(p.ShortDescriptionLine2,5) = "Watch" then
-                        startidx = startidx + 1
-                    else
-                        exit for
-                    end if
-                end if
-            end for
-        end if
-        if startIdx >= pl.items.Count() then startIdx = 2
-
-        if pscrs[level].itemIndex = -1 then
-            i = startIdx
-        else
-            ' Try to restore the current selection
-            for i = startidx to pl.items.Count() - 1
-                if pl.items[i].GetTitle() = oldSel then exit for
-            end for
-            if i = pl.items.Count() then i = startIdx   ' ???
-        end if
-        pscrs[level].screen.SetFocusedListItem(i)
-        pscrs[level].itemIndex = i
-        initTheme(app, pl.theme)
-        pscrs[level].screen.Show()
+        SilentRefresh(pscrs,level,app,pl,automove)
+        busyDlg.Close()
     else if pl = invalid then
         if ShowOkAbortDialog("Server Problem","Communications with the server has been lost.") then
             print "Outta here!"
@@ -664,6 +652,7 @@ print "refreshing..."
         busyDlg.Close()
         return true
     end if
+    
     busyDlg.Close()
     return false
 End Function
@@ -778,10 +767,12 @@ print kl.Count(); " resume entries"
     port = pscr[level].screen.GetMessagePort()
     audio.SetMessagePort(port)
     rokutime = CreateObject("roDateTime")
+    timer = CreateObject("roTimespan")
     rplastcheck = 0
     timeout = 0
     radioparadise = false
     dynamicPlaylist = CreateObject("roList")
+    currentSong = invalid
 
     while true
         msg = wait(timeout, port)
@@ -846,7 +837,17 @@ print kl.Count(); " resume entries"
             end if
         end if
 
-        if type(msg) = "roPosterScreenEvent" then
+        if type(msg) = "roUrlEvent" then
+            print "roUrlEvent - level";level
+            'print msg
+            ' Get the selected poster of the parent level
+            if level > 0 then   ' this should always be the case
+                posters = pscr[level-1].GetPosters()
+                itemIndex = pscr[level-1].itemIndex
+                item = posters[itemIndex].item
+                SilentRefresh(pscr,level,app,item.ParseSongListFromFeed(msg),false)
+            end if
+        else if type(msg) = "roPosterScreenEvent" then
             if msg.isScreenClosed() then
                 print "isScreenClosed()"
                 ' If the top level screen rcv'd the "closed" msg, we're outta here
@@ -857,9 +858,7 @@ print kl.Count(); " resume entries"
                 level = level - 1
                 port = pscr[level].screen.GetMessagePort()
                 audio.SetMessagePort(port)
-                if currentConfig.autorefresh then
-                    if RefreshPosters(pscr,level,app) then exit while
-                end if
+                RefreshPosters(pscr,level,app)
                 initTheme(app, pscr[level].theme)
                 ' this is here to try to make sure the theme change takes effect
                 pscr[level].screen.SetFocusedListItem(pscr[level].itemIndex)
@@ -886,12 +885,11 @@ print kl.Count(); " resume entries"
                         print "Starting from position "; offset
                         offset = displayVideo(item.GetPlayable(),offset)
                         SaveOffset(item.GetTitle(),offset.toStr())
-                        if currentConfig.autorefresh then
-                            if RefreshPosters(pscr,level,app) then exit while
-                        else
-                            UpdateVideoStatus(pscr,level,itemIndex,offset)
-                            pscr[level].screen.show()
-                        end if
+                        RefreshPosters(pscr,level,app)
+                        REM else
+                            REM UpdateVideoStatus(pscr,level,itemIndex,offset)
+                            REM pscr[level].screen.show()
+                        REM end if
                     else if item.GetContentType() = "audio" then
                         audio.Stop()
                         audio.ClearContent()
@@ -900,7 +898,13 @@ print kl.Count(); " resume entries"
                             ' Create an array to store audio playlists as we traverse the hierarchy
                             audioContent = CreateObject("roArray",1,true)
                             buildAudioContent(audioContent,posters,itemIndex)
-                            currentSong = showSpringboardScreen(audio, port, audioContent, dynamicPlaylist)
+                            paused = false
+                            if currentSong <> invalid then
+                                if not currentSong.isStream then
+                                    paused = currentSong.paused
+                                end if
+                            end if
+                            currentSong = showSpringboardScreen(audio, port, audioContent, dynamicPlaylist, paused)
                             dynamicPlaylist = currentSong.playlist
                         else
                             stream = item.GetPlayable()
@@ -927,9 +931,7 @@ print kl.Count(); " resume entries"
                                 rprefresh = rpinfo.refresh_time.toInt()
                             end if
                         end if
-                        if currentConfig.autorefresh then
-                            if RefreshPosters(pscr,level,app) then exit while
-                        end if
+                        RefreshPosters(pscr,level,app)
                         pscr[level].screen.show()
                         randgets = 0
                         randgots = 0
@@ -962,15 +964,15 @@ print kl.Count(); " resume entries"
                             buildAudioContent(audioContent,ptmp.GetPosters(),-1)
                             if GetNextSong(audio,audioContent,false) >= 0 then
                                 audioPlaying = true
-                                currentSong = showSpringboardScreen(audio, port, audioContent, dynamicPlaylist, invalid, busyDlg, false, false)
+                                currentSong = showSpringboardScreen(audio, port, audioContent, dynamicPlaylist, false, invalid, busyDlg, false, false)
                                 dynamicPlaylist = currentSong.playlist
                                 UpdateNowPlaying(pscr,currentSong.song.title,level)
-                                if currentConfig.autorefresh then
-                                    if RefreshPosters(pscr,level,app) then exit while
-                                else
-                                    initTheme(app,pscr[level].theme)
-                                    pscr[level].screen.show()
-                                end if
+                                REM if currentConfig.autorefresh then
+                                RefreshPosters(pscr,level,app)
+                                REM else
+                                    REM initTheme(app,pscr[level].theme)
+                                    REM pscr[level].screen.show()
+                                REM end if
                             else
                                 busyDlg.Close()
                                 if ShowOkAbortDialog("Error in playlist","No audio items retrieved.") then
@@ -1005,7 +1007,7 @@ print kl.Count(); " resume entries"
                     else
                         if not currentSong.isStream then
                             initTheme(app,"music")
-                            currentSong = showSpringboardScreen(audio, port, audioContent, dynamicPlaylist, currentSong,invalid,true,shuffleMode)
+                            currentSong = showSpringboardScreen(audio, port, audioContent, dynamicPlaylist, currentSong.paused, currentSong,invalid,true,shuffleMode)
                             dynamicPlaylist = currentSong.playlist
                             shuffleMode = currentSong.shuffle
                             if not shuffleMode then timeout = 0
@@ -1027,9 +1029,7 @@ print kl.Count(); " resume entries"
                             UpdateNowPlaying(pscr,currentSong.song.title,level)
                             audioPlaying = true
                         end if
-                        if currentConfig.autorefresh then
-                            if RefreshPosters(pscr,level,app) then exit while
-                        end if
+                        RefreshPosters(pscr,level,app)
                         pscr[level].screen.show()
                         randgets = 0
                         randgots = 0
@@ -1068,14 +1068,12 @@ print kl.Count(); " resume entries"
                             end for
                         end if
                         audioPlaying = true
-                        currentSong = showSpringboardScreen(audio, port, audioContent, dynamicPlaylist, invalid, busyDlg, false, shuffleMode)
+                        currentSong = showSpringboardScreen(audio, port, audioContent, dynamicPlaylist, false, invalid, busyDlg, false, shuffleMode)
                         dynamicPlaylist = currentSong.playlist
                         shuffleMode = currentSong.shuffle
                         if not shuffleMode then timeout = 0
                         UpdateNowPlaying(pscr,currentSong.song.title,level)
-                        if currentConfig.autorefresh then
-                            if RefreshPosters(pscr,level,app) then exit while
-                        end if
+                        RefreshPosters(pscr,level,app)
                         pscr[level].screen.show()
                         randgets = 0
                         randgots = 0
@@ -1086,34 +1084,41 @@ print kl.Count(); " resume entries"
                             exit while
                         end if
                     end if
-                else if item.IsSimple("playallvideo") or item.IsSimple("playunwatched") then
+                else if item.IsSimple("playallvideo") or item.IsSimple("playunwatched") or item.IsSimple("loopallvideo") then
                     audio.Stop()
                     audio.ClearContent()
                     audioPlaying = false
                     UpdateNowPlaying(pscr,"Return to Audio Player",level)
                     videoContent = CreateObject("roArray",0,true)
-                    if item.IsSimple("playallvideo") then
+                    loopall = false
+                    if item.IsSimple("loopallvideo") then loopall = true
+                    if item.IsSimple("playallvideo") or loopall then
                         numvids = buildVideoContent(videoContent,posters,true)
                     else
                         numvids = buildVideoContent(videoContent,posters,false)
                     end if
 print numvids; " items returned"
-                    for each vid in videoContent
-                        offset = GetOffset(vid.Title)
-                        if offset > 0 then
-                            if not ShowResumeDialog() then offset = 0
-                        else
-                            offset = 0
-                        end if
-                        print "Starting from position "; offset
-                        offset = displayVideo(vid,offset)
-                        SaveOffset(vid.Title,offset.toStr())
-                        UpdateVideoStatus(pscr,level,vid.Index,offset)
-                        if offset <> -1 then exit for
-                    end for
-                    if currentConfig.autorefresh then
-                        if RefreshPosters(pscr,level,app) then exit while
-                    end if
+                    while true
+                        for each vid in videoContent
+                            if item.IsSimple("playallvideo") or loopall then
+                                offset = 0
+                            else
+                                offset = GetOffset(vid.Title)
+                                if offset > 0 then
+                                    if not ShowResumeDialog() then offset = 0
+                                else
+                                    offset = 0
+                                end if
+                            end if
+                            print "Starting from position "; offset
+                            offset = displayVideo(vid,offset)
+                            SaveOffset(vid.Title,offset.toStr())
+                            UpdateVideoStatus(pscr,level,vid.Index,offset)
+                            if offset <> -1 then exit for
+                        end for
+                        if not loopall or offset <> -1 then exit while
+                    end while
+                    RefreshPosters(pscr,level,app)
                     pscr[level].screen.show()
                 else    ' must be a folder
                     ' increment the level we're on
@@ -1158,9 +1163,7 @@ print numvids; " items returned"
             if msg.isScreenClosed() then
                 print "  isScreenClosed"
                 ssMsgHandled = true
-                if currentConfig.autorefresh then
-                    if RefreshPosters(pscr,level,app) then exit while
-                end if
+                RefreshPosters(pscr,level,app)
                 pscr[level].screen.show()
             end if
             if msg.isPlaybackPosition() then
@@ -1199,27 +1202,27 @@ print numvids; " items returned"
             print "end roSlideShowEvent"
         else if type(msg) = "roAudioPlayerEvent" then
             if msg.isStatusMessage() then
-                print "audio status: ";msg.GetMessage()
+'''                print "audio status: ";msg.GetMessage()
                 if msg.GetMessage() = "start of play" then
                     UpdateNowPlaying(pscr,currentSong.song.title,level)
-                    dt = CreateObject("roDateTime")
-                    now = dt.asSeconds()
+                    rokutime.Mark()
+                    now = rokutime.asSeconds()
                     currentSong.starttime = now
                     currentSong.paused = false
                     if shuffleMode then
                         randgots = 0
                         top = audioContent.Peek()
                         songs = top.songs
-                        length = currentSong.song.Length
-                        if length < 5 then
-                            randgets = 1
-                        else if length < 10 then
-                                randgets = rnd(9)
+                        if not currentConfig.autoplay or (top.folders = 0 and audioContent.Count() = 1) then
+                            ' if we're not traversing directories, just pick a number between 1
+                            ' and the number of songs in the list
+                            randgets = rnd(songs.Count() - 1)
                         else
-                            if not currentConfig.autoplay then
-                                ' if we're not traversing directories, just pick a number between 1
-                                ' and the number of songs in the list
-                                randgets = rnd(songs.Count() - 1)
+                            length = currentSong.song.Length
+                            if length < 5 then
+                                randgets = 1
+                            else if length < 10 then
+                                    randgets = rnd(9)
                             else
                                 ' otherwise pick a number loosely based on the length of the song
                                 ' (longer songs give more time to "randomize")
@@ -1227,29 +1230,30 @@ print numvids; " items returned"
                             end if
                         end if
                     end if
-                else if msg.GetMessage() = "end of stream" then
-                    audio.Stop()
-                    if not shuffleMode then
-                        idx = GetNextSong(audio,audioContent,currentConfig.autoplay)
-                '!!!*** if gns = -1 ***!!!
-                    end if
-                    top = audioContent.Peek()
-                    songs = top.songs
-                    idx = top.idxsave
-                    audio.ClearContent()
-                    audio.SetContentList(songs)
-                    audio.SetNext(idx)
-                    song = songs[idx]
-                    print "Song "; idx; " - "+song.Title +" should be next"
-                    audio.Play()
-                    dt = CreateObject("roDateTime")
-                    now = dt.asSeconds()
-                    currentSong.song = song
-                    currentSong.starttime = now
-                    currentSong.paused = false
                 end if
+            else if msg.isFullResult() then
+            'else if msg.isRequestSucceeded() then
+print "isRequestSucceeded"
+                if not shuffleMode then
+                    idx = GetNextSong(audio,audioContent,currentConfig.autoplay)
+            '!!!*** if gns = -1 ***!!!
+                    top = audioContent.Peek()
+                end if
+                top = audioContent.Peek()
+                songs = top.songs
+                idx = top.idxsave
+                song = songs[idx]
+                audio.SetContentList([song])
+                audio.Play()
+                rokutime.Mark()
+                now = rokutime.asSeconds()
+                currentSong.song = song
+                currentSong.starttime = now
+                currentSong.paused = false
+            else if msg.isListItemSelected() then
+                '''print "New item:";msg.GetIndex()
             end if
-            print "end roAudioPlayerEvent"
+'''            print "end roAudioPlayerEvent"
         end if
     end while
 
@@ -1374,7 +1378,7 @@ Function buildVideoContent(vids as Object, posters as object, all as Boolean) as
     numvid = 0
     for i = 2 to maxidx         ' skip Playall posters
         item = posters[i].item
-        if item.GetContentType() = "movie" then
+        if item.GetContentType() = "movie" and not item.GetStreamFormat() = "hls" then
             if all or not Left(posters[i].ShortDescriptionLine2,5) = "Watch" then
                 vid = item.GetPlayable()
                 vid.index = i
@@ -1393,12 +1397,14 @@ Function buildAudioContent(ac as object, posters as object, idx as Integer) as O
     songs = CreateObject("roArray",1,true)
     items = CreateObject("roArray",1,true)
     playable = false
+    folders = 0
     maxidx = posters.Count() - 1
     for i = 0 to maxidx
         item = posters[i].item
         song = item.GetPlayable()   ' fills in title, length, artist and album among other things
         if song.ContentType = "audio" then playable = true  ' found at least one playable song
         if song.ContentType = "audio" or (song.Length = 0 and song.Artist = "Folder") then
+            if song.Length = 0 and song.Artist = "Folder" then folders = folders + 1
             poster = item.GetPosterItem()
             song.SDPosterURL = poster.SDPosterURL
             song.HDPosterURL = poster.HDPosterURL
@@ -1408,7 +1414,7 @@ Function buildAudioContent(ac as object, posters as object, idx as Integer) as O
             idxsave = idxsave - 1
         end if
     end for
-    ac.Push({songs: songs, items: items, idxsave: idxsave, playable: playable})
+    ac.Push({songs: songs, items: items, idxsave: idxsave, playable: playable, folders: folders})
     return ac
 End Function
 
@@ -1423,6 +1429,7 @@ Function GetNextSong(audio as Object, ac as Object, autoplay=false) as Integer
 'print "maxidx  =";maxidx
 
     if not autoplay then
+print "GNS not autoplay"
         idx = idx + 1
         if idx > maxidx then idx = 0
         while songs[idx].ContentType <> "audio"
@@ -1432,6 +1439,7 @@ Function GetNextSong(audio as Object, ac as Object, autoplay=false) as Integer
         top.idxsave = idx
     else
         idx = idx + 1
+'print "GNS idx =";idx, "maxidx =";maxidx
         if idx > maxidx then
 print "ac.Count() = ";ac.Count()
             if ac.Count() = 1 then
@@ -1555,16 +1563,37 @@ print "empty folder"
     return idx
 End Function
 
-Function ShowPlaylist(playlist as Object, port as Object) as Object
+Function ShowPlaylist(playlist as Object, port as Object, page as Integer, plscreen=invalid) as Object
     pls = CreateObject("roMessageDialog")
+    pls.SetMessagePort(port)
+
+    cnt = playlist.Count()
+    startidx = 0
     pls.SetTitle("Playlist")
     pls.AddButton(1,"Close")
-    pls.SetMessagePort(port)
+    if page = -1 then
+        startidx = cnt - 10
+        if startidx < 0 then startidx = 0
+        if cnt > 10 then
+            cnt = 10
+            pls.SetTitle("Playlist (tail end)")
+        end if
+    else if cnt > 10 then
+        startidx = page*8
+        pls.AddButton(2,"Next")
+        pls.AddButton(3,"Prev")
+        cnt = cnt - startidx
+        if cnt > 8 then cnt = 8
+    end if
+
     pl = ""
-    for each s in playlist
-        pl = pl+s.title+"  by  "+s.artist+chr(10)
+    for i = startidx to startidx + cnt - 1
+        s = playlist[i]
+        num = i + 1
+        pl = pl+num.toStr()+".  "+s.title+"  by  "+s.artist+chr(10)
     end for
     pls.SetText(pl)
+    if plscreen <> invalid then plscreen.Close()
     pls.show()
     return pls
 End Function
@@ -1573,7 +1602,7 @@ End Function
 '** showSpringboardScreen()'
 '*************************************************************'
 
-Function showSpringboardScreen(audio as object, port as object, ac as object, playlist as object, currentSong=invalid,busyDlg=invalid,redisplay=false,shuffle=false) As Object
+Function showSpringboardScreen(audio as object, port as object, ac as object, playlist as object, paused as Boolean, currentSong=invalid,busyDlg=invalid,redisplay=false,shuffle=false) As Object
     print "showSpringboardScreen"
 
     top = ac.Peek()
@@ -1584,8 +1613,6 @@ Function showSpringboardScreen(audio as object, port as object, ac as object, pl
     screen.SetMessagePort(port)
     screen.AllowUpdates(false)
 
-    print songs.Count(); " songs in playlist"
-
     timer = CreateObject("roTimespan")
     lastupdate = 0
 
@@ -1593,13 +1620,12 @@ Function showSpringboardScreen(audio as object, port as object, ac as object, pl
     now = rokutime.asSeconds()
 
     if not redisplay then
-        audio.ClearContent()
-        audio.SetContentList(songs)
-        audio.SetNext(idx)
-        audio.SetLoop(true) '!!!***
         song = songs[idx]
+        audio.ClearContent()
+        audio.SetContentList([song])
+        'audio.SetNext(idx)
+        audio.SetLoop(false)
         progress = -1
-        paused = false
         cumulative = 0
         neverstarted = false
     else
@@ -1609,7 +1635,6 @@ Function showSpringboardScreen(audio as object, port as object, ac as object, pl
         if neverstarted then cumulative = 0
         progress = 0
         timer.Mark()
-        paused = currentSong.paused
         if paused then
             screen.SetProgressIndicator(cumulative, song.length)
         end if
@@ -1628,7 +1653,6 @@ Function showSpringboardScreen(audio as object, port as object, ac as object, pl
     screen.AddButton(3,"Show playlist")
     screen.AddButton(4,"Clear playlist")
     screen.AddButton(5,"Start playlist")
-    'screen.AddButton(9,"Go Back")
     screen.SetStaticRatingEnabled(false)
     if length > 0 then
         screen.SetProgressIndicatorEnabled(true)
@@ -1648,7 +1672,11 @@ Function showSpringboardScreen(audio as object, port as object, ac as object, pl
     remoteRight = 5
 
     if not redisplay then
-        audio.Play()
+        if not paused then
+            audio.Play()
+        else
+            neverstarted = true
+        end if
     end if
 
     shuffling = false
@@ -1667,7 +1695,7 @@ Function showSpringboardScreen(audio as object, port as object, ac as object, pl
             end if
         end if
 
-        if shuffle
+        if shuffle and not paused
             if randgots < randgets then
                 idx = GetNextSong(audio,ac,autoplay)
                 '!!!*** if gns = -1 ***!!!
@@ -1709,29 +1737,32 @@ Function showSpringboardScreen(audio as object, port as object, ac as object, pl
                         screen.AllowUpdates(true)
                     else if msg.GetIndex() = 2
                         playlist.AddTail(song)
-                        plscreen = ShowPlaylist(playlist,port)
+                        plscreen = ShowPlaylist(playlist,port,-1)
                         plup = true
                     else if msg.GetIndex() = 3
-                        plscreen = ShowPlaylist(playlist,port)
+                        page = 0
+                        plscreen = ShowPlaylist(playlist,port,page)
+                        endpage = Int(playlist.Count()/8)
+                        if endpage*8 = playlist.Count() then endpage = endpage - 1
                         plup = true
                     else if msg.GetIndex() = 4
                         playlist = CreateObject("roList")
                     else if msg.GetIndex() = 5
                         if playlist.Count() > 0 then
                             audio.Stop()
+                            screen.AllowUpdates(false)
                             shuffle = false
-                            ac.Clear()
-                            ac.Push({songs: playlist, items: invalid, idxsave: 0, playable: true})
                             audio.ClearContent()
+                            ac.Clear()
+                            ac.Push({songs: playlist, items: invalid, idxsave: 0, playable: true, folders: 0})
                             idx = 0
                             songs = playlist
                             song = songs[0]
-                            audio.SetContentList(songs)
-                            audio.SetNext(0)
+                            audio.SetContentList([song])
+                            'audio.SetNext(0)
                             screen.SetContent(song)
                             length = song.Length
                             screen.SetProgressIndicator(0, length)
-                            screen.AllowUpdates(true)
                             progress = -1
                             cumulative = 0
                             if paused then
@@ -1747,9 +1778,6 @@ Function showSpringboardScreen(audio as object, port as object, ac as object, pl
                             audio.Play()
                             screen.AllowUpdates(true)
                         end if
-                    REM else if msg.GetIndex() = 9
-                        REM print "Outta here!"
-                        REM exit while
                     end if
                 else if msg.GetIndex() = remoteLeft or msg.GetIndex() = remoteRight then
                     'randgots = 0
@@ -1767,8 +1795,7 @@ Function showSpringboardScreen(audio as object, port as object, ac as object, pl
                     idx = top.idxsave
                     songs = top.songs
                     song = songs[idx]
-                    audio.SetContentList(songs)
-                    audio.SetNext(idx)
+                    audio.SetContentList([song])
                     screen.SetContent(song)
                     length = song.Length
                     screen.SetProgressIndicator(0, length)
@@ -1785,57 +1812,68 @@ Function showSpringboardScreen(audio as object, port as object, ac as object, pl
                 end if
             else if type(msg) = "roAudioPlayerEvent" then
                 print "AudioPlayerEvent type:";msg.GetType(); " msg: "; msg.GetMessage(); " - index:"; msg.GetIndex(); " data:"; msg.GetData()
-                if msg.isStatusMessage() then
+                if msg.isFullResult() then
+                    progress = -1   ' flag so code won't update progress bar anymore; wait for next song to start
+                    cumulative = 0
+                    if not shuffle then
+                        idx = GetNextSong(audio,ac,autoplay)
+                    '!!!*** if gns = -1 ***!!!
+                    end if
+                    top = ac.Peek()
+                    songs = top.songs
+                    idx = top.idxsave
+                    song = songs[idx]
+                    audio.SetContentList([song])
+                    screen.AllowUpdates(false)
+                    print "Song "; idx; " - "+song.Title +" should be next"
+                    screen.SetContent(song)
+                    length = song.Length
+                    screen.SetProgressIndicator(0, length)
+                    screen.AllowUpdates(true)
+                    audio.Play()
+                else if msg.isStatusMessage() then
                     if msg.GetMessage() = "start of play" then
                         timer.Mark()
                         progress = 0    ' allows code to update progress bar
-                        if shuffle and cumulative = 0 then
-                            ' only start shuffling if this is really the start of the song, not just a resume
-                            randgots = 0
-                            if length < 5 then
-                                randgets = 1
-                            else if length < 10 then
+                        if cumulative = 0 then
+                            if shuffle and cumulative = 0 then
+                                ' only start shuffling if this is really the start of the song, not just a resume
+                                randgots = 0
+                                if length < 5 then
+                                    randgets = 1
+                                else if length < 10 then
                                     randgets = rnd(9)
-                            else
-                                if not autoplay then
-                                    ' if we're not traversing directories, just pick a number between 1
-                                    ' and the number of songs in the list
-                                    randgets = rnd(songs.Count() - 1)
                                 else
-                                    ' otherwise pick a number loosely based on the length of the song
-                                    ' (longer songs give more time to "randomize")
-                                    randgets = length + rnd(length)
+                                    if not autoplay then
+                                        ' if we're not traversing directories, just pick a number between 1
+                                        ' and the number of songs in the list
+                                        randgets = rnd(songs.Count() - 1)
+                                    else
+                                        ' otherwise pick a number loosely based on the length of the song
+                                        ' (longer songs give more time to "randomize")
+                                        randgets = length + rnd(length)
+                                    end if
                                 end if
                             end if
                         end if
-                    else if msg.GetMessage() = "end of stream" then
-                        audio.Stop()
-                        progress = -1   ' flag so code won't update progress bar anymore; wait for next song to start
-                        cumulative = 0
-                        if not shuffle then
-                            idx = GetNextSong(audio,ac,autoplay)
-                        '!!!*** if gns = -1 ***!!!
-                        end if
-                        top = ac.Peek()
-                        songs = top.songs
-                        idx = top.idxsave
-                        audio.ClearContent()
-                        audio.SetContentList(songs)
-                        audio.SetNext(idx)
-                        screen.AllowUpdates(false)
-                        song = songs[idx]
-                        print "Song "; idx; " - "+song.Title +" should be next"
-                        screen.SetContent(song)
-                        length = song.Length
-                        screen.SetProgressIndicator(0, length)
-                        screen.AllowUpdates(true)
-                        audio.Play()
                     end if
                 end if
             else if type(msg) = "roMessageDialogEvent" then
-                if msg.isButtonPressed() then 'msg.GetIndex() = 1 then
-                    plscreen.Close()
-                    plup = false
+                if msg.isButtonPressed() then
+                    if msg.GetIndex() = 1 then
+                        plscreen.Close()
+                        plup = false
+                    else if msg.GetIndex() = 2 then
+                        if page < endpage then
+                            page = page + 1
+                            plscreen = ShowPlaylist(playlist,port,page,plscreen)
+                        end if
+                    else if msg.GetIndex() = 3 then
+                        if page > 0 then
+                            page = page - 1
+                            plscreen = ShowPlaylist(playlist,port,page,plscreen)
+                        end if
+                    end if
                 end if
             else
                 print "unexpected type.... type=";msg.GetType(); " msg: "; msg.GetMessage()
@@ -2034,6 +2072,7 @@ Function showStreamScreen(audio as object, port as object, stream as object, tit
 
     neverstarted = false
     updatepending = false
+    lastcheck = 0
 
     while true
         msg = wait(1000, port)
@@ -2041,8 +2080,9 @@ Function showStreamScreen(audio as object, port as object, stream as object, tit
         timestamp = rokutime.asSeconds()
 
         if radioparadise then
-            if timestamp - (timediff - 1) >= rprefresh then
+            if timestamp - (timediff - 1) >= rprefresh and timestamp <> lastcheck then
                 print "Checking for new song"
+                lastcheck = timestamp
                 for i = 1 to 10
                     rpinfo = rprss.GetInfo()
                     if rpinfo <> invalid then exit for
@@ -2209,12 +2249,89 @@ print "new rpupdate =";rpupdate
             }
 End Function
 
+'Sub displayHls(ip as String)
+Sub displayHls(m3u8 as Object)
+    print "displayHLS"
+    
+    port = CreateObject("roMessagePort")
+    videoScreen = CreateObject("roVideoScreen")
+    videoScreen.setMessagePort(port)
+
+    REM videoclip = CreateObject("roAssociativeArray")
+    REM videoclip.title = "HLS Test"
+    REM videoclip.ContentType = "movie"
+    REM videoclip.StreamFormat = "hls"
+    videoclip = m3u8
+    videoclip.StreamBitrates = [0]
+    videoclip.StreamQualities = ["SD"]
+    videoclip.StreamUrls = [m3u8["url"]]
+
+    REM 'm3u="#EXTM3U"+chr(10)+"#EXT-X-STREAM-INF:PROGRAM-ID=1, BANDWIDTH=500000"+chr(10)+"http://192.168.1.102:8001/media?name=test.m3u8&key=video"+chr(10)
+    REM m3u="#EXTM3U"+chr(10)+"#EXT-X-STREAM-INF:PROGRAM-ID=1, BANDWIDTH=500000"+chr(10)+"tmp:/test.m3u8"+chr(10)
+    REM WriteAsciiFile("tmp:/top.m3u8",m3u)
+REM print m3u
+    REM 'm3u="#EXTM3U"+chr(10)+"#EXT-X-TARGETDURATION:60"+chr(10)+"#EXTINF:60,Test Title"+chr(10)+"http://192.168.1.102:8001/media?name=avsync.ts&key=video"+chr(10)+"#EXT-X-ENDLIST"+chr(10)
+    REM 'm3u="#EXTM3U"+chr(10)+"#EXT-X-STREAM-INF:PROGRAM-ID=1, BANDWIDTH=500000"+chr(10)+"http://192.168.1.100:1935/roku/mp4:extremists.m4v/playlist.m3u8"+chr(10)
+    REM WriteAsciiFile("tmp:/test.m3u8",m3u)
+REM print m3u
+
+    REM 'videoclip.StreamUrls = ["tmp:/top.m3u8"]
+    REM 'videoclip.StreamUrls = ["tmp:/test.m3u8"]
+    REM 'videoclip.StreamUrls = ["http://192.168.1.102:8001/media?name=test.m3u8&key=video"]
+    REM 'videoclip.StreamUrls = ["http://192.168.1.102:8001/media?name=top.m3u8&key=video"]
+    REM videoclip.StreamUrls = ["http://192.168.1."+ip+":8001/media?name=mystream.m3u8&key=video"]
+    REM 'videoclip.StreamUrls = ["http://192.168.1.100:1935/roku/mp4:extremists.m4v/playlist.m3u8"]
+    REM 'videoclip.StreamUrls = ["http://192.168.1.100:1935/roku/mp4:SimpsonsS21E16.m4v/playlist.m3u8"]
+
+for each v in videoclip
+ print v,videoclip.Lookup(v)
+end for
+
+    videoScreen.SetContent(videoclip)
+    videoScreen.show()
+
+
+    while true
+        msg = wait(0, port)
+        if type(msg) = "roVideoScreenEvent"
+            if msg.isScreenClosed() then 'ScreenClosed event'
+                print "Closing video screen"
+                exit while
+            else if msg.isPlaybackPosition() then
+                print "isPlaybackPosition"
+            else if msg.isRequestFailed()
+                print "play failed: "; msg.GetMessage()
+            else if msg.isFullResult()
+                print "isFullResult"
+                'exit while
+            else if msg.isPartialResult()
+                print "isPartialResult"
+                'exit while
+            else
+                print "Unknown event: "; msg.GetType(); " msg: "; msg.GetMessage()
+            end if
+        end if
+    end while
+End Sub
+
 '*************************************************************'
 '** displayVideo()'
 '*************************************************************'
 
 Function displayVideo(video as Object, offset as Integer) as Integer
     print "Displaying video: "
+print video["url"]
+REM if video.title = "0" then
+ REM displayHls("102")
+ REM return 0
+REM else if video.title = "1" then
+ REM displayHls("103")
+ REM return 0
+REM end if
+if video.StreamFormat = "hls" then
+ displayHLS(video)
+ return 0
+end if
     port = CreateObject("roMessagePort")
     videoScreen = CreateObject("roVideoScreen")
     videoScreen.setMessagePort(port)
