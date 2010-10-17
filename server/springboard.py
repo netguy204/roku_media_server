@@ -4,6 +4,7 @@
 # Version 2 or better
 
 config_file = "config.ini"
+installClient = False
 
 import os
 import sys
@@ -144,8 +145,52 @@ def build_client_zip(config, client_path, target_zip):
 
   zip.close()
 
-# build the user interface
-from Tkinter import *
+class terminalConfigPanel:
+  def __init__(self):
+    for item in config.items("config"):
+      self._make_entry(self, item[0], item[1])
+
+  def _get_themes(self):
+    theme_dir = os.path.join(os.path.pardir, "client", "themes")
+    return os.listdir(theme_dir)
+
+  def _make_entry(self, parent, name, value):
+    if not hasattr(self, 'configvars'):
+      self.configvars = {}
+    self.configvars[name] = value
+
+  def ensure_config(self):
+    print "writing configuration"
+    for name, value in self.configvars.items():
+      config.set("config", name, value)
+    write_config(config_file, config)
+
+  def launch_server(self):
+    self.ensure_config()
+    self.serverproc = self.spawn_server()
+
+  def install_client(self):
+    self.ensure_config()
+
+    client_src = os.path.join(os.path.pardir, "client")
+    client_zip = os.path.join(os.path.pardir, "zips", "client.zip")
+    build_client_zip(config, client_src, client_zip)
+
+    # upload the zip file
+    upload_client_zip(config, client_zip)
+
+  def spawn_server(self):
+    import subprocess
+    cmd = "%s rss_server.py" % config.get("config", "python_path")
+    return subprocess.Popen([cmd], shell=True)
+
+  def stop_server(self):
+    print "stopping server"
+    if sys.version_info[0:2] >= (2,6):
+      self.server.kill()
+    else:
+      terminate(self.serverproc)
+      os.waitpid(self.serverproc.pid, 0)
 
 class ConfigPanel:
   def __init__(self, root):
@@ -248,10 +293,31 @@ class ServerPanel:
       terminate(self.server)
       os.waitpid(self.server.pid, 0)
     self.root.destroy()
+# build the user interface
+try:
+	from Tkinter import *
+except:
+	import signal
+	#no Tkinter compiled in, command line only
+	commandLineOnly = True
+	tcp = terminalConfigPanel()
+	if installClient:
+		tcp.install_client()
+	tcp.launch_server()
 
-root = Tk()
-panel = ConfigPanel(root)
-root.mainloop()
+	def handler(signum, frame):
+		print 'Signal handler called with signal', signum
+		tcp.stop_server()
+		sys.exit()
+
+	signal.signal(signal.SIGTERM, handler)
+	while True:
+		time.sleep(1000)
+else:
+	root = Tk()
+	panel = ConfigPanel(root)
+	root.mainloop()
+
 
 print "Springboard Terminating"
 
