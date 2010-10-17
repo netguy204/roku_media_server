@@ -296,6 +296,7 @@ class ServerPanel:
 # build the user interface
 try:
 	from Tkinter import *
+	root = Tk()
 except:
 	import signal
 	#no Tkinter compiled in, command line only
@@ -314,7 +315,6 @@ except:
 	while True:
 		time.sleep(1000)
 else:
-	root = Tk()
 	panel = ConfigPanel(root)
 	root.mainloop()
 
