@@ -4,7 +4,7 @@
 # Version 2 or better
 
 config_file = "config.ini"
-installClient = False
+installClient = True
 
 import os
 import sys
