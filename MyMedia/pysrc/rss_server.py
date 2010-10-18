@@ -23,6 +23,7 @@ import profile
 from eyeD3 import *
 from common import *
 from PyRSS2Gen import *
+from time import time
 
 logging.basicConfig(filename=log_file, level=logging.DEBUG)
 MY_STREAMS = "my_streams.pickle"
@@ -209,6 +210,13 @@ def file2item(key, fname, base_dir, config, image=None):
     filetype = "m3u"
     ContentType = "playlist"
 
+  elif ext == ".m3u8":
+
+    basename = os.path.split(fname)[1]
+    title = os.path.splitext(basename)[0]
+    description = "Playlist"
+    filetype = "m3u8"
+
   else:
     # don't know what this is
 
@@ -347,6 +355,14 @@ def item_sorter(lhs, rhs):
   if rhs.description == "Folder" and lhs.description != "Folder":
     return 1
 
+  if lhs.album == rhs.album:
+    # if both have a track number, sort on that
+    if lhs.tracknum and rhs.tracknum:
+      if int(lhs.tracknum) < int(rhs.tracknum):
+        return -1
+      elif int(lhs.tracknum) > int(rhs.tracknum):
+        return 1
+
   # first sort by artist
   if lhs.description.lower() < rhs.description.lower():
     return -1
@@ -377,6 +393,7 @@ def item_sorter(lhs, rhs):
 
 def partition_by_firstletter(key, subdirs, basedir, minmax, config):
   "based on config, change subdirs into alphabet clumps if there are too many"
+
   max_dirs = 10
   if config.has_option("config", "max_folders_before_split"):
     max_dirs = int(config.get("config", "max_folders_before_split"))
@@ -467,7 +484,8 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
     minl = minl.lower()
     maxl = maxl.lower()
 
-  media_re = re.compile("\.m3u|\.mp3|\.wma|\.m4v|\.mp4|\.mov|\.wmv|\.jpg|\.jpeg|\.png|\.gif")
+  media_re = re.compile("\.m3u|.m3u8|\.mp3|\.wma|\.m4v|\.mp4|\.mov|\.wmv|\.jpg|\.jpeg|\.png|\.gif")
+
   for base, dirs, files in os.walk(path):
     if not recurse:
       for dir in dirs:
@@ -849,6 +867,13 @@ class M3UHandler(PyResponderIfc):
     base_dir = key_to_path(config, feed.key)
     resp.getWriter().write(getpl(feed.name, feed.key, base_dir, config).to_xml())
 
+class TimestampHandler(PyResponderIfc):
+  def GET(self, args, resp):
+    "serve up the unix timestamp"
+    resp.setHeader("Content-Type", "text/plain")
+    ts = "%d" % (time() + 0.5)
+    resp.getWriter().write(ts)
+
 class IndexHandler(PyResponderIfc):
   def GET(self, args, resp):
     "serve up the index page"
@@ -925,6 +950,7 @@ def build_router(router):
   router.addRoute("/dynplay", DynamicPlaylist())
   router.addRoute("/remotes", DynamicPlaylistDoc())
   router.addRoute("/static", StaticHandler())
+  router.addRoute("/timestamp", TimestampHandler())
   router.addRoute("/", IndexHandler())
   return router
 
