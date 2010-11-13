@@ -651,6 +651,7 @@ def range_handler(fname):
 
   bytes = None
   CHUNK_SIZE = 10 * 1024;
+  size = os.stat(fname).st_size
 
   # is this a range request?
   # looks like: 'HTTP_RANGE': 'bytes=41017-'
@@ -667,6 +668,10 @@ def range_handler(fname):
       f.seek(start)
 
       # we'll stream it
+      web.header("Content-Length","%d" % (size - start))
+      web.header("Content-Range","bytes %d-%d/%d" % (start,size-1,size))
+      web.header("Accept-Ranges","bytes")
+      web.ctx.status = "206 Partial Content"
       bytes = f.read(CHUNK_SIZE)
       while not bytes == "":
         yield bytes
@@ -681,6 +686,10 @@ def range_handler(fname):
       start,end = int(grp.group(1)), int(grp.group(2))
       logging("player issued range request starting at %d and ending at %d" % (start, end))
 
+      web.header("Content-Length","%d" % (end - start + 1))
+      web.header("Content-Range","bytes %d-%d/%d" % (start,end,size))
+      web.header("Accept-Ranges","bytes")
+      web.ctx.status = "206 Partial Content"
       f.seek(start)
       bytes_remaining = end-start+1 # +1 because range is inclusive
       chunk_size = min(bytes_remaining, chunk_size)
@@ -701,6 +710,10 @@ def range_handler(fname):
     if grp:
       end = int(grp.group(1))
       logging.debug("player issued tail request beginning at %d from end" % end)
+      web.header("Content-Length","%d" % (end))
+      web.header("Content-Range","bytes %d-%d/%d" % (size-end,size-1,size))
+      web.header("Accept-Ranges","bytes")
+      web.ctx.status = "206 Partial Content"
 
       f.seek(-end, os.SEEK_END)
       bytes = f.read()
