@@ -1,11 +1,11 @@
-' ********************************************************************'
-' **  RssPlayer'
-' **  Brian Taylor el.wubo@gmail.com'
-' **  Copyright (c) 2010'
-' ********************************************************************'
+' ********************************************************************
+' **  RssPlayer
+' **  Brian Taylor el.wubo@gmail.com
+' **  Copyright (c) 2010
+' ********************************************************************
 
 Function CreateMediaRSSConnection() As Object
-        rss = {
+	 rss = {
                 port: CreateObject("roMessagePort"),
                 http: CreateObject("roUrlTransfer"),
 

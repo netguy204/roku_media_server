@@ -1,20 +1,20 @@
-' started as DeftAvocado2-1e9c6ee
-' ********************************************************************'
-' **  MyMedia - Springboard/SlideShow/Playall&Shuffle Posters version'
-' **'
-' **  Initial revision'
-' **  Brian Taylor el.wubo@gmail.com'
-' **  Copyright (c) 2010'
-' **  Distribute under the terms of the GPL'
-' **'
-' **  Contributions from'
-' **  Brian Taylor'
-' **  Jim Truscello'
-' **'
-' **  This code was derived from:'
-' **  Sample PlayVideo App'
-' **  Copyright (c) 2009 Roku Inc. All Rights Reserved.'
-' ********************************************************************'
+' started as 75577ed50
+' ********************************************************************
+' **  MyMedia - Springboard/SlideShow/Playall&Shuffle Posters version
+' **
+' **  Initial revision
+' **  Brian Taylor el.wubo@gmail.com
+' **  Copyright (c) 2010
+' **  Distribute under the terms of the GPL
+' **
+' **  Contributions from
+' **  Brian Taylor
+' **  Jim Truscello
+' **
+' **  This code was derived from:
+' **  Sample PlayVideo App
+' **  Copyright (c) 2009 Roku Inc. All Rights Reserved.
+' ********************************************************************
 
 Function makePosterScreen(bread1 as String, bread2 as String) As Object
     print "makePosterScreen"
@@ -69,24 +69,24 @@ Function psSetPlayList(pl)
     m.screen.SetFocusedListItem(0)
 End Function
 
-REM Function psGetSelection(timeout)
-    REM print "psGetSelection"
-    REM m.screen.Show()
+'Function psGetSelection(timeout)
+    'print "psGetSelection"
+    'm.screen.Show()
 
-    REM while true
-        REM msg = wait(timeout, m.screen.GetMessagePort())
-        REM print "psGetSelection typemsg = "; type(msg)
+    'while true
+        'msg = wait(timeout, m.screen.GetMessagePort())
+        'print "psGetSelection typemsg = "; type(msg)
 
-        REM if msg.isScreenClosed() then return -1
+        'if msg.isScreenClosed() then return -1
 
-        REM if type(msg) = "roPosterScreenEvent" then
-            REM if msg.isListItemSelected() then
-                REM print "psGetSelection got: " + Stri(msg.GetIndex())
-                REM return msg.GetIndex()
-            REM end if
-        REM end if
-    REM end while
-REM End Function
+        'if type(msg) = "roPosterScreenEvent" then
+            'if msg.isListItemSelected() then
+                'print "psGetSelection got: " + Stri(msg.GetIndex())
+                'return msg.GetIndex()
+            'end if
+        'end if
+    'end while
+'End Function
 
 Function SecsToHrMinSec(secs as String) as String
     t = secs.toInt()
@@ -310,8 +310,15 @@ Function ShowSettings(currentSettings as Object, toolate=true) as Object
         end if
     end  while
 
-print "New server: "; newserver; " New delay:";newdelay; " New photo overlay: ";newphotooverlay;" New autoplay: ";newautoplay;
-    newSettings = {server: currentServer, ssDelay: currentDelay, autoplay: currentAutoplay, photoOverlay: currentPhotoOverlay, automove: currentAutomove}
+    print "New server: "; newserver; " New delay:";newdelay; " New photo overlay: ";newphotooverlay;" New autoplay: ";newautoplay;
+
+    newSettings = {
+    	server: currentServer,
+	ssDelay: currentDelay,
+	autoplay: currentAutoplay,
+	photoOverlay: currentPhotoOverlay,
+	automove: currentAutomove }
+
     return newSettings
 End Function
 
@@ -657,24 +664,144 @@ print "retrieving..."
     return false
 End Function
 
+Function MasterServer() as String
+    return "http://192.168.1.2:8080"
+End Function
+
+Sub SetupStatusRequest(http as Object, code as String)
+    master_server = MasterServer()
+    request = master_server + "/state?code=" + code
+    print "requesting "; request
+    http.SetUrl(request)
+End Sub
+
+Sub MakeStatusRequest(http as Object, port as Object, code as String)
+    print "fetching status"
+    SetupStatusRequest(http, code)
+    http.SetPort(port)
+    http.AsyncGetToString()
+End Sub
+    
+Function ObtainAssociationInfo() as Object
+    port = CreateObject("roMessagePort")
+    http = CreateObject("roUrlTransfer")
+    
+    'wait for the status to update
+    dialog = CreateObject("roCodeRegistrationScreen")
+    dialog.SetMessagePort(port)
+    dialog.AddHeaderText("Server Configuration")
+    
+    master_server = MasterServer()
+    dialog.AddFocalText("Please visit " + master_server, "spacing-normal")
+    dialog.SetRegistrationCode("retrieving...")
+    dialog.AddButton(1, "Cancel Registration")
+    dialog.Show()
+
+    http.SetUrl(master_server + "/code")
+    http.SetPort(port)
+    http.AsyncGetToString()
+    result = ""
+
+    while true
+       msg = wait(0, port)
+       if type(msg) = "roCodeRegistrationScreenEvent" then
+       	  if msg.isScreenClosed() then
+             return invalid
+       	  end if
+       
+	  if msg.isButtonPressed() and msg.GetIndex() = 1 then
+             return invalid
+       	  end if
+       end if
+
+       if type(msg) = "roUrlEvent" then
+          if msg.GetInt() = 1 then
+	     result = msg.GetString()
+	     exit while
+	  end if
+       end if
+    end while
+
+    xml = CreateObject("roXMLElement")
+    if not xml.Parse(result) then
+       ShowOkDialog("Server Error", "Error Retrieving Registration Code")
+       print "registration error"
+       print result
+       return invalid
+    end if
+
+    regCode = xml.code.GetText()
+    print "parsed code"; regCode
+
+    dialog.SetRegistrationCode(regCode)
+    dialog.Show()
+
+    xml = invalid    
+    'now wait till we find out that they finished
+    while true
+       msg = wait(5000, port)
+       if type(msg) = "roCodeRegistrationScreenEvent" then
+       	  if msg.isScreenClosed() then
+             return invalid
+       	  end if
+       end if
+       if type(msg) = "roUrlEvent" then
+          if msg.GetInt() = 1 then
+	     result = msg.GetString()
+	     print "status"
+	     print result
+    	     xml = CreateObject("roXMLElement")
+    	     if not xml.Parse(result) then
+       	     	ShowOkDialog("Server Error", "Error Retrieving Registration Status")
+       		print "registration error"
+       		print result
+       		return invalid
+    	     end if
+	     value = xml.value.GetText()
+	     print "parsed value "; value
+	     if value = "BOTH_REGISTERED" then
+	     	exit while
+	     end if
+	  end if
+       end if
+
+       'try getting status again
+       sleep(5000)
+       MakeStatusRequest(http, port, regCode)
+    end while
+
+    home_server = xml.server.GetText()
+    RegSave("Application", regCode, "RegistrationCode")
+    RegSave("Server", home_server, "Settings")
+    return true
+End Function
+
 Sub Main()
     print "Main"
 
-sect = CreateObject("roRegistrySection", "Resume")
-kl = sect.GetKeyList()
-'print kl
-print kl.Count(); " resume entries"
-
-    'initialize theme attributes like titles, logos and overhang color'
+    'initialize theme attributes like titles, logos and overhang color
     app = CreateObject("roAppManager")
     initTheme(app, "media")
 
 
-    'display a fake screen while the real one initializes. this screen'
-    'has to live for the duration of the whole app to prevent flashing'
-    'back to the roku home screen.'
+    'display a fake screen while the real one initializes. this screen
+    'has to live for the duration of the whole app to prevent flashing
+    'back to the roku home screen.
     screenFacade = CreateObject("roPosterScreen")
     screenFacade.show()
+
+    'now check to see if we've ever initialized before
+    regCode = RegGet("Application", "RegistrationCode")
+    if regCode = invalid then
+        'this call will block until success or the user gives up
+	'we want to abort completely if the user gives up
+        if ObtainAssociationInfo() = invalid
+    	   ShowOkDialog("Registration Incomplete", "We hope you'll try again!")
+	   screenFacade.showMessage("")
+	   sleep(25)
+	   return
+     	end if
+    end if
 
     rss = CreateMediaRSSConnection()
     if rss=invalid then
@@ -686,7 +813,8 @@ print kl.Count(); " resume entries"
         sleep(25)
         return
     end if
-
+    
+    restart:
     currentConfig = GetConfig()
 
     while true
@@ -707,6 +835,35 @@ print kl.Count(); " resume entries"
 
         if svrContact then exit while
 
+	' try to refetch the server using our saved code
+	http = CreateObject("roUrlTransfer")
+	SetupStatusRequest(http, regCode)
+	result = http.GetToString()
+	if result = invalid then
+	   ShowOkDialog("Network Error", "Couldn't get updated server information")
+	   screenFacade.showMessage("")
+	   sleep(25)
+	   return
+	end if
+
+	xml = CreateObject("roXMLElement")
+	if not xml.Parse(result) then
+	   print "invalid response "; result
+	   ShowOkDialog("Network Error", "Got an invalid response from rendezvous server")
+	   screenFacade.showMessage("")
+	   sleep(25)
+	   return
+	end if
+
+	home_server = xml.server.GetText()
+	if home_server = currentConfig.server then
+	   ShowOkDialog("Configuration Error", "Failed to autoconfigure server. You're on your own")
+	else
+	   'test this new configuration
+	   RegSave("Server", home_server, "Settings")
+	   goto restart
+	end if
+	   	
         if ShowOkAbortDialog("Server Problem","Contact with server has not been established.  Check your settings and that the server is running.") then
             print "Outta here!"
             'exit the app gently so that the screen doesnt flash to black'

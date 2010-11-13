@@ -1,0 +1,9 @@
+<html>
+  <body>
+    <h1>Currently pending codes</h1>
+    {% for code in codes %}
+    {{ code.code }} - {{ code.state_str }} ( {{ code.server }} )<br/>
+    {% endfor %}
+  </body>
+</html>
+
