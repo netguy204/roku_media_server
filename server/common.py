@@ -55,11 +55,11 @@ def ensure_configuration(config):
     default_video_path = os.path.join(home, "Videos")
     default_photo_path = os.path.join(home, "Pictures")
 
-    ensure("music_dir", default_music_path)
-    ensure("video_dir", default_video_path)
-    ensure("photo_dir", default_photo_path)
+  ensure("music_dir", default_music_path)
+  ensure("video_dir", default_video_path)
+  ensure("photo_dir", default_photo_path)
 
-    ensure("python_path", sys.executable)
+  ensure("python_path", sys.executable)
 
 # 3rd party stuff i grabbed
 # os.path.relpath backported from python2.6

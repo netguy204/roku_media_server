@@ -1023,12 +1023,13 @@ if __name__ == "__main__":
   settings.configure()
   
   if os.path.exists(config_file):
-	config.read(config_file)
+	config = parse_config(config_file)
   else:
 	config = ConfigParser.ConfigParser({})
 	config.add_section("config")
 	
   ensure_configuration(config)
+  write_config(config_file, config)
 
   # re-submit ip info
   server = "http://%s:%s" % (socket.gethostbyname(socket.gethostname()), config.get("config", "server_port"))
