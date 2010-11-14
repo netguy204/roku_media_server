@@ -959,6 +959,8 @@ class DynamicPlaylistDoc:
       return pickle2doc(DEFAULT_STREAMS).to_xml()
 
 configuration_variables = [
+  { 'variable': 'server_ip',
+    'text': 'Server IP' },
   { 'variable': 'server_port',
     'text': 'Server Port' },
   { 'variable': 'music_dir',
