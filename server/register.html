@@ -1,9 +1,17 @@
 <html>
+  <head>
+    <link type="text/css" rel="stylesheet" href="/main.css" />
+  </head>
+  
   <body>
-    <h1>Enter Registration ID</h1>
-    <form action="/register_submit" method="post">
-      <div><input name="regId"/></div>
-      <div><input type="submit" name="Register"/></div>
-    </form>
+	<div class="container">
+	  <div class="title">Enter Registration ID</div>
+	  <div class="item">
+		Please enter your channel registration code: <br/><br/>
+		<form action="/register_submit" method="post">
+		  <input name="regId"/> <input type="submit" value="Register"/>
+		</form>
+	  </div>
+    </div>
   </body>
 </html>

@@ -1021,7 +1021,13 @@ if __name__ == "__main__":
   import sys
 
   settings.configure()
-  config = parse_config(config_file)
+  
+  if os.path.exists(config_file):
+	config.read(config_file)
+  else:
+	config = ConfigParser.ConfigParser({})
+	config.add_section("config")
+	
   ensure_configuration(config)
 
   # re-submit ip info

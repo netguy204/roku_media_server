@@ -4,6 +4,7 @@ import ConfigParser
 import httplib, mimetypes, urllib
 import logging
 import types
+import socket
 
 import imghdr
 from eyeD3 import *
