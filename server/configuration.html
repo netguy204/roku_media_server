@@ -1,0 +1,27 @@
+<html>
+  <head>
+    <link type="text/css" rel="stylesheet" href="/main.css" />
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="title">Server Configuration</div>
+
+      <form action="/configure" method="post">
+	{% for var in variables %}
+	<div class="item">
+	  <b>{{ var.text }}:</b>
+	  <input name="{{ var.variable }}" value="{{ var.value }}" size="40" />
+	  {% if var.description %}
+	  <br/><i>({{ var.description }})</i>
+	  {% endif %}
+	</div>
+	{% endfor %}
+	<div class="item">
+	  <input type="submit" value="Save Configuration" />
+	  <a href="/">Cancel</a>
+	</div>
+      </form>
+    </div>
+  </body>
+</html>

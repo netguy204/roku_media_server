@@ -1,8 +1,23 @@
 <html>
+  <head>
+    <link type="text/css" rel="stylesheet" href="/main.css" />
+  </head>
+
   <body>
-    <h1>Registration Complete</h1>
-    <div>Server: {{ server }}</div>
-    <div>Registration code: {{ code }}</div>
-    <div><a href="/">Status</a></div>
+
+    <div class="container">
+      <div class="title">Registration Complete</div>
+      
+      <div class="item">
+	<a href="/configuration">Configure Your Server's Directories</a>
+      </div>
+
+      <div class="item">
+	<b>Status</b>
+	<div class="content">Server: {{ server }}</div>
+	<div class="content">Registration code: {{ code }}</div>
+      </div>
+    </div>
+
   </body>
 </html>

@@ -959,16 +959,21 @@ class DynamicPlaylistDoc:
       return pickle2doc(DEFAULT_STREAMS).to_xml()
 
 configuration_variables = [
-  { 'variable': 'server_ip',
-    'text': 'Server IP' },
-  { 'variable': 'server_port',
-    'text': 'Server Port' },
   { 'variable': 'music_dir',
-    'text': 'Music Root Directory' },
+    'text': 'Music Root Directory',
+    'description': 'The directory that MyMedia should search for music.'},
   { 'variable': 'video_dir',
-    'text': 'Video Root Directory' },
+    'text': 'Video Root Directory',
+    'description': 'The directory that MyMedia should search for videos.'},
   { 'variable': 'photo_dir',
-    'text': 'Photo Root Directory' } ]
+    'text': 'Photo Root Directory',
+    'description': 'The directory that MyMedia should search for photos.'},
+  { 'variable': 'server_ip',
+    'text': 'Server IP',
+    'description': 'EXPERT: The internal IP address of your MyMedia server.'},
+  { 'variable': 'server_port',
+    'text': 'Server Port',
+    'description': 'EXPERT: The port that your MyMedia server should listen on.'} ]
 
 class ConfigurationHandler:
   def GET(self):
