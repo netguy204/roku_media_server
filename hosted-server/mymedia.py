@@ -47,7 +47,12 @@ class CompleteRegistration(Handler):
         regtype_str = self.request.get('type')
 
         # validate the code, this throws on failure
-        code = DeviceRegistration.for_code(code_str)
+        try:
+            code = DeviceRegistration.for_code(code_str)
+        except:
+            with_template(self, 'index.html', {
+                    'error': "The code %s is not recognized" % code_str})
+            return
 
         # determine the registration type and update the state
         if(regtype_str.lower() == 'device'):
