@@ -253,6 +253,7 @@ Function ShowSettings(currentSettings as Object, toolate=true) as Object
         settings.AddButton(3,"Edit photo overlays")
         settings.AddButton(4,"Edit autoplay")
         settings.AddButton(6,"Edit automove")
+	settings.AddButton(7,"Unregister Device")
         settings.AddButton(9,"Finished")
 
         settings.Show()
@@ -269,6 +270,8 @@ Function ShowSettings(currentSettings as Object, toolate=true) as Object
             newautoplay = GetYesNo("Automatically play music subfolders?")
         else if msg.GetIndex() = 6 then
             newautomove = GetYesNo("Automatically move to unwatched video?")
+	else if msg.GetIndex() = 7 then
+	     RegDelete("Application", "RegistrationCode")
         else
             exit while
         end if

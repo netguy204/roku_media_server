@@ -58,6 +58,7 @@ class CompleteRegistration(Handler):
             code.server = server_str
 
         code.put()
+        self.redirect('/walkthrough')
 
 class RegistrationState(Handler):
     @httpexcept
@@ -68,39 +69,20 @@ class RegistrationState(Handler):
         
 class MainPage(Handler):
     def get(self):
-        greetings = db.GqlQuery("SELECT * FROM Greeting ORDER BY date DESC LIMIT 10")
-        if users.get_current_user():
-            log_url = users.create_logout_url(self.request.uri)
-            log_text = 'Logout'
-        else:
-            log_url = users.create_login_url(self.request.uri)
-            log_text = 'Login'
+        with_template(self, "index.html")
 
-        data = {
-            'greetings': greetings,
-            'log_url': log_url,
-            'log_text': log_text }
-
-        with_template(self, "index.html", data)
-
-class Guestbook(Handler):
-    def post(self):
-
-        greeting = Greeting()
-        if users.get_current_user():
-            greeting.author = users.get_current_user()
-        greeting.content = self.request.get('content')
-        greeting.put()
-        self.redirect('/')
+class Walkthrough(Handler):
+    def get(self):
+        with_template(self, 'walkthrough.html')
 
 application = webapp.WSGIApplication(
     [('/', MainPage),
-     ('/sign', Guestbook),
      ('/codes', WaitingCodes),
      ('/code', RequestCode),
      ('/regdebug', CompleteForm),
      ('/register', CompleteRegistration),
-     ('/state', RegistrationState)],
+     ('/state', RegistrationState),
+     ('/walkthrough', Walkthrough)],
     debug=True)
 
 def main():

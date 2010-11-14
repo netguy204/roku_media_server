@@ -1,7 +1,7 @@
 import os
 import sys
 import ConfigParser
-import httplib, mimetypes
+import httplib, mimetypes, urllib
 import logging
 import types
 
@@ -102,6 +102,19 @@ def post_multipart(host, selector, fields, files):
     h.send(body)
     errcode, errmsg, headers = h.getreply()
     return h.file.read()
+
+def http_post(host, url, params):
+  params = urllib.urlencode(params)
+  headers = {'Content-Type': 'application/x-www-form-urlencoded',
+             'Accept': 'text/plain'}
+  conn = httplib.HTTPConnection(host)
+  conn.request("POST", url, params, headers)
+  response = conn.getresponse()
+  if not response.status in (200, 302):
+    raise Exception("%s %s" % (response.status, response.reason))
+  data = response.read()
+  conn.close()
+  return data
 
 def encode_multipart_formdata(fields, files):
     """

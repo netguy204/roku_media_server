@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<rss version="2.0">
+  <channel>
+    <title>MyMusic Feed</title>
+    {% for item in items %}
+    <item>
+      <title>{{ item.title }}</title>
+      <description>{{ item.type }}</description>
+      <image>{{ item.image }}</image>
+      <link>{{ item.link }}</link>
+    </item>
+    {% endfor %}
+  </channel>
+</rss>

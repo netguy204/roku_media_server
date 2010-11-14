@@ -4,26 +4,11 @@
   </head>
 
   <body>
-    {% for greeting in greetings %}
-      {% if greeting.author %}
-
-    <b>{{greeting.author.nickname }}</b> wrote:
-
-      {% else %}
-
-    An anonymous person wrote:
-      {% endif %}
-
-    <blockquote>{{ greeting.content|escape }}</blockquote>
-
-    {% endfor %}
-
-    <form action="/sign" method="post">
-      <div><textarea name="content" rows="3" cols="60"></textarea></div>
-      <div><input type="submit" value="Sign Guestbook"></div>
+    <h1>Complete your MyMedia Registration</h1>
+    <form action="/register" method="post">
+      <input type="hidden" name="type" value="device" />
+      <div>Registration Code: <input name="code" /></div>
+      <div><input type="submit" name="Register" /></div>
     </form>
-
-    <a href="{{ log_url }}">{{log_text}}</a>
-
   </body>
 </html>
