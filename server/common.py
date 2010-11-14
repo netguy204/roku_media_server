@@ -23,6 +23,42 @@ def write_config(config_file, config):
   config.write(f)
   f.close()
 
+def ensure_configuration(config):
+  # ensure that everything we expect is at least get'able
+  def ensure(varname, default):
+    if not config.has_option("config", varname):
+      config.set("config", varname, default)
+
+  ensure("roku_ip", "ROKU IP ADDRESS")
+  ensure("server_ip", socket.gethostbyname(socket.gethostname()))
+  ensure("server_port", "8001")
+  ensure("collapse_collections", "False")
+  ensure("max_folders_before_split", "10")
+  ensure("theme", "default")
+  
+  # make a reasonable guess at where the user keeps their music
+  default_music_path = "Music"
+  default_video_path = "Video"
+  home = os.path.expanduser("~")
+
+  if sys.platform == "win32":
+    default_music_path = os.path.join(home, "My Documents", "My Music")
+    default_video_path = os.path.join(home, "My Documents", "My Videos")
+    default_photo_path = os.path.join(home, "My Documents", "My Pictures")
+  elif sys.platform == "darwin":
+    default_music_path = os.path.join(home, "Music", "iTunes", "iTunes Music")
+    default_video_path = os.path.join(home, "Movies")
+    default_photo_path = os.path.join(home, "Pictures", "iPhoto Library")
+  elif sys.platform == "linux2":
+    default_music_path = os.path.join(home, "Music")
+    default_video_path = os.path.join(home, "Videos")
+    default_photo_path = os.path.join(home, "Pictures")
+
+    ensure("music_dir", default_music_path)
+    ensure("video_dir", default_video_path)
+    ensure("photo_dir", default_photo_path)
+
+    ensure("python_path", sys.executable)
 
 # 3rd party stuff i grabbed
 # os.path.relpath backported from python2.6

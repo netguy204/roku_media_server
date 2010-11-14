@@ -4,11 +4,15 @@
   </head>
 
   <body>
-    <h1>Complete your MyMedia Registration</h1>
-    <form action="/register" method="post">
-      <input type="hidden" name="type" value="device" />
-      <div>Registration Code: <input name="code" /></div>
-      <div><input type="submit" name="Register" /></div>
-    </form>
+    <div class="container">
+      <div class="title">Complete your MyMedia Registration</div>
+      <div class="content">
+	<form action="/register" method="post">
+	  <input type="hidden" name="type" value="device" />
+	  <div class="item">Registration Code: <input name="code" />
+	    <input type="submit" value="Register" /></div>
+	</form>
+      </div>
+    </div>
   </body>
 </html>

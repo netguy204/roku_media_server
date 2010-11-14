@@ -1,7 +1,25 @@
 <html>
+  <head>
+    <link type="text/css" rel="stylesheet" href="/main.css" />
+  </head>
+
   <body>
-    <h1>Welcome to your personal MyMedia Server</h1>
-    <div>Registration Code: {{ code }}</div>
-    <div><a href="/register">Restart Registration</a></div>
+    <div class="container">
+      <div class="title">Welcome to your personal MyMedia Server</div>
+
+      <div class="item">
+	<ul>
+	  <li><a href="/configure">Configure Server</a></li>
+	  <li><a href="http://rokumm.appspot.com/walkthrough">Next steps</a></li>
+	  <li><a href="/readme">Readme</a></li>
+	  <li><a href="/register">Retry Rendezvous</a></li>
+	</ul>
+      </div>
+
+      <div class="item">
+	Registration Code: {{ code }}
+      </div>
+      
+    </div>
   </body>
 </html>

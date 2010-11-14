@@ -668,7 +668,7 @@ print "retrieving..."
 End Function
 
 Function MasterServer() as String
-    return "http://192.168.1.2:8080"
+    return "http://rokumm.appspot.com"
 End Function
 
 Sub SetupStatusRequest(http as Object, code as String)
@@ -692,7 +692,7 @@ Function ObtainAssociationInfo() as Object
     'wait for the status to update
     dialog = CreateObject("roCodeRegistrationScreen")
     dialog.SetMessagePort(port)
-    dialog.AddHeaderText("Server Configuration")
+    dialog.AddHeaderText("Linking Player")
     
     master_server = MasterServer()
     dialog.AddFocalText("Please visit " + master_server, "spacing-normal")

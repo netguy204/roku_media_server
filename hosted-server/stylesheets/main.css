@@ -1,4 +1,41 @@
 body {
     font-family: Verdana, Helvetica, sans-serif;
-    background-color: #DDDDDD;
+    background-color: #E6E6E6;
+    font-size: 1em;
+}
+
+.container {
+    border-style: solid;
+    border-width: 5px;
+    border-color: #000;
+    border-style: dashed;
+    width: 40em;
+    margin:0px auto;
+}
+
+.title {
+    font-size: 2em;
+    padding: 1em;
+    //color: #bbda5b;
+    background-color: #fbc52f;
+    text-align: center;
+    font-face: bold;
+}
+
+.content {
+    padding: 1em;
+    background-color: #F6F6F6;
+    text-align: left;
+}
+
+.item {
+    border-style: solid;
+    border-color: black;
+    border-width: 1px;
+    padding: 1em;
+    background-color: #bbda5b;
+}
+
+.item a {
+    color: #111603;
 }

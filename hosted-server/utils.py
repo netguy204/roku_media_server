@@ -19,7 +19,7 @@ def httpexcept(func):
     def new_func(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except HTTPException as e:
+        except HTTPException, e:
             args[0].error(e.code)
     new_func.__name__ = func.__name__
     new_func.__doc__ = func.__doc__

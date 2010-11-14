@@ -7,7 +7,7 @@
 # this file contains the configurable variables
 config_file = "config.ini"
 log_file = "my_media_log.txt"
-rendezvous_server = "192.168.1.2:8080"
+rendezvous_server = "rokumm.appspot.com"
 
 # main webapp
 import os
@@ -909,6 +909,11 @@ class ReadmeTextileHandler:
     web.header("Content-Type", "text/plain")
     return open("../README.textile").read()
 
+class StylesheetHandler:
+  def GET(self):
+    web.header("Content-Type", "text/rss")
+    return open("../hosted-server/stylesheets/main.css").read()
+
 class DynamicPlaylist:
   def GET(self):
     "serve the current dynamic playlist"
@@ -953,6 +958,42 @@ class DynamicPlaylistDoc:
     else:
       return pickle2doc(DEFAULT_STREAMS).to_xml()
 
+configuration_variables = [
+  { 'variable': 'server_port',
+    'text': 'Server Port' },
+  { 'variable': 'music_dir',
+    'text': 'Music Root Directory' },
+  { 'variable': 'video_dir',
+    'text': 'Video Root Directory' },
+  { 'variable': 'photo_dir',
+    'text': 'Photo Root Directory' } ]
+
+class ConfigurationHandler:
+  def GET(self):
+    web.header("Content-Type", "text/html")
+    config = parse_config(config_file)
+    for var in configuration_variables:
+      if config.has_option('config', var['variable']):
+        var['value'] = config.get('config', var['variable'])
+    return with_template('configuration.html', {'variables': configuration_variables})
+
+  def POST(self):
+    web.header("Content-Type", "text/html")
+    config = parse_config(config_file)
+
+    argdict = {}
+    for var in configuration_variables:
+      argdict[var['variable']] = None
+
+    values = web.input(**argdict)
+    print values
+
+    for var in configuration_variables:
+      if values[var['variable']]:
+        config.set('config', var['variable'], values[var['variable']])
+    write_config(config_file, config)
+    raise web.seeother("/")
+
 urls = (
     '/feed', 'RssHandler',
     '/media', 'MediaHandler',
@@ -963,7 +1004,9 @@ urls = (
     '/remotes', 'DynamicPlaylistDoc',
     '/timestamp','TimestampHandler',
     '/register', 'RegisterHandler',
-    '/register_submit', 'RegisterSubmitHandler')
+    '/register_submit', 'RegisterSubmitHandler',
+    '/main.css', 'StylesheetHandler',
+    '/configure', 'ConfigurationHandler')
 
 app = web.application(urls, globals())
 
@@ -972,6 +1015,7 @@ if __name__ == "__main__":
 
   settings.configure()
   config = parse_config(config_file)
+  ensure_configuration(config)
 
   # re-submit ip info
   server = "http://%s:%s" % (socket.gethostbyname(socket.gethostname()), config.get("config", "server_port"))
