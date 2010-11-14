@@ -960,13 +960,13 @@ class DynamicPlaylistDoc:
 
 configuration_variables = [
   { 'variable': 'music_dir',
-    'text': 'Music Root Directory',
+    'text': 'Music Folder',
     'description': 'The directory that MyMedia should search for music.'},
   { 'variable': 'video_dir',
-    'text': 'Video Root Directory',
+    'text': 'Video Folder',
     'description': 'The directory that MyMedia should search for videos.'},
   { 'variable': 'photo_dir',
-    'text': 'Photo Root Directory',
+    'text': 'Photo Folder',
     'description': 'The directory that MyMedia should search for photos.'},
   { 'variable': 'server_ip',
     'text': 'Server IP',

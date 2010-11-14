@@ -7,6 +7,21 @@
     <div class="container">
       <div class="title">Server Configuration</div>
 
+      <div class="item">
+	There are a couple customization settings that you can make to
+	the MyMedia server software. We've done our best to pick
+	default values for these settings that will work for most
+	users but you may need to change these settings if you store
+	your music in a unusual place or if the server IP address that
+	was auto-detected doesn't match the IP address of your server
+	on your internal network. (If you don't know what that means
+	then you probably don't need to worry about it because the
+	default value will probably work.) If you get stuck feel free
+	to ask questions
+	<a href="http://forums.roku.com/viewtopic.php?f=28&t=25955&start=0">
+	  on the MyMedia forum</a>.
+      </div>
+
       <form action="/configure" method="post">
 	{% for var in variables %}
 	<div class="item">

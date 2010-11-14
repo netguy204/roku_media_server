@@ -44,5 +44,9 @@ body {
 }
 
 .item a {
-    color: #111603;
+    color: #6e5615;
+}
+
+.item a:hover {
+    color: black;
 }
