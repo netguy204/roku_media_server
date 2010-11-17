@@ -7,7 +7,6 @@
 # this file contains the configurable variables
 config_file = "config.ini"
 log_file = "my_media_log.txt"
-rendezvous_server = "rokumm.appspot.com"
 
 # main webapp
 import os
@@ -19,30 +18,19 @@ import math
 import logging
 import pickle
 import simplejson
-import socket
 
 from eyeD3 import *
 from common import *
 from PyRSS2Gen import *
 from time import time
 
-from django.template import Template, Context
-from django.conf import settings
-
-def with_template(name, data = {}):
-  "render a django template based in the working directory"
-
-  tmpl = os.path.join(os.path.dirname(__file__), name)
-  f = open(tmpl)
-  contents = f.read()
-  f.close()
-
-  t = Template(contents)
-  return t.render(Context(data))
-
-logging.basicConfig(filename=log_file, level=logging.DEBUG)
+logging.basicConfig(filename=log_file, level=logging.ERROR) #DEBUG)
 MY_STREAMS = "my_streams.pickle"
 DEFAULT_STREAMS = "default_streams.pickle"
+VERSION = "1.0"
+
+def rss_server_version():
+  return VERSION
 
 class PublishMixin:
   def publish_extensions(self, handler):
@@ -76,15 +64,6 @@ class RSSDoc(PublishMixin, RSS2):
     self.set_variables(kwargs)
     RSS2.__init__(self, **kwargs)
 
-def base_url(config, hdlr, params):
-  return "%s/%s?%s" % (server_base(config), hdlr, urllib.urlencode(params))
-
-def media_url(config, params):
-  return base_url(config, "media", params)
-
-def feed_url(config, params):
-  return base_url(config, "feed", params)
-
 def main_menu_feed(config):
   "create the root feed for the main menu"
 
@@ -102,35 +81,40 @@ def main_menu_feed(config):
       return "images/%s" % name
 
   items = []
-  items.append({
-      'title': 'My Music',
-      'type': 'Folder',
-      'image': media_url(config, {'name': get_themed_image('music_square.jpg'),
-                                  'key': 'client',
-                                  'res': tuple2str(THB_DIM)}),
-      'link': feed_url(config, {'dir': '.', 'key': 'music'})})
+  item = dir2item("music", music_dir(config), music_dir(config), config, image=None, name="My Music")
+  item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': get_themed_image("music_square.jpg"), 'key': "client", 'res': tuple2str(THB_DIM)}))
+  items.append(item)
 
   dir = video_dir(config)
   if dir and os.path.exists(dir):
-    items.append({
-        'title': 'My Videos',
-        'type': 'Folder',
-        'image': media_url(config, {'name': get_themed_image('videos_square.jpg'),
-                                    'key': 'client',
-                                    'res': tuple2str(THB_DIM)}),
-        'link': feed_url(config, {'dir': '.', 'key': 'video'})})
+    item = dir2item("video", dir, dir, config, image=None, name="My Videos")
+    item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': get_themed_image("videos_square.jpg"), 'key': "client", 'res': tuple2str(THB_DIM)}))
+    items.append(item)
 
   dir = photo_dir(config)
   if dir and os.path.exists(dir):
-    items.append({
-        'title': 'My Photos',
-        'type': 'Folder',
-        'image': media_url(config, {'name': get_themed_image('photos_square.jpg'),
-                                    'key': 'client',
-                                    'res': tuple2str(THB_DIM)}),
-        'link': feed_url(config, {'dir': '.', 'key': 'photo'})})
+    item = dir2item("photo", dir, dir, config, image=None, name="My Photos")
+    item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': get_themed_image("photos_square.jpg"), 'key': "client", 'res': tuple2str(THB_DIM)}))
+    items.append(item)
 
-  return with_template('rss_template.xml', {'items': items})
+  pl_image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': get_themed_image("streams_square.jpg"), 'key': "client", 'res': tuple2str(THB_DIM)}))
+  items.append(RSSImageItem(
+    title="My Streams",
+    link="%s/remotes" % server_base(config),
+    description="Folder",
+    guid=Guid("/remotes", isPermaLink=0),
+    pubDate=datetime.datetime.now(),
+    image=pl_image))
+
+  doc = RSSDoc(
+      title="A Personal Music Feed",
+      link="%s/feed" % server_base(config),
+      description="My Media",
+      lastBuildDate=datetime.datetime.now(),
+      items = items,
+      theme = "media")
+
+  return doc
 
 def call_protected(f, default):
   v = default
@@ -248,13 +232,13 @@ def file2item(key, fname, base_dir, config, image=None):
   size = os.stat(fname).st_size
   path = relpath26(fname, base_dir)
   if ContentType == "playlist":
-    link = base_url(config, "m3u", {'name':to_utf8(path), 'key': key})
+    link="%s/m3u?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(path), 'key': key}))
   else:
-    link = media_url(config, {'name':to_utf8(path), 'key': key})
+    link="%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(path), 'key': key}))
 
   if image:
     image = relpath26(image, base_dir)
-    image = media_url(config, {'name':to_utf8(image), 'key': key, 'res': tuple2str(THB_DIM)})
+    image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(image), 'key': key, 'res': tuple2str(THB_DIM)}))
 
   logging.debug(link)
 
@@ -281,14 +265,14 @@ def file2item(key, fname, base_dir, config, image=None):
 def dir2item(key, dname, base_dir, config, image, name=None):
   path = relpath26(dname, base_dir)
 
-  link = feed_url(config, {'dir':to_utf8(path), 'key': key})
+  link = "%s/feed?%s" % (server_base(config), urllib.urlencode({'dir':to_utf8(path), 'key': key}))
 
   if not name:
     name = os.path.split(dname)[1]
 
   if image:
     image = relpath26(image, base_dir)
-    image = media_url(config, {'name':to_utf8(image), 'key': key, 'res': tuple2str(THB_DIM)})
+    image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(image), 'key': key, 'res': tuple2str(THB_DIM)}))
 
   description = "Folder"
   #if image:
@@ -359,11 +343,11 @@ def getart(path):
       if ext and img_re.match(ext):
         curr_image = fp
         break
-      elif ext == ".mp3":
-        data, type = getimg(os.path.join(base,file))
-        if data:
-          curr_image = fp + ".image"
-          break
+      # elif ext == ".mp3":
+        # data, type = getimg(os.path.join(base,file))
+        # if data:
+          # curr_image = fp + ".image"
+          # break
 
   return curr_image
 
@@ -698,6 +682,7 @@ def range_handler(fname):
       web.header("Content-Range","bytes %d-%d/%d" % (start,size-1,size))
       web.header("Accept-Ranges","bytes")
       web.ctx.status = "206 Partial Content"
+      #print start,size-1,size,size-start
       bytes = f.read(CHUNK_SIZE)
       total_bytes = 0
       while not bytes == "":
@@ -717,6 +702,8 @@ def range_handler(fname):
       web.header("Content-Range","bytes %d-%d/%d" % (start,end,size))
       web.header("Accept-Ranges","bytes")
       web.ctx.status = "206 Partial Content"
+      #print start,end,size,(end-start+1)
+
       f.seek(start)
       bytes_remaining = end-start+1 # +1 because range is inclusive
       chunk_size = min(bytes_remaining, CHUNK_SIZE)
@@ -737,11 +724,12 @@ def range_handler(fname):
     grp = regex.match(web.ctx.environ['HTTP_RANGE'])
     if grp:
       end = int(grp.group(1))
-      logging.debug("player issued tail request beginning at %d from end" % end)
       web.header("Content-Length","%d" % (end))
       web.header("Content-Range","bytes %d-%d/%d" % (size-end,size-1,size))
       web.header("Accept-Ranges","bytes")
       web.ctx.status = "206 Partial Content"
+      #print size-end,size-1,end,size
+      logging.debug("player issued tail request beginning at %d from end" % end)
 
       f.seek(-end, os.SEEK_END)
       bytes = f.read()
@@ -758,6 +746,15 @@ def range_handler(fname):
       bytes = f.read(CHUNK_SIZE)
 
     f.close()
+
+
+def restart_program():
+  # Restarts the current program.
+  # Note: this function does not return. Any cleanup action (like
+  # saving data) must be done before calling this function.
+
+  python = sys.executable
+  os.execl(python, python, * sys.argv)
 
 class MediaHandler:
   "retrieve a song"
@@ -821,9 +818,15 @@ class MediaHandler:
 
     # otherwise return the data as is
     web.header("Content-Type", mimetype)
-    web.header("Content-Length", "%d" % size)
+    # web.header("Content-Length", "%d" % size)
+    cnt = 0
+    total_bytes = 0
     for data in range_handler(name):
+      cnt += 1
+      total_bytes += len(data)
+      #print cnt,total_bytes
       yield data
+
     return
 
 class RssHandler:
@@ -837,7 +840,7 @@ class RssHandler:
     feed = web.input(dir = None, range=None, key=None)
 
     if not feed.key in ("music", "video", "photo"):
-      return main_menu_feed(config)
+      return main_menu_feed(config).to_xml()
 
     # get the range for partitioning
     range = feed.range
@@ -875,53 +878,13 @@ class IndexHandler:
   def GET(self):
     "serve up the index page"
     web.header("Content-Type", "text/html")
+    return open("static/index.html").read()
 
-    config = parse_config(config_file)
-    if not config.has_option("config", "regId"):
-      raise web.seeother('/register')
-
-    regId = config.get("config", "regId")
-    return with_template("index.html", { 'code': regId })
-
-class RegisterHandler:
-  def GET(self):
-    "go through the registration process"
-    web.header("Content-Type", "text/html")
-    config = parse_config(config_file)
-    regId = "not registered"
-    if config.has_option("config", "regId"):
-      regId = config.get("config", "regId")
-    return with_template("register.html", { 'regId': regId })
-
-class RegisterSubmitHandler:
-  def POST(self):
-    "user submitted registration, send to master server"
-    web.header("Content-Type", "text/html")
-    config = parse_config(config_file)
-    inputs = web.input(regId = None)
-    if not inputs.regId:
-      raise web.seeother("/register")
-
-    server = "http://%s:%s" % (socket.gethostbyname(socket.gethostname()), config.get("config", "server_port"))
-    http_post(rendezvous_server, '/register', { 'code': inputs.regId,
-                                                'type': 'server',
-                                                'server': server })
-    config.set('config', 'regId', inputs.regId)
-    write_config(config_file, config)
-
-    return with_template('complete.html', { 'code': inputs.regId,
-                                            'server': server })
-    
 class ReadmeTextileHandler:
   def GET(self):
     "serve up the readme textile"
     web.header("Content-Type", "text/plain")
     return open("../README.textile").read()
-
-class StylesheetHandler:
-  def GET(self):
-    web.header("Content-Type", "text/rss")
-    return open("../hosted-server/stylesheets/main.css").read()
 
 class DynamicPlaylist:
   def GET(self):
@@ -967,55 +930,85 @@ class DynamicPlaylistDoc:
     else:
       return pickle2doc(DEFAULT_STREAMS).to_xml()
 
-configuration_variables = [
-  { 'variable': 'music_dir',
-    'text': 'Music Folder',
-    'description': 'The directory that MyMedia should search for music.'},
-  { 'variable': 'video_dir',
-    'text': 'Video Folder',
-    'description': 'The directory that MyMedia should search for videos.'},
-  { 'variable': 'photo_dir',
-    'text': 'Photo Folder',
-    'description': 'The directory that MyMedia should search for photos.'},
-  { 'variable': 'server_ip',
-    'text': 'Server IP',
-    'description': 'EXPERT: The internal IP address of your MyMedia server.'},
-  { 'variable': 'server_port',
-    'text': 'Server Port',
-    'description': 'EXPERT: The port that your MyMedia server should listen on.'} ]
-
-class ConfigurationHandler:
+class ResumeHandler:
   def GET(self):
-    web.header("Content-Type", "text/html")
-    config = parse_config(config_file)
-    for var in configuration_variables:
-      if config.has_option('config', var['variable']):
-        var['value'] = config.get('config', var['variable'])
-    return with_template('configuration.html', {'variables': configuration_variables})
+    "serve the resume data"
+    web.header("Content-Type", "text/xml")
+    if os.path.exists("resume.xml"):
+      f = open("resume.xml", "rb")
+      data = f.read()
+      f.close()
+    else:
+      data = ""
+
+    return data
 
   def POST(self):
-    web.header("Content-Type", "text/html")
-    config = parse_config(config_file)
+    "save the resume data"
+    f = open("resume.xml", "wb")
+    f.write(web.data())
+    f.close()
 
-    argdict = {}
-    for var in configuration_variables:
-      argdict[var['variable']] = None
+    return "<b>done</b>";
 
-    values = web.input(**argdict)
-    print values
+class UpdateHandler:
+  def GET(self):
+    web.header("Content-Type", "text/plain")
+    filename = web.input(file = None)
+    "return the version"
+    if filename.file == "rss_server.py":
+      return rss_server_version()
+    if filename.file == "common.py":
+      return common_version()
+    return "Append ?file=rss_server.py or ?file=common.py to url"
 
-    if values['server_ip'] and values['server_ip'] != config.get('config', 'server_ip'):
-      # user knows best
-      config.set('config', 'auto_server', 'false')
-      config.set('config', 'server_ip', values['server_ip'])
-      register_server(config)
+  def POST(self):
+    filename = web.input(file = None, restart = None)
+    if filename.file == "rss_server.py":
+      logging.debug("Updating 'rss_server.py' from Roku client")
+      f = open("rss_server.py", "wb")
+      f.write(web.data())
+      f.close()
+      if filename.restart != None:
+        restart_program()
+    if filename.file == "common.py":
+      logging.debug("Updating 'common.py' from Roku client")
+      f = open("common.py", "wb")
+      f.write(web.data())
+      f.close()
+      if filename.restart != None:
+        restart_program()
 
-    for var in configuration_variables:
-      if values[var['variable']]:
-        config.set('config', var['variable'], values[var['variable']])
+    web.header("Content-Type", "text/plain")
+    return "<b>Nothing to do!</b>";
 
-    write_config(config_file, config)
-    raise web.seeother("/")
+class DebugHandler:
+  def GET(self):
+    "serve up the debug binary"
+    web.header("Content-Type", "application/binary")
+    if os.path.exists("debug.bin"):
+      f = open("debug.bin", "rb")
+      data = f.read()
+      f.close()
+    else:
+      data = ""
+    return data
+
+  def POST(self):
+    "save the debug data"
+    param = web.input(type = None)
+    if param.type == "a":
+      f = open("debug.txt", "a")
+    elif param.type == "save":
+      f = open("dbgsave.bin", "wb")
+    else:
+      f = open("debug.bin", "wb")
+    f.write(web.data())
+    f.close()
+
+    return "<b>done</b>";
+
+
 
 urls = (
     '/feed', 'RssHandler',
@@ -1025,56 +1018,17 @@ urls = (
     '/readme', 'ReadmeTextileHandler',
     '/dynplay', 'DynamicPlaylist',
     '/remotes', 'DynamicPlaylistDoc',
-    '/timestamp','TimestampHandler',
-    '/register', 'RegisterHandler',
-    '/register_submit', 'RegisterSubmitHandler',
-    '/main.css', 'StylesheetHandler',
-    '/configure', 'ConfigurationHandler')
+    '/timestamp', 'TimestampHandler',
+    '/update', 'UpdateHandler',
+    '/resume', 'ResumeHandler',
+    '/debugxfer', 'DebugHandler')
 
 app = web.application(urls, globals())
-
-def register_server(config):
-  """send the server ip to the rendezvous server so that
-  the channel can pick it up"""
-
-  server = server_base(config)
-  regid = None
-  if config.has_option("config", "regId"):
-    regid = config.get("config", "regId")
-    try:
-      print "submitting '" + server + "' to rendezvous server as " + regid
-      http_post(rendezvous_server, '/register', { 'code': regid,
-                                                  'type': 'server',
-                                                  'server': server })
-    except Exception as e:
-      print "error contacting %s" % rendezvous_server
-      print e
-
-  else:
-    print "warning: this server has not completed rendezvous"
 
 if __name__ == "__main__":
   import sys
 
-  settings.configure()
-  
-  if os.path.exists(config_file):
-	config = parse_config(config_file)
-  else:
-	config = ConfigParser.ConfigParser({})
-	config.add_section("config")
-	
-  ensure_configuration(config)
-  write_config(config_file, config)
-
-  # see if our address has changed
-  if not config.has_option("config", "auto_server") or config.get("config", "auto_server") == "true":
-    server_ip = socket.gethostbyname(socket.gethostname())
-    config.set("config", "server_ip", server_ip)
-    write_config(config_file, config)
-
-  # send up the current information
-  register_server(config)
+  config = parse_config(config_file)
 
   sys.argv.append(config.get("config","server_port"))
   app.run()
