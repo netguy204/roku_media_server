@@ -995,9 +995,16 @@ class ConfigurationHandler:
     values = web.input(**argdict)
     print values
 
+    if values['server_ip'] and values['server_ip'] != config.get('config', 'server_ip'):
+      # user knows best
+      config.set('config', 'auto_server', 'false')
+      config.set('config', 'server_ip', values['server_ip'])
+      register_server(config)
+
     for var in configuration_variables:
       if values[var['variable']]:
         config.set('config', var['variable'], values[var['variable']])
+
     write_config(config_file, config)
     raise web.seeother("/")
 
@@ -1017,6 +1024,26 @@ urls = (
 
 app = web.application(urls, globals())
 
+def register_server(config):
+  """send the server ip to the rendezvous server so that
+  the channel can pick it up"""
+
+  server = server_base(config)
+  regid = None
+  if config.has_option("config", "regId"):
+    regid = config.get("config", "regId")
+    try:
+      print "submitting '" + server + "' to rendezvous server as " + regid
+      http_post(rendezvous_server, '/register', { 'code': regid,
+                                                  'type': 'server',
+                                                  'server': server })
+    except Exception as e:
+      print "error contacting %s" % rendezvous_server
+      print e
+
+  else:
+    print "warning: this server has not completed rendezvous"
+
 if __name__ == "__main__":
   import sys
 
@@ -1031,23 +1058,14 @@ if __name__ == "__main__":
   ensure_configuration(config)
   write_config(config_file, config)
 
-  # re-submit ip info
-  server = "http://%s:%s" % (socket.gethostbyname(socket.gethostname()), config.get("config", "server_port"))
-  regid = None
-  if config.has_option("config", "regId"):
-    regid = config.get("config", "regId")
-  try:
-    if regid:
-      print "submitting ip information to server as " + regid
-      http_post(rendezvous_server, '/register', { 'code': regid,
-                                                  'type': 'server',
-                                                  'server': server })
-    else:
-      print "warning: this server has not completed rendezvous"
+  # see if our address has changed
+  if not config.has_option("config", "auto_server") or config.get("config", "auto_server") == "true":
+    server_ip = socket.gethostbyname(socket.gethostname())
+    config.set("config", "server_ip", server_ip)
+    write_config(config_file, config)
 
-  except Exception as e:
-    print "error contacting %s" % rendezvous_server
-    print e
+  # send up the current information
+  register_server(config)
 
   sys.argv.append(config.get("config","server_port"))
   app.run()
