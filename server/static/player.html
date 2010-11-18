@@ -1,131 +1,103 @@
 <html>
-<head>
-	<script src="js/jquery.js" type="text/javascript"></script>
-	<script src="js/parseuri.js" type="text/javascript"></script>
-	<script src="js/jplayer.js" type="text/javascript"></script>
-	<script>
-		$(document).ready(function() {
-			function populate(container, url) {
-				container.hide("fast");
-				container.empty();
+  <head>
+    <script src="js/jquery.js" type="text/javascript"></script>
+    <script src="js/parseuri.js" type="text/javascript"></script>
+    <script src="js/jplayer.js" type="text/javascript"></script>
+    <script>
+    $(document).ready(function() {
+	var urlstack = new Array();
 
-				$.get(url, function(xml) {
-					$("item", xml).each(function() {
-						var url = parseUri($("link", this).text()).relative;
-						var type = $("filetype", this).text() || "none";
-
-						var anchor = document.createElement("a");
-						anchor.setAttribute("href", url);
-						anchor.innerHTML = $("title", this).text() + "<br/>";
-						$.data(anchor, "type", type);
-
-						container.append(anchor);
-					});
-
-					container.show("fast");
-				});
-			};
-
-			var urlstack = new Array();
-			function updateBack() {
-				if (urlstack.length > 1) {
-					$("#back").show();
-				} else {
-					$("#back").hide();
-				}
-			};
-
-			var target = $("#target");
-
-			$("#jplayer").jPlayer({
-				swfPath: "js"
-			}).jPlayer("onSoundComplete", function() {
-				$(".playing").removeClass('playing');
-
-				// find the next thing to play
-				var last = $.data(target, "now_playing");
-				if(last) {
-					var next = $(last).next("a").get(0);
-					if(!next) {
-						// loop back to the first
-						next = $(last).parent().children("a").get(0);
-					}
-					playSong(next);
-				} else {
-					$("#controls").hide("slow");
-				}
-			});
-
-			// start with controls hidden
-			$("#controls").hide();
-
-			target.delegate("a", "click", function() {
-				if($.data(this,"type") == "none") {
-					populate(target, this.href);
-					urlstack.push(this.href);
-					updateBack();
-					return false;
-				} else {
-					playSong(this);
-					return false;
-				}
-			});
-
-			function playSong(song) {
-				$("#jplayer").jPlayer("setFile", song.href)
-				$("#jplayer").jPlayer("play");
-				$.data(target, "now_playing", song);
-
-				// highlight playing
-				$(".playing").removeClass("playing");
-				$(song).addClass("playing");
-
-				// show the controls if they're hidden
-				$("#controls:hidden").show("slow");
-			}
-
-			var root = "/feed?key=music&dir=.";
-			populate(target, root);
-			urlstack.push(root);
-			updateBack();
-
-			// take us back to the main when title is clicked
-			$(".title").click(function() {
-				populate(target, root);
-				urlstack.splice(0, urlstack.length); // erase the stack
-				urlstack.push(root);
-				updateBack();
-			});
-
-			$("#back").click(function() {
-				urlstack.pop(); // the top is where we are right now
-				populate(target, urlstack[urlstack.length - 1]);
-				updateBack();
-			});
-
-			$("#jplayer_stop").click(function() {
-				$("#controls").hide("slow");
-			});
+	function populate(container, url) {
+	    container.hide("fast");
+	    container.empty();
+	    
+	    $.get(url, function(xml) {
+		$("item", xml).each(function() {
+		    var url = parseUri($("link", this).text()).relative;
+		    var type = $("filetype", this).text() || "none";
+		    
+		    var anchor = document.createElement("a");
+		    anchor.setAttribute("href", url);
+		    anchor.innerHTML = $("title", this).text() + "<br/>";
+		    $.data(anchor, "type", type);
+		    
+		    container.append(anchor);
 		});
-	</script>
-
-<style type='text/css'>
-	.title {
-		background-color: #1994ff;
-		color: #ffffff;
-		height: 25px;
-		border-style: solid;
-		border-width: 0px 0px 7px 0px;
-		border-color: black;
-		text-align: center;
-		font-family: sans-serif;
-		font-size: 16pt;
-		font-style: bold;
-		padding: 5px;
+	
+		container.show("fast");
+	    });
+	};
+	
+	var target = $("#target");
+	
+	$("#jplayer").jPlayer({
+	    swfPath: "js"
+	}).jPlayer("onSoundComplete", function() {
+	    $(".playing").removeClass('playing');
+	    
+	    // find the next thing to play
+	    var last = $.data(target, "now_playing");
+	    if(last) {
+		var next = $(last).next("a").get(0);
+		if(!next) {
+		    // loop back to the first
+		    next = $(last).parent().children("a").get(0);
+		}
+		playSong(next);
+	    } else {
+		$("#controls").hide("slow");
+	    }
+	});
+	
+	// start with controls hidden
+	$("#controls").hide();
+	
+	target.delegate("a", "click", function() {
+	    if($.data(this,"type") == "none") {
+		populate(target, this.href);
+		urlstack.push(this.href);
+		return false;
+	    } else {
+		playSong(this);
+		return false;
+	    }
+	});
+	
+	function playSong(song) {
+	    $("#jplayer").jPlayer("setFile", song.href)
+	    $("#jplayer").jPlayer("play");
+	    $.data(target, "now_playing", song);
+	    
+	    // highlight playing
+	    $(".playing").removeClass("playing");
+	    $(song).addClass("playing");
+	    
+	    // show the controls if they're hidden
+	    $("#controls:hidden").show("slow");
 	}
+	
+	var root = "/feed?key=music&dir=.";
+	populate(target, root);
+	urlstack.push(root);
+	
+	// take us back to the main when title is clicked
+	$(".title").click(function() {
+	    populate(target, root);
+	    urlstack.splice(0, urlstack.length); // erase the stack
+	    urlstack.push(root);
+	});
+	
+	$("#jplayer_stop").click(function() {
+	    $("#controls").hide("slow");
+	});
+    });
+    </script>
 
+    <link type="text/css/" rel="stylesheet" href="/main.css" />
+
+    <style type='text/css'>
 	div.title:hover {
-		background-color: #84c6ff;
+	        background-color: #6e5615;
 	}
 
 	.block {
@@ -140,22 +112,6 @@
 		font-size: 10pt;
 		font-family: serif;
 		margin: 10px;
-	}
-
-	#controls {
-		border-style: solid;
-		border-width: 7px 0px 0px 0px;
-		border-color: black;
-	}
-	a {
-		color: #883333;
-		text-decoration: none;
-		font-family: sans-serif;
-	}
-
-	a:hover {
-		color: #1994ff;
-		text-decoration: underline;
 	}
 
 	.playing {
@@ -174,37 +130,31 @@
 		padding: 5px;
 	}
 
-</style>
+    </style>
 
-	<title>My Media: Music Player</title>
-</head>
+    <title>My Media: Music Player</title>
+  </head>
 
 
-<body>
-	<div class="block">
-		<div class="title">My Music</div>
-		<div id="target">
-			Loading data...
-		</div>
-		<a href="#" id="back">[ Go Back]</a>
-		
-    <div id="controls">
-			<center>
-			<a href="#" class="button"><img src="img/play.png" id="jplayer_play"></img></a>
-			<a href="#" class="button"><img src="img/pause.png" id="jplayer_pause"></img></a>
-			<a href="#" class="button"><img src="img/stop.png" id="jplayer_stop"></img></a>
-			</center>
-			<!--
-			<div class="jp-progress">
-				<div id="jplayer_load_bar" class="jp-load-bar">
-					<div id="jplayer_play_bar" class="jp-play-bar"></div>
-				</div>
-			</div>
-			-->
+  <body>
+    <div class="container">
+      <div class="title">My Music</div>
+      <div id="target" class="item">
+	Loading data...
+      </div>
+      
+      <div id="controls" class="item">
+	<center>
+	  <a href="#" class="button">
+	    <img src="img/play.png" id="jplayer_play" /></a>
+	  <a href="#" class="button">
+	    <img src="img/pause.png" id="jplayer_pause" /></a>
+	  <a href="#" class="button">
+	    <img src="img/stop.png" id="jplayer_stop" /></a>
+	</center>
+      </div>
+      
+      <div id="jplayer"></div>
     </div>
-
-		<div id="jplayer"></div>
-	</div>
-</body>
-
+  </body>
 </html>
