@@ -1,0 +1,23 @@
+<html>
+  <body>
+    <h1>Registration Stats</h1>
+    {% if stats %}
+    {% for stat in stats %}
+    <ul>
+      <li><b>date:</b> {{ stat.date }}</li>
+      <li><b>finished:</b> {{ stat.finished_count }}</li>
+      <li><b>device:</b> {{ stat.device_count }}</li>
+      <li><b>created:</b> {{ stat.created_count }}</li>
+    </ul>
+    {% endfor %}
+    {% else %}
+    No stats available
+    {% endif %}
+
+    <a href="codes">Current Code List</a><br/>
+
+    <form action="/stats/" method="post">
+      <input type="submit" value="Update Stats" />
+    </form>
+  </body>
+</html>

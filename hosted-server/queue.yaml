@@ -1,0 +1,3 @@
+queue:
+  - name: stats
+    rate: 1/s

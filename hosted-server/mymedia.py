@@ -1,32 +1,13 @@
 import cgi
-import os
 
 from google.appengine.api import users
 from google.appengine.ext import webapp, db
-from google.appengine.ext.webapp import template
 from google.appengine.ext.webapp.util import run_wsgi_app
 
 from utils import *
 from models import *
 
-basepath = os.path.dirname(__file__)
-def with_template(hdlr, name, data = {}):
-    "render a template based in the working directory"
-    tmpl = os.path.join(basepath, name)
-
-    ext = os.path.splitext(name)[1]
-    ext_type = 'text/plain'
-    if(ext == ".xml"):
-        ext_type = 'text/xml'
-    elif(ext == ".html"):
-        ext_type = 'text/html'
-    hdlr.response.headers['Content-Type'] = ext_type
-    hdlr.response.out.write(template.render(tmpl, data))
-
-class WaitingCodes(Handler):
-    def get(self):
-        codes = DeviceRegistration.all()
-        with_template(self, 'codes.html', { 'codes': codes })
+import stats
 
 class RequestCode(Handler):
     def get(self):
@@ -35,10 +16,6 @@ class RequestCode(Handler):
         code.put()
 
         with_template(self, 'code.xml', { 'code': code })
-
-class CompleteForm(Handler):
-    def get(self):
-        with_template(self, 'reg_form.html')
 
 class CompleteRegistration(Handler):
     @httpexcept
@@ -82,9 +59,7 @@ class Walkthrough(Handler):
 
 application = webapp.WSGIApplication(
     [('/', MainPage),
-     ('/codes', WaitingCodes),
      ('/code', RequestCode),
-     ('/regdebug', CompleteForm),
      ('/register', CompleteRegistration),
      ('/state', RegistrationState),
      ('/walkthrough', Walkthrough)],

@@ -1,6 +1,23 @@
-import random
-
+from google.appengine.ext.webapp import template
 from google.appengine.ext import webapp, db
+from google.appengine.api import users
+
+import random
+import os
+
+basepath = os.path.dirname(__file__)
+def with_template(hdlr, name, data = {}):
+    "render a template based in the working directory"
+    tmpl = os.path.join(basepath, name)
+
+    ext = os.path.splitext(name)[1]
+    ext_type = 'text/plain'
+    if(ext == ".xml"):
+        ext_type = 'text/xml'
+    elif(ext == ".html"):
+        ext_type = 'text/html'
+    hdlr.response.headers['Content-Type'] = ext_type
+    hdlr.response.out.write(template.render(tmpl, data))
 
 def randchar():
     return chr(ord('a') + random.randint(0, ord('z') - ord('a')))

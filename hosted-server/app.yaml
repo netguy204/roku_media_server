@@ -7,5 +7,10 @@ handlers:
 - url: /stylesheets
   static_dir: stylesheets
 
+- url: /stats/.*
+  script: stats.py
+  login: admin
+  auth_fail_action: redirect
+
 - url: /.*
   script: mymedia.py
