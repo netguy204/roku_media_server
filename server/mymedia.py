@@ -130,6 +130,14 @@ def main_menu_feed(config):
                                     'res': tuple2str(THB_DIM)}),
         'link': feed_url(config, {'dir': '.', 'key': 'photo'})})
 
+  items.append({
+      'title': 'My Streams',
+      'type': 'Floder',
+      'image': media_url(config, {'name': get_themed_image('streams_square.jpg'),
+                                  'key': 'client',
+                                  'res': tuple2str(THB_DIM)}),
+      'link': "%s/remotes" % server_base(config)})
+
   return with_template('rss_template.xml', {'items': items})
 
 def call_protected(f, default):
