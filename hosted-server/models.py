@@ -2,10 +2,20 @@ from utils import *
 
 from google.appengine.ext import webapp, db
 
-class Greeting(db.Model):
-    author = db.UserProperty()
-    content = db.StringProperty(multiline=True)
+REQUEST_CODE_USEREVENT = 0
+REQUEST_STATUS_USEREVENT = 1
+REGISTER_USEREVENT = 2
+CODEFAILED_USEREVENT = 3
+DOWNLOAD_USEREVENT = 4
+
+class UserEvent(db.Expando):
     date = db.DateTimeProperty(auto_now_add=True)
+
+    ev_type = db.IntegerProperty(required=True, indexed=True)
+    requester = db.StringProperty(required=True, indexed=True)
+
+def spawn_event(hdlr, ev_type, **kwargs):
+    return UserEvent(ev_type=ev_type, requester=hdlr.request.remote_addr, **kwargs)
 
 # define state machine constants
 NOTHING_REGISTERED_STATE = 0
@@ -14,6 +24,7 @@ SERVER_REGISTERED_STATE = 2
 BOTH_REGISTERED_STATE = 3
 DEVICE_REGISTERED_EVENT = 0
 SERVER_REGISTERED_EVENT = 1
+
 
 class DeviceRegistration(db.Model):
     code = db.StringProperty()
@@ -57,3 +68,12 @@ class DeviceRegistration(db.Model):
             return "BOTH_REGISTERED"
 
     
+class RegistrationStats(db.Model):
+    date = db.DateTimeProperty(auto_now_add=True, indexed=True)
+
+    finished_count = db.IntegerProperty(indexed=False)
+    device_count = db.IntegerProperty(indexed=False)
+    created_count = db.IntegerProperty(indexed=False)
+
+    event_stats = db.TextProperty()
+

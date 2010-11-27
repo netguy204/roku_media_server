@@ -1,0 +1,4 @@
+cron:
+- description: update statistics
+  url: /stats/stats-worker
+  schedule: every 1 minutes
