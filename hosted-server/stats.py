@@ -202,16 +202,19 @@ class Worker(webapp.RequestHandler):
         taskqueue.add(url='/stats/stats-worker')
         
     def post(self):
-        # pull the most recent stat object
-        stats = RegistrationStats.all().order('-date').fetch(1)
-
+        last = None
         last_json = {}
         finished = 0
         device = 0
         created = 0
 
-        regs = DeviceRegistration.all().order('date')
-        events = UserEvent.all().order('date')
+        reg_event_count = 0
+
+        regs = DeviceRegistration.all()
+        events = UserEvent.all()
+
+        # pull the most recent stat object
+        stats = RegistrationStats.all().order('-date').fetch(1)
 
         if len(stats) == 1:
             last = stats[0]
@@ -223,27 +226,37 @@ class Worker(webapp.RequestHandler):
                 created = last.created_count
 
                 last_ev_time = str2time(last_json['last_event_time'])
+                logging.debug("last_event_time = %s" % last_ev_time)
                 regs.filter('date >', last_ev_time)
                 events.filter('date >', last_ev_time)
+        else:
+            last = RegistrationStats()
+
+        regs.order('date')
+        events.order('date')
 
         for reg in regs:
             created += 1
+            reg_event_count += 1
 
             if reg.state == BOTH_REGISTERED_STATE:
                 finished += 1
             elif reg.state == DEVICE_REGISTERED_STATE:
                 device += 1
 
-        stats = RegistrationStats()
-        stats.finished_count = finished
-        stats.device_count = device
-        stats.created_count = created
+        logging.debug("total regs processed: %d" % reg_event_count)
+
+        last.finished_count = finished
+        last.device_count = device
+        last.created_count = created
 
         # now process events
         ev_data = process_event_stream(events, last_json)
         
-        stats.event_stats = simplejson.dumps(ev_data)
-        stats.put()
+        last.event_stats = simplejson.dumps(ev_data)
+        last.date = datetime.datetime.now()
+
+        last.put()
 
 class Display(webapp.RequestHandler):
     def get(self):
@@ -261,7 +274,8 @@ class UserStats(Handler):
         self.response.headers['Content-Type'] = 'text/plain'
 
         if(len(stats) == 1):
-            self.response.out.write(stats[0].event_stats)
+            json = simplejson.loads(stats[0].event_stats)
+            self.response.out.write(simplejson.dumps(json, sort_keys=True, indent=2))
         else:
             self.response.out.write("{}")
         

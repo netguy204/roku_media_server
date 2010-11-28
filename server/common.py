@@ -221,6 +221,8 @@ def ext2mime(ext2):
     return "image/gif"
   elif ext == "wmv":
     return "video/x-ms-wmv"
+  elif ext == "srt":
+    return "text/plain"
   
   ext = ext2[-2:].lower()
   if ext == "ts":

@@ -1,4 +1,4 @@
-import cgi
+import cgi, datetime
 
 from google.appengine.api import users
 from google.appengine.ext import webapp, db
@@ -46,6 +46,7 @@ class CompleteRegistration(Handler):
             server_str = self.request.get('server')
             code.server = server_str
 
+        code.date = datetime.datetime.now()
         code.put()
 
         spawn_event(self, REGISTER_USEREVENT,

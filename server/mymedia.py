@@ -65,7 +65,7 @@ class PublishMixin:
 class RSSImageItem(PublishMixin, RSSItem):
   "extending rss items to support our extended tags"
   def __init__(self, **kwargs):
-    self.TAGS = ('image', 'filetype', 'tracknum', 'ContentType', 'StreamFormat', 'playtime', 'album', 'bitrate', 'release_date')
+    self.TAGS = ('image', 'filetype', 'tracknum', 'ContentType', 'StreamFormat', 'playtime', 'album', 'bitrate', 'release_date', 'SubtitleUrl')
     self.set_variables(kwargs)
     RSSItem.__init__(self, **kwargs)
 
@@ -148,6 +148,15 @@ def call_protected(f, default):
     logging.debug("failed to call function %s, using default %s", str(f), str(default))
   return v
 
+def with_srt(fname, linker, addl):
+  "update the addl with an srt tag if that file is available"
+
+  basepath = os.path.splitext(fname)[0]
+  srtname = basepath + ".srt"
+  if os.path.exists(srtname):
+    addl['SubtitleUrl'] = linker(srtname)
+  return addl
+
 def file2item(key, fname, base_dir, config, image=None):
   if not os.path.exists(fname):
     logging.warning("WARNING: Tried to create feed item for `%s' which does not exist. This shouldn't happen" % fname)
@@ -166,6 +175,11 @@ def file2item(key, fname, base_dir, config, image=None):
   mimetype = None
   tracknum = None
   release_date = None
+
+  addl = {} # additional metadata
+  def make_addl_link(fname):
+    path = relpath26(fname, base_dir)
+    return media_url(config, {'name':to_utf8(path), 'key': key})
 
   if ext == ".mp3":
     # use the ID3 tags to fill out the mp3 data
@@ -202,6 +216,7 @@ def file2item(key, fname, base_dir, config, image=None):
 
     basename = os.path.split(fname)[1]
     title = os.path.splitext(basename)[0]
+
     description = ""
     filetype = "wma"
     ContentType = "audio"
@@ -211,15 +226,20 @@ def file2item(key, fname, base_dir, config, image=None):
 
     basename = os.path.split(fname)[1]
     title = os.path.splitext(basename)[0]
+    with_srt(fname, make_addl_link, addl)
+    
     description = "Video"
     filetype = "mp4"
     ContentType = "movie"
+
 
   elif ext == ".wmv":
     # a windows movie file
 
     basename = os.path.split(fname)[1]
     title = os.path.splitext(basename)[0]
+    with_srt(fname, make_addl_link, addl)
+
     description = "Video"
     filetype = "wmv"
     ContentType = "movie"
@@ -284,7 +304,8 @@ def file2item(key, fname, base_dir, config, image=None):
       playtime = playtime,
       release_date = release_date,
       album = album,
-      bitrate = bitrate)
+      bitrate = bitrate,
+      **addl)
 
 def dir2item(key, dname, base_dir, config, image, name=None):
   path = relpath26(dname, base_dir)
