@@ -7,8 +7,6 @@ from google.appengine.ext.webapp.util import run_wsgi_app
 from utils import *
 from models import *
 
-import stats
-
 class RequestCode(Handler):
     def get(self):
         code = DeviceRegistration()
