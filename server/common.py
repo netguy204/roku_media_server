@@ -9,6 +9,9 @@ import socket
 import imghdr
 from eyeD3 import *
 
+def get_version():
+  return 1
+
 def server_base(config):
   return "http://%s:%s" % (config.get("config", "server_ip"), config.get("config", "server_port"))
 

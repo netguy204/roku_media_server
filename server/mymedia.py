@@ -20,6 +20,7 @@ import logging
 import pickle
 import simplejson
 import socket
+import sys
 
 from eyeD3 import *
 from common import *
@@ -1046,6 +1047,12 @@ class ConfigurationHandler:
     write_config(config_file, config)
     raise web.seeother("/")
 
+class VersionHandler:
+  def GET(self):
+    web.header('Content-Type', 'text/xml')
+    return with_template('version.xml', {'version': get_version(),
+                                          'platform': sys.platform})
+
 urls = (
     '/feed', 'RssHandler',
     '/media', 'MediaHandler',
@@ -1058,7 +1065,8 @@ urls = (
     '/register', 'RegisterHandler',
     '/register_submit', 'RegisterSubmitHandler',
     '/main.css', 'StylesheetHandler',
-    '/configure', 'ConfigurationHandler')
+    '/configure', 'ConfigurationHandler',
+    '/version', 'VersionHandler')
 
 app = web.application(urls, globals())
 

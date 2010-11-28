@@ -147,7 +147,7 @@ class terminalConfigPanel:
 
   def spawn_server(self):
     import subprocess
-    cmd = "%s rss_server.py" % config.get("config", "python_path")
+    cmd = "%s mymedia.py" % config.get("config", "python_path")
     return subprocess.Popen([cmd], shell=True)
 
   def stop_server(self):
