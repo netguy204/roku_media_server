@@ -133,7 +133,7 @@ def main_menu_feed(config):
 
   items.append({
       'title': 'My Streams',
-      'type': 'Floder',
+      'type': 'Folder',
       'image': media_url(config, {'name': get_themed_image('streams_square.jpg'),
                                   'key': 'client',
                                   'res': tuple2str(THB_DIM)}),
