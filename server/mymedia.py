@@ -21,11 +21,12 @@ import pickle
 import simplejson
 import socket
 import sys
-
 from eyeD3 import *
 from common import *
 from PyRSS2Gen import *
 from time import time
+
+import thumbnail
 
 from django.template import Template, Context
 from django.conf import settings
@@ -282,7 +283,8 @@ def file2item(key, fname, base_dir, config, image=None):
     link = media_url(config, {'name':to_utf8(path), 'key': key})
 
   if image:
-    image = relpath26(image, base_dir)
+    if os.path.splitext(image)[1] != ".thumbnail":
+      image = relpath26(image, base_dir)
     image = media_url(config, {'name':to_utf8(image), 'key': key, 'res': tuple2str(THB_DIM)})
 
   logging.debug(link)
@@ -343,7 +345,13 @@ def getart(path):
     for test_ext in (".jpg", ".jpeg", ".png"):
       if os.path.exists(no_ext + test_ext):
         return no_ext + test_ext
-    return None
+
+    # create an thumbnail if possible
+    thmb = thumbnail.create_thumbnail(path, size="large")
+    if thmb != None:
+	thmb = os.path.basename(thmb)
+	thmb = os.path.splitext(thmb)[0] + ".thumbnail"
+    return thmb
 
   if is_photo(path):
     return path
@@ -803,19 +811,26 @@ class MediaHandler:
     if os.path.isabs(song.name):
       logging.warning("SECURITY WARNING: Someone was trying to access %s. The MyMedia client shouldn't do this" % song.name)
       raise web.unauthorized("Cannot access file")
-
     # if the normalized path doesn't equal the input path,
     # most likely someone is trying to use ".." or other trickery
     # the old approach of searching the path for ".." essentially does the
     # same thing, but hopefully using normpath will help catch edge
     # conditions that were not expected
     if os.path.normpath(song.name) != song.name:
-       logging.warning("SECURITY WARNING: Someone was trying to access %s. The MyMedia client shouldn't do this" % song.name)
-       raise web.unauthorized("Cannot access file")
+      logging.warning("SECURITY WARNING: Someone was trying to access %s. The MyMedia client shouldn't do this" % song.name)
+      raise web.unauthorized("Cannot access file")
 
+    # The .thumbnail extension means the image is in the ~/.thumbnail directory
     name = song.name
-    name = key_to_path(config, song.key, name)
     ext = os.path.splitext(os.path.split(name)[1] or "")[1].lower()
+    if ext == ".thumbnail":
+      name = os.path.splitext(name)[0] + ".png"
+      ext = ".png"
+      logging.debug("retrieving image data from thumbnail %s" % name)
+      name = os.path.join(thumbnail.THUMBNAIL_DIRECTORY, "large", name)
+    else:
+      name = key_to_path(config, song.key, name)
+
     logging.debug("serving request for %s" % name)
 
     # the .image extension means the image is embedded in an mp3
