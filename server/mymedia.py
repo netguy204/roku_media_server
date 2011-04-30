@@ -794,17 +794,24 @@ class MediaHandler:
 
   def GET(self):
     song = web.input(name = None, key = None, res = tuple2str(FULL_DIM))
-    if not song.name:
-      return
+    if not song.name or not song.key:
+      raise web.internalerror("missing required parameters")
 
     config = parse_config(config_file)
 
-    # refuse anything that isn't in the media directory
-    # IE, refuse anything containing pardir
-    fragments = song.name.split(os.sep)
-    if os.path.pardir in fragments:
+    # refuse anything that is an absolute path
+    if os.path.isabs(song.name):
       logging.warning("SECURITY WARNING: Someone was trying to access %s. The MyMedia client shouldn't do this" % song.name)
-      return
+      raise web.unauthorized("Cannot access file")
+
+    # if the normalized path doesn't equal the input path,
+    # most likely someone is trying to use ".." or other trickery
+    # the old approach of searching the path for ".." essentially does the
+    # same thing, but hopefully using normpath will help catch edge
+    # conditions that were not expected
+    if os.path.normpath(song.name) != song.name:
+       logging.warning("SECURITY WARNING: Someone was trying to access %s. The MyMedia client shouldn't do this" % song.name)
+       raise web.unauthorized("Cannot access file")
 
     name = song.name
     name = key_to_path(config, song.key, name)
@@ -826,7 +833,7 @@ class MediaHandler:
     # in all other cases if the file doesn't exist, bail
     if not (name and os.path.exists(name)):
       logging.debug("file %s doesn't exist" % name)
-      return
+      raise web.notfound("file %s doesn't exist" % name)
 
     size = os.stat(name).st_size
 
@@ -834,7 +841,7 @@ class MediaHandler:
     mimetype = ext2mime(ext)
     if not mimetype:
       logging.debug("couldn't determine mimetype for %s" % name)
-      return
+      raise web.internalerror("couldn't determine mimetype for %s" % name)
 
     logging.debug("guessing mimetype of %s for %s. filesize is %d" % (mimetype, name, size))
 
