@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
 <rss version="2.0">
   <channel>
-    <title>MyMusic Feed</title>
+    <title>MyMedia Feed</title>
     {% for item in items %}
     <item>
       <title>{{ item.title }}</title>

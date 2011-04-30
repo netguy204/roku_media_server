@@ -604,7 +604,7 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
     range = ""
 
   doc = RSSDoc(
-      title="A Personal Music Feed",
+      title="A Personal %s Feed" % key.capitalize(),
       link="%s/feed?key=%s&dir=%s%s" % (key, server_base(config), relpath26(path, base_dir), range),
       description="My Media",
       lastBuildDate=datetime.datetime.now(),
