@@ -349,8 +349,11 @@ def getart(path):
     # create an thumbnail if possible
     thmb = thumbnail.create_thumbnail(path, size="large")
     if thmb != None:
+        # Since ROKU caches images based off URL, include mtime of the 
+        # thumbnail in the image URL
+        mtime = int(os.path.getmtime(thmb))
 	thmb = os.path.basename(thmb)
-	thmb = os.path.splitext(thmb)[0] + ".thumbnail"
+	thmb = os.path.splitext(thmb)[0] + "-%s.thumbnail" % (mtime)
     return thmb
 
   if is_photo(path):
@@ -824,7 +827,10 @@ class MediaHandler:
     name = song.name
     ext = os.path.splitext(os.path.split(name)[1] or "")[1].lower()
     if ext == ".thumbnail":
+      name, mtime = name.split("-", 1)
       name = os.path.splitext(name)[0] + ".png"
+      # Get the basename since the mtime is only used to keep the roku from caching the file 
+      # even if the thumbnail is updated
       ext = ".png"
       logging.debug("retrieving image data from thumbnail %s" % name)
       name = os.path.join(thumbnail.THUMBNAIL_DIRECTORY, "large", name)
