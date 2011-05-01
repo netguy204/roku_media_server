@@ -14,6 +14,20 @@ h1(#install). INSTALLATION
 
 # Enjoy!
 
+h2. Adding support for auto-generated video thumbnails
+
+# "Download pyffmpeg 2.0":http://pyffmpeg.googlecode.com/files/pyffmpeg-2.0.tar.gz 
+
+# Extract pyffmpeg-2.0.tar.gz
+
+# Install the dependencies, on Ubuntu
+
+## sudo apt-get install cython python-numpy libavfilter-dev libavformat-dev libavutil-dev libavcodec-dev libswscale-dev python-dev
+
+## python setup.py build
+
+## sudo python setup.py install
+
 h2. License
 
 The server code in this package is to be distributed under the terms of the GPL. The client code is also GPL but with a special attribution exception for the Roku business entity (per their SDK license agreement.)
