@@ -67,7 +67,7 @@ class PublishMixin:
 class RSSImageItem(PublishMixin, RSSItem):
   "extending rss items to support our extended tags"
   def __init__(self, **kwargs):
-    self.TAGS = ('image', 'filetype', 'tracknum', 'ContentType', 'StreamFormat', 'playtime', 'album', 'bitrate', 'release_date', 'SubtitleUrl')
+    self.TAGS = ('image', 'filetype', 'tracknum', 'ContentType', 'StreamFormat', 'playtime', 'album', 'bitrate', 'release_date', 'SubtitleUrl', 'BifUrl')
     self.set_variables(kwargs)
     RSSItem.__init__(self, **kwargs)
 
@@ -159,6 +159,15 @@ def with_srt(fname, linker, addl):
     addl['SubtitleUrl'] = linker(srtname)
   return addl
 
+def with_bif(fname, linker, addl):
+  "update the addl with a bif tag if that file is available"
+
+  basepath = os.path.splitext(fname)[0]
+  bifname = basepath + ".bif"
+  if os.path.exists(bifname):
+    addl['BifUrl'] = linker(bifname)
+  return addl
+
 def file2item(key, fname, base_dir, config, image=None):
   if not os.path.exists(fname):
     logging.warning("WARNING: Tried to create feed item for `%s' which does not exist. This shouldn't happen" % fname)
@@ -229,6 +238,7 @@ def file2item(key, fname, base_dir, config, image=None):
     basename = os.path.split(fname)[1]
     title = os.path.splitext(basename)[0]
     with_srt(fname, make_addl_link, addl)
+    with_bif(fname, make_addl_link, addl)
 
     description = "Video"
     filetype = "mp4"
@@ -241,6 +251,7 @@ def file2item(key, fname, base_dir, config, image=None):
     basename = os.path.split(fname)[1]
     title = os.path.splitext(basename)[0]
     with_srt(fname, make_addl_link, addl)
+    with_bif(fname, make_addl_link, addl)
 
     description = "Video"
     filetype = "wmv"

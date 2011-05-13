@@ -204,6 +204,8 @@ Function newMediaFromXML(rss As Object, xml As Object) As Object
         GetDescription:itemGetDescription,
         GetStreamFormat:itemGetStreamFormat,
         GetContentType:itemGetContentType,
+        GetSubtitleUrl:itemGetSubtitleUrl,
+        GetBifUrl:itemGetBifUrl,
         GetType:itemGetType,
         GetLength:itemGetLength,
         GetAlbum:itemGetAlbum,
@@ -243,6 +245,14 @@ Function itemGetContentType()
     return m.xml.ContentType.GetText()
 End Function
 
+Function itemGetSubtitleUrl()
+    return m.xml.SubtitleUrl.GetText()
+End Function
+
+Function itemGetBifUrl()
+    return m.xml.BifUrl.GetText()
+End Function
+
 Function itemGetLength()
     l = m.xml.playtime.GetText()
     return l.toInt()
@@ -265,7 +275,9 @@ Function itemGetPlayable()
     'print "type: "; m.GetType()
     sf = m.GetStreamFormat()
     ct = m.GetContentType()
-    return { Url: m.GetMedia(), ContentType: ct, Title: m.GetTitle(), StreamFormat: sf,
+    stu = m.GetSubtitleUrl()
+    bu = m.GetBifUrl()
+    return { Url: m.GetMedia(), ContentType: ct, Title: m.GetTitle(), StreamFormat: sf, SubtitleUrl:stu, SDBifUrl:bu, HDBifUrl:bu,
              Length: m.GetLength(), Artist: m.GetArtist(), Album: m.GetAlbum(), ReleaseDate: m.GetDate()}
 End Function
 

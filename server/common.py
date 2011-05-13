@@ -39,7 +39,7 @@ def ensure_configuration(config):
   ensure("collapse_collections", "False")
   ensure("max_folders_before_split", "10")
   ensure("theme", "default")
-  
+
   # make a reasonable guess at where the user keeps their music
   default_music_path = "Music"
   default_video_path = "Video"
@@ -97,11 +97,11 @@ def relpath26(path, start=os.curdir):
 # cross platform python2.5 terminator found on stackoverflow
 def terminate(process):
     """
-    Kills a process, useful on 2.5 where subprocess.Popens don't have a 
+    Kills a process, useful on 2.5 where subprocess.Popens don't have a
     terminate method.
 
 
-    Used here because we're stuck on 2.5 and don't have Popen.terminate 
+    Used here because we're stuck on 2.5 and don't have Popen.terminate
     goodness.
     """
 
@@ -117,7 +117,7 @@ def terminate(process):
     terminate_default = terminate_nix
 
     handlers = {
-        "win32": terminate_win, 
+        "win32": terminate_win,
         "linux2": terminate_nix
     }
 
@@ -206,7 +206,7 @@ def ext2mime(ext2):
   ext = ext2[-4:].lower()
   if ext == "m3u8":
     return "application/vnd.apple.mpegurl"
-    
+
   ext = ext2[-3:].lower()
   if ext == "mp3":
     return "audio/mpeg"
@@ -226,10 +226,12 @@ def ext2mime(ext2):
     return "video/x-ms-wmv"
   elif ext == "srt":
     return "text/plain"
-  
+  elif ext == "bif":
+    return "application/binary"
+
   ext = ext2[-2:].lower()
   if ext == "ts":
-    return "video/MP2T"    
+    return "video/MP2T"
   else:
     return None
 
@@ -356,7 +358,7 @@ def getimg(file):
   except Exception, e:
     logging.debug("Error while looking for images in %s: %s" % (file, str(e)))
     return None, None
-  
+
 # from the roku component reference
 THB_SD_DIM = (223,200)
 THB_HD_DIM = (300,300)
