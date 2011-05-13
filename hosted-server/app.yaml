@@ -10,14 +10,9 @@ handlers:
 - url: /stylesheets
   static_dir: stylesheets
 
-- url: /stats/.*
-  script: stats.py
-
-  auth_fail_action: redirect
-
 - url: /static
   static_dir: static
-  
+
 - url: /.*
   script: mymedia.py
 

@@ -21,6 +21,7 @@ import pickle
 import simplejson
 import socket
 import sys
+from StringIO import StringIO
 
 from eyeD3 import *
 from common import *
@@ -228,7 +229,7 @@ def file2item(key, fname, base_dir, config, image=None):
     basename = os.path.split(fname)[1]
     title = os.path.splitext(basename)[0]
     with_srt(fname, make_addl_link, addl)
-    
+
     description = "Video"
     filetype = "mp4"
     ContentType = "movie"
@@ -702,12 +703,21 @@ def doc2m3u(doc):
 
 def range_handler(fname):
   "return all or part of the bytes of a file depending on whether we were called with the HTTP_RANGE header set"
-  logging.debug("serving %s" % fname)
-  f = open(fname, "rb")
+
+  # if we got a string then assume then open that file
+  if isinstance(fname, basestring):
+    logging.debug("serving %s" % fname)
+    f = open(fname, "rb")
+    size = os.stat(fname).st_size
+  else:
+    # we assume that fname is a StringIO
+    f = fname
+    size = len(f.getvalue())
+    logging.debug("serving arbitrary data")
+
 
   bytes = None
   CHUNK_SIZE = 10 * 1024;
-  size = os.stat(fname).st_size
 
   # is this a range request?
   # looks like: 'HTTP_RANGE': 'bytes=41017-'
@@ -820,8 +830,7 @@ class MediaHandler:
       data, type = scaleimg(data, type, str2tuple(song.res))
       web.header("Content-Type", "image/" + type)
       web.header("Content-Length", "%d" % len(data))
-      yield data
-      return
+      return range_handler(StringIO(data))
 
     # in all other cases if the file doesn't exist, bail
     if not (name and os.path.exists(name)):
@@ -846,15 +855,12 @@ class MediaHandler:
 
       web.header("Content-Type", "image/" + type)
       web.header("Content-Length", "%d" % len(data))
-      yield data
-      return
+      return range_handler(StringIO(data))
 
     # otherwise return the data as is
     web.header("Content-Type", mimetype)
     web.header("Content-Length", "%d" % size)
-    for data in range_handler(name):
-      yield data
-    return
+    return range_handler(name)
 
 class RssHandler:
   def GET(self):
@@ -941,7 +947,7 @@ class RegisterSubmitHandler:
 
     return with_template('complete.html', { 'code': inputs.regId,
                                             'server': server })
-    
+
 class ReadmeTextileHandler:
   def GET(self):
     "serve up the readme textile"
@@ -1094,13 +1100,13 @@ if __name__ == "__main__":
   import sys
 
   settings.configure()
-  
+
   if os.path.exists(config_file):
 	config = parse_config(config_file)
   else:
 	config = ConfigParser.ConfigParser({})
 	config.add_section("config")
-	
+
   ensure_configuration(config)
   write_config(config_file, config)
 
