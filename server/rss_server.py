@@ -6,29 +6,38 @@
 
 # this file contains the configurable variables
 config_file = "config.ini"
-LOG_FILE = "my_media_log.txt"
+log_file = "my_media_log.txt"
 
 # main webapp
 import os
 import re
 import web
-from PyRSS2Gen import *
-import eyeD3
 import urllib
 import ConfigParser
 import math
 import logging
-from common import *
+import pickle
+import simplejson
 
-logging.basicConfig(filename=LOG_FILE, level=logging.DEBUG)
-#formatter = logging.Formatter("%(levelname)@s[%(asctime)s]: %(message)s")
-#logging.getLogger().setFormatter(formatter)
+from eyeD3 import *
+from common import *
+from PyRSS2Gen import *
+from time import time
+
+logging.basicConfig(filename=log_file, level=logging.ERROR) #DEBUG)
+MY_STREAMS = "my_streams.pickle"
+DEFAULT_STREAMS = "default_streams.pickle"
+VERSION = "1.0"
+
+def rss_server_version():
+  return VERSION
 
 class PublishMixin:
   def publish_extensions(self, handler):
     for name in self.TAGS:
       val = getattr(self, name)
       if val:
+        val = stringify_num(val)
         handler.startElement(name, {})
         handler.characters(val)
         handler.endElement(name)
@@ -44,7 +53,7 @@ class PublishMixin:
 class RSSImageItem(PublishMixin, RSSItem):
   "extending rss items to support our extended tags"
   def __init__(self, **kwargs):
-    self.TAGS = ('image', 'filetype', 'tracknum')
+    self.TAGS = ('image', 'filetype', 'tracknum', 'ContentType', 'StreamFormat', 'playtime', 'album', 'bitrate', 'release_date')
     self.set_variables(kwargs)
     RSSItem.__init__(self, **kwargs)
 
@@ -58,16 +67,44 @@ class RSSDoc(PublishMixin, RSS2):
 def main_menu_feed(config):
   "create the root feed for the main menu"
 
+  def get_themed_image(name):
+    client = client_dir(config)
+
+    theme = config.get("config", "theme")
+    if theme != "default":
+      theme_img = os.path.join(client, "themes", theme, name)
+      if os.path.exists(theme_img):
+        return "themes/%s/%s" % (theme, name)
+      else:
+        return "images/%s" % name
+    else:
+      return "images/%s" % name
+
   items = []
   item = dir2item("music", music_dir(config), music_dir(config), config, image=None, name="My Music")
-  item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': "images/music_square.jpg", 'key': "client"}))
+  item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': get_themed_image("music_square.jpg"), 'key': "client", 'res': tuple2str(THB_DIM)}))
   items.append(item)
 
   dir = video_dir(config)
   if dir and os.path.exists(dir):
-    item = dir2item("video", dir, dir, config, image=None, name="My Video")
-    item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': "images/videos_square.jpg", 'key': "client"}))
+    item = dir2item("video", dir, dir, config, image=None, name="My Videos")
+    item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': get_themed_image("videos_square.jpg"), 'key': "client", 'res': tuple2str(THB_DIM)}))
     items.append(item)
+
+  dir = photo_dir(config)
+  if dir and os.path.exists(dir):
+    item = dir2item("photo", dir, dir, config, image=None, name="My Photos")
+    item.image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': get_themed_image("photos_square.jpg"), 'key': "client", 'res': tuple2str(THB_DIM)}))
+    items.append(item)
+
+  pl_image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name': get_themed_image("streams_square.jpg"), 'key': "client", 'res': tuple2str(THB_DIM)}))
+  items.append(RSSImageItem(
+    title="My Streams",
+    link="%s/remotes" % server_base(config),
+    description="Folder",
+    guid=Guid("/remotes", isPermaLink=0),
+    pubDate=datetime.datetime.now(),
+    image=pl_image))
 
   doc = RSSDoc(
       title="A Personal Music Feed",
@@ -79,6 +116,14 @@ def main_menu_feed(config):
 
   return doc
 
+def call_protected(f, default):
+  v = default
+  try:
+    v = f()
+  except:
+    logging.debug("failed to call function %s, using default %s", str(f), str(default))
+  return v
+
 def file2item(key, fname, base_dir, config, image=None):
   if not os.path.exists(fname):
     logging.warning("WARNING: Tried to create feed item for `%s' which does not exist. This shouldn't happen" % fname)
@@ -89,29 +134,44 @@ def file2item(key, fname, base_dir, config, image=None):
 
   title = "None"
   description = "None"
+  album = None
+  playtime = None
+  bitrate = None
+
   filetype = None
   mimetype = None
   tracknum = None
+  release_date = None
 
   if ext == ".mp3":
     # use the ID3 tags to fill out the mp3 data
 
     try:
-      tag = eyeD3.Tag()
-      if not tag.link(fname):
-        return None
+      mp3 = Mp3AudioFile(fname)
+      tag = mp3.getTag()
     except:
       logging.warning("library failed to parse ID3 tags for %s. Skipping." % fname)
       return None
 
-    title = tag.getTitle()
-    description = tag.getArtist()
-    
-    tracknum = tag.getTrackNum()[0]
-    if tracknum:
-      tracknum = str(tracknum)
+    if tag != None:
+      title = call_protected(tag.getTitle, "Error Reading Title")
+    else:
+      title = ""
+
+    if title == "":
+      basename = os.path.split(fname)[1]
+      title = os.path.splitext(basename)[0]
+
+    if tag != None:
+      description = call_protected(tag.getArtist, "Error Reading Artist")
+      album = call_protected(tag.getAlbum, "Error Reading Album")
+      playtime = call_protected(mp3.getPlayTime, "0")
+      bitrate = call_protected(mp3.getBitRateString, "Error Reading Bitrate")
+      tracknum = call_protected(tag.getTrackNum, ( 0, ))[0]
+      release_date = call_protected(tag.getYear, "Error Reading Release Date")
 
     filetype = "mp3"
+    ContentType = "audio"
 
   elif ext == ".wma":
     # use the filename as the title
@@ -120,6 +180,7 @@ def file2item(key, fname, base_dir, config, image=None):
     title = os.path.splitext(basename)[0]
     description = ""
     filetype = "wma"
+    ContentType = "audio"
 
   elif ext in (".m4v", ".mp4", ".mov"):
     # this is a video file
@@ -128,6 +189,40 @@ def file2item(key, fname, base_dir, config, image=None):
     title = os.path.splitext(basename)[0]
     description = "Video"
     filetype = "mp4"
+    ContentType = "movie"
+
+  elif ext == ".wmv":
+    # a windows movie file
+
+    basename = os.path.split(fname)[1]
+    title = os.path.splitext(basename)[0]
+    description = "Video"
+    filetype = "wmv"
+    ContentType = "movie"
+
+  elif ext in (".jpg", ".jpeg", ".gif", ".png"):
+
+    basename = os.path.split(fname)[1]
+    title = os.path.splitext(basename)[0]
+    description = "Picture"
+    filetype = "image"
+    ContentType = "image"
+
+  elif ext == ".m3u":
+
+    basename = os.path.split(fname)[1]
+    title = os.path.splitext(basename)[0]
+    description = "Playlist"
+    filetype = "m3u"
+    ContentType = "playlist"
+
+  elif ext == ".m3u8":
+
+    basename = os.path.split(fname)[1]
+    title = os.path.splitext(basename)[0]
+    description = "HLS Playlist"
+    filetype = "hls"
+    ContentType = "movie"
 
   else:
     # don't know what this is
@@ -136,11 +231,14 @@ def file2item(key, fname, base_dir, config, image=None):
 
   size = os.stat(fname).st_size
   path = relpath26(fname, base_dir)
-  link="%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(path), 'key': key}))
+  if ContentType == "playlist":
+    link="%s/m3u?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(path), 'key': key}))
+  else:
+    link="%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(path), 'key': key}))
 
   if image:
     image = relpath26(image, base_dir)
-    image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(image), 'key': key}))
+    image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(image), 'key': key, 'res': tuple2str(THB_DIM)}))
 
   logging.debug(link)
 
@@ -156,7 +254,13 @@ def file2item(key, fname, base_dir, config, image=None):
       pubDate = datetime.datetime.now(),
       image = image,
       filetype = filetype,
-      tracknum = tracknum)
+      tracknum = tracknum,
+      ContentType = ContentType,
+      StreamFormat = filetype,
+      playtime = playtime,
+      release_date = release_date,
+      album = album,
+      bitrate = bitrate)
 
 def dir2item(key, dname, base_dir, config, image, name=None):
   path = relpath26(dname, base_dir)
@@ -168,7 +272,7 @@ def dir2item(key, dname, base_dir, config, image, name=None):
 
   if image:
     image = relpath26(image, base_dir)
-    image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(image), 'key': key}))
+    image = "%s/media?%s" % (server_base(config), urllib.urlencode({'name':to_utf8(image), 'key': key, 'res': tuple2str(THB_DIM)}))
 
   description = "Folder"
   #if image:
@@ -195,18 +299,55 @@ def getart(path):
         return no_ext + test_ext
     return None
 
-  curr_image = None
+  if is_photo(path):
+    return path
+
   img_re = re.compile("\.jpg|\.jpeg|\.png")
+  curr_image = None
+
+  if is_music(path):
+    ext = os.path.splitext(path)[1].lower()
+    if ext == ".mp3":
+      # First see if there's an embedded image
+      data, type = getimg(path)
+      if data:
+        curr_image = path + ".image"
+        return curr_image
+      # No embedded image, check for albumName.jpg
+      album = None
+      try:
+        mp3 = Mp3AudioFile(path)
+        tag = mp3.getTag()
+      except:
+        logging.warning("library failed to parse ID3 tags for %s. Skipping." % path)
+        tag = None
+
+      if tag:
+        album = call_protected(tag.getAlbum, "Error Reading Album")
+        if album:
+          base = os.path.split(path)[0]
+          fp = os.path.join(base,album)
+
+          # look for a corresponding image
+          for test_ext in (".jpg", ".jpeg", ".png"):
+            if os.path.exists(fp + test_ext):
+              return fp + test_ext
 
   for base, dirs, files in os.walk(path):
     # don't recurse when searching for artwork
     del dirs[:]
 
     for file in files:
-      ext = os.path.splitext(file)[1]
+      fp = os.path.join(base,file)
+      ext = os.path.splitext(file)[1].lower()
       if ext and img_re.match(ext):
-        curr_image = os.path.join(base,file)
+        curr_image = fp
         break
+      # elif ext == ".mp3":
+        # data, type = getimg(os.path.join(base,file))
+        # if data:
+          # curr_image = fp + ".image"
+          # break
 
   return curr_image
 
@@ -221,6 +362,14 @@ def item_sorter(lhs, rhs):
     return -1
   if rhs.description == "Folder" and lhs.description != "Folder":
     return 1
+
+  if lhs.album == rhs.album:
+    # if both have a track number, sort on that
+    if lhs.tracknum and rhs.tracknum:
+      if int(lhs.tracknum) < int(rhs.tracknum):
+        return -1
+      elif int(lhs.tracknum) > int(rhs.tracknum):
+        return 1
 
   # first sort by artist
   if lhs.description.lower() < rhs.description.lower():
@@ -240,7 +389,7 @@ def item_sorter(lhs, rhs):
       return -1
     elif int(lhs.tracknum) > int(rhs.tracknum):
       return 1
-  
+
   # if the track numbers are the same or both don't
   # exist then sort by title
   if lhs.title.lower() < rhs.title.lower():
@@ -252,7 +401,7 @@ def item_sorter(lhs, rhs):
 
 def partition_by_firstletter(key, subdirs, basedir, minmax, config):
   "based on config, change subdirs into alphabet clumps if there are too many"
-  
+
   max_dirs = 10
   if config.has_option("config", "max_folders_before_split"):
     max_dirs = int(config.get("config", "max_folders_before_split"))
@@ -263,7 +412,7 @@ def partition_by_firstletter(key, subdirs, basedir, minmax, config):
 
   # figure out if we're doing a letter or number partition
   minl, maxl = minmax
-  
+
   if is_letter(minl):
     min_of_class = 'a'
   elif is_number(minl):
@@ -309,7 +458,9 @@ def partition_by_firstletter(key, subdirs, basedir, minmax, config):
       next_letter = maxl
 
     # create the item
-    link = "%s/feed?%s" % (server_base(config), urllib.urlencode({'dir':basedir, 'range': last_letter+next_letter, 'key': key}))
+    reldir = relpath26(basedir, key_to_path(config, key))
+    logging.debug("built %s from %s relative to %s" % (reldir, basedir, key_to_path(config, key)))
+    link = "%s/feed?%s" % (server_base(config), urllib.urlencode({'dir':reldir, 'range': last_letter+next_letter, 'key': key}))
 
     newsubdirs.append(RSSImageItem(
       title = "%s - %s" % (last_letter.upper(), next_letter.upper()),
@@ -341,7 +492,7 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
     minl = minl.lower()
     maxl = maxl.lower()
 
-  media_re = re.compile("\.mp3|\.wma|\.m4v|\.mp4|\.mov")
+  media_re = re.compile("\.m3u|.m3u8|\.mp3|\.wma|\.m4v|\.mp4|\.mov|\.wmv|\.jpg|\.jpeg|\.png|\.gif")
 
   for base, dirs, files in os.walk(path):
     if not recurse:
@@ -370,15 +521,16 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
       if not media_re.match(os.path.splitext(file)[1].lower()):
         logging.debug("rejecting %s" % file)
         continue
-      
-      path = os.path.join(base, file)
 
-      if is_video(path):
-        image_icon = getart(path) or curr_image
-      else:
-        image_icon = curr_image
+      fpath = os.path.join(base, file)
 
-      item = file2item(key, path, base_dir, config, image_icon)
+      image_icon = getart(fpath) or curr_image
+
+      # filter out items that don't match our current key
+      if not file2key(fpath) == key:
+        continue
+
+      item = file2item(key, fpath, base_dir, config, image_icon)
       if item:
         items.append(item)
 
@@ -415,6 +567,85 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
 
   return doc
 
+def pl2songs(pl):
+  filein = open(pl)
+  lines = [ ln.rstrip() for ln in filein if ln[0] != '#' ]
+  filein.close()
+  return lines
+
+def getpl(name, key, path, config):
+  "create a media feed document from an m3u playlist"
+  items = []
+
+  lpath = os.path.join(path, name)
+  for line in pl2songs(lpath):
+    base = os.path.dirname(line)
+    file = os.path.basename(line)
+    if base == "":
+      base = os.path.dirname(lpath)
+    fpath = os.path.join(base, file)
+    image_icon = getart(fpath)
+    item = file2item(key, fpath, path, config, image_icon)
+    if item:
+      items.append(item)
+
+  doc = RSSDoc(
+      title="A Personal Music Feed",
+      link="%s/feed?key=%s&dir=%s%s" % (key, server_base(config), relpath26(path, path), range),
+      description="My Media",
+      lastBuildDate=datetime.datetime.now(),
+      items = items,
+      theme = key)
+
+  return doc
+
+def pickle2doc(name):
+  "convert a pickle file into a document"
+  items = []
+  config = parse_config(config_file)
+  f = open(name, "rb")
+  records = pickle.load(f)
+  for record in records:
+    if record['type'] == "mp3audio":
+      sf = "mp3"
+      ct = "audio"
+      ft = ext2mime(sf)
+    elif record['type'] == "wmaaudio":
+      sf = "wma"
+      ct = "audio"
+      ft = ext2mime(sf)
+    else:
+      # can't handle this yet
+      continue
+
+    img = "pkg:/images/livestream_square.jpg"
+
+    items.append(RSSImageItem(
+      title=record['title'],
+      link=record['url'],
+      enclosure = Enclosure(
+        url=record['url'],
+        type=ft,
+        length=None),
+      guid=Guid(record['url'], isPermaLink=0),
+      pubDate = datetime.datetime.now(),
+      filetype=ft,
+      image = img,
+      tracknum = 0,
+      release_date = "",
+      ContentType = ct,
+      StreamFormat = sf,
+      album = "None"))
+
+  doc = RSSDoc(
+      title="A Personal Music Feed",
+      link="%s/remotes" % (server_base(config)),
+      description="My Media",
+      lastBuildDate=datetime.datetime.now(),
+      items = items,
+      theme = "streams")
+  return doc
+
 def doc2m3u(doc):
   "convert an rss feed document into an m3u playlist"
 
@@ -424,11 +655,13 @@ def doc2m3u(doc):
   return "\n".join(lines)
 
 def range_handler(fname):
-  "return all or part of the bytes of a fyle depending on whether we were called with the HTTP_RANGE header set"
+  "return all or part of the bytes of a file depending on whether we were called with the HTTP_RANGE header set"
+  logging.debug("serving %s" % fname)
   f = open(fname, "rb")
 
   bytes = None
   CHUNK_SIZE = 10 * 1024;
+  size = os.stat(fname).st_size
 
   # is this a range request?
   # looks like: 'HTTP_RANGE': 'bytes=41017-'
@@ -445,8 +678,15 @@ def range_handler(fname):
       f.seek(start)
 
       # we'll stream it
+      web.header("Content-Length","%d" % (size - start))
+      web.header("Content-Range","bytes %d-%d/%d" % (start,size-1,size))
+      web.header("Accept-Ranges","bytes")
+      web.ctx.status = "206 Partial Content"
+      #print start,size-1,size,size-start
       bytes = f.read(CHUNK_SIZE)
+      total_bytes = 0
       while not bytes == "":
+        total_bytes += len(bytes)
         yield bytes
         bytes = f.read(CHUNK_SIZE)
 
@@ -457,14 +697,20 @@ def range_handler(fname):
     grp = regex.match(web.ctx.environ['HTTP_RANGE'])
     if grp:
       start,end = int(grp.group(1)), int(grp.group(2))
-      logging("player issued range request starting at %d and ending at %d" % (start, end))
+      logging.debug("player issued range request starting at %d and ending at %d" % (start, end))
+      web.header("Content-Length","%d" % (end - start + 1))
+      web.header("Content-Range","bytes %d-%d/%d" % (start,end,size))
+      web.header("Accept-Ranges","bytes")
+      web.ctx.status = "206 Partial Content"
+      #print start,end,size,(end-start+1)
 
       f.seek(start)
       bytes_remaining = end-start+1 # +1 because range is inclusive
-      chunk_size = min(bytes_remaining, chunk_size)
+      chunk_size = min(bytes_remaining, CHUNK_SIZE)
       bytes = f.read(chunk_size)
-
+      total_bytes = 0
       while not bytes == "":
+        total_bytes = total_bytes + len(bytes)
         yield bytes
 
         bytes_remaining -= chunk_size
@@ -472,12 +718,17 @@ def range_handler(fname):
         bytes = f.read(chunk_size)
 
       f.close()
-    
+
     # try a tail regex
     regex = re.compile('bytes=-(\d+)$')
     grp = regex.match(web.ctx.environ['HTTP_RANGE'])
     if grp:
       end = int(grp.group(1))
+      web.header("Content-Length","%d" % (end))
+      web.header("Content-Range","bytes %d-%d/%d" % (size-end,size-1,size))
+      web.header("Accept-Ranges","bytes")
+      web.ctx.status = "206 Partial Content"
+      #print size-end,size-1,end,size
       logging.debug("player issued tail request beginning at %d from end" % end)
 
       f.seek(-end, os.SEEK_END)
@@ -488,27 +739,32 @@ def range_handler(fname):
   else:
     # write the whole thing
     # we'll stream it
+    web.header("Content-Length","%d" % size)
     bytes = f.read(CHUNK_SIZE)
     while not bytes == "":
       yield bytes
       bytes = f.read(CHUNK_SIZE)
-    
+
     f.close()
+
+
+def restart_program():
+  # Restarts the current program.
+  # Note: this function does not return. Any cleanup action (like
+  # saving data) must be done before calling this function.
+
+  python = sys.executable
+  os.execl(python, python, * sys.argv)
 
 class MediaHandler:
   "retrieve a song"
 
   def GET(self):
-    song = web.input(name = None, key = None)
+    song = web.input(name = None, key = None, res = tuple2str(FULL_DIM))
     if not song.name:
       return
 
     config = parse_config(config_file)
-    name = song.name
-
-    name = key_to_path(config, song.key, name)
-    if not (name and os.path.exists(name)):
-      return None
 
     # refuse anything that isn't in the media directory
     # IE, refuse anything containing pardir
@@ -517,18 +773,61 @@ class MediaHandler:
       logging.warning("SECURITY WARNING: Someone was trying to access %s. The MyMedia client shouldn't do this" % song.name)
       return
 
+    name = song.name
+    name = key_to_path(config, song.key, name)
+    ext = os.path.splitext(os.path.split(name)[1] or "")[1].lower()
+    logging.debug("serving request for %s" % name)
+
+    # the .image extension means the image is embedded in an mp3
+    if ext == ".image":
+      mp3name = os.path.splitext(name)[0]
+      logging.debug("retrieving image data from mp3 %s" % mp3name)
+
+      data, type = getimg(mp3name)
+      data, type = scaleimg(data, type, str2tuple(song.res))
+      web.header("Content-Type", "image/" + type)
+      web.header("Content-Length", "%d" % len(data))
+      yield data
+      return
+
+    # in all other cases if the file doesn't exist, bail
+    if not (name and os.path.exists(name)):
+      logging.debug("file %s doesn't exist" % name)
+      return
+
     size = os.stat(name).st_size
 
     # make a guess at mime type
-    ext = os.path.splitext(os.path.split(name)[1] or "")[1].lower()
-
     mimetype = ext2mime(ext)
     if not mimetype:
-      return None
+      logging.debug("couldn't determine mimetype for %s" % name)
+      return
 
+    logging.debug("guessing mimetype of %s for %s. filesize is %d" % (mimetype, name, size))
+
+    # if it's an image, give scaling a try
+    if is_photo(name):
+      f = open(name, "rb")
+      data, type = scaleimg(f.read(), "jpeg", str2tuple(song.res))
+      f.close()
+
+      web.header("Content-Type", "image/" + type)
+      web.header("Content-Length", "%d" % len(data))
+      yield data
+      return
+
+    # otherwise return the data as is
     web.header("Content-Type", mimetype)
-    web.header("Content-Length", "%d" % size)
-    return range_handler(name)
+    # web.header("Content-Length", "%d" % size)
+    cnt = 0
+    total_bytes = 0
+    for data in range_handler(name):
+      cnt += 1
+      total_bytes += len(data)
+      #print cnt,total_bytes
+      yield data
+
+    return
 
 class RssHandler:
   def GET(self):
@@ -539,8 +838,8 @@ class RssHandler:
 
     web.header("Content-Type", "application/rss+xml")
     feed = web.input(dir = None, range=None, key=None)
-    
-    if not feed.key in ("music", "video"):
+
+    if not feed.key in ("music", "video", "photo"):
       return main_menu_feed(config).to_xml()
 
     # get the range for partitioning
@@ -562,19 +861,167 @@ class M3UHandler:
     "retrieve a feed in m3u format"
 
     config = parse_config(config_file)
+    web.header("Content-Type", "application/rss+xml")
+    feed = web.input(dir = None, name=None, key=None)
+
+    base_dir = key_to_path(config, feed.key)
+    return getpl(feed.name, feed.key, base_dir, config).to_xml()
+
+class TimestampHandler:
+  def GET(self):
+    "serve up the unix timestamp"
+    web.header("Content-Type", "text/plain")
+    ts = "%d" % (time() + 0.5)
+    return ts
+
+class IndexHandler:
+  def GET(self):
+    "serve up the index page"
+    web.header("Content-Type", "text/html")
+    return open("static/index.html").read()
+
+class ReadmeTextileHandler:
+  def GET(self):
+    "serve up the readme textile"
+    web.header("Content-Type", "text/plain")
+    return open("../README.textile").read()
+
+class DynamicPlaylist:
+  def GET(self):
+    "serve the current dynamic playlist"
+    web.header("Content-Type", "text/javascript")
+
+    if os.path.exists(MY_STREAMS):
+      f = open(MY_STREAMS, "rb")
+    elif os.path.exists(DEFAULT_STREAMS):
+      f = open(DEFAULT_STREAMS, "rb")
+    else:
+      return "[]" # empty list
+
+    return simplejson.dumps(pickle.load(f))
+
+  def POST(self):
+    "update the dynamic playlist"
+    args = web.input(title = [], type = [], url = [])
+    logging.debug("got arguments: %s" % str(args))
+
+    # repack the arguments
+    data = []
+    for i in range(len(args.title)):
+      data.append({
+        'title': args.title[i],
+        'type': args.type[i],
+        'url': args.url[i]})
+
+
+    f = open(MY_STREAMS, "wb")
+    pickle.dump(data, f)
+    f.close()
+
+    return "<b>done</b>";
+
+class DynamicPlaylistDoc:
+  def GET(self):
+    "the user created dynamic playlist in rss form"
+    web.header("Content-Type", "application/rss+xml")
+
+    if os.path.exists(MY_STREAMS):
+      return pickle2doc(MY_STREAMS).to_xml()
+    else:
+      return pickle2doc(DEFAULT_STREAMS).to_xml()
+
+class ResumeHandler:
+  def GET(self):
+    "serve the resume data"
+    web.header("Content-Type", "text/xml")
+    if os.path.exists("resume.xml"):
+      f = open("resume.xml", "rb")
+      data = f.read()
+      f.close()
+    else:
+      data = ""
+
+    return data
+
+  def POST(self):
+    "save the resume data"
+    f = open("resume.xml", "wb")
+    f.write(web.data())
+    f.close()
+
+    return "<b>done</b>";
+
+class UpdateHandler:
+  def GET(self):
+    web.header("Content-Type", "text/plain")
+    filename = web.input(file = None)
+    "return the version"
+    if filename.file == "rss_server.py":
+      return rss_server_version()
+    if filename.file == "common.py":
+      return common_version()
+    return "Append ?file=rss_server.py or ?file=common.py to url"
+
+  def POST(self):
+    filename = web.input(file = None, restart = None)
+    if filename.file == "rss_server.py":
+      logging.debug("Updating 'rss_server.py' from Roku client")
+      f = open("rss_server.py", "wb")
+      f.write(web.data())
+      f.close()
+      if filename.restart != None:
+        restart_program()
+    if filename.file == "common.py":
+      logging.debug("Updating 'common.py' from Roku client")
+      f = open("common.py", "wb")
+      f.write(web.data())
+      f.close()
+      if filename.restart != None:
+        restart_program()
 
     web.header("Content-Type", "text/plain")
-    feed = web.input(dir = None)
-    if feed.dir:
-      path = os.path.join(music_dir(config), feed.dir)
-      return doc2m3u(getdoc("music", path, music_dir(config), config, True))
+    return "<b>Nothing to do!</b>";
+
+class DebugHandler:
+  def GET(self):
+    "serve up the debug binary"
+    web.header("Content-Type", "application/binary")
+    if os.path.exists("debug.bin"):
+      f = open("debug.bin", "rb")
+      data = f.read()
+      f.close()
     else:
-      return doc2m3u(getdoc("music", music_dir(config), music_dir(config), config, True))
+      data = ""
+    return data
+
+  def POST(self):
+    "save the debug data"
+    param = web.input(type = None)
+    if param.type == "a":
+      f = open("debug.txt", "a")
+    elif param.type == "save":
+      f = open("dbgsave.bin", "wb")
+    else:
+      f = open("debug.bin", "wb")
+    f.write(web.data())
+    f.close()
+
+    return "<b>done</b>";
+
+
 
 urls = (
     '/feed', 'RssHandler',
     '/media', 'MediaHandler',
-    '/m3u', 'M3UHandler')
+    '/m3u', 'M3UHandler',
+    '/', 'IndexHandler',
+    '/readme', 'ReadmeTextileHandler',
+    '/dynplay', 'DynamicPlaylist',
+    '/remotes', 'DynamicPlaylistDoc',
+    '/timestamp', 'TimestampHandler',
+    '/update', 'UpdateHandler',
+    '/resume', 'ResumeHandler',
+    '/debugxfer', 'DebugHandler')
 
 app = web.application(urls, globals())
 

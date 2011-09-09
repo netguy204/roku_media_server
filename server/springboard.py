@@ -4,6 +4,7 @@
 # Version 2 or better
 
 config_file = "config.ini"
+installClient = True
 
 import os
 import sys
@@ -22,35 +23,7 @@ if os.path.exists(config_file):
 else:
   config.add_section("config")
 
-# ensure that everything we expect is at least get'able
-def ensure(varname, default):
-  if not config.has_option("config", varname):
-    config.set("config", varname, default)
-
-ensure("roku_ip", "ROKU IP ADDRESS")
-ensure("server_ip", socket.gethostbyname(socket.gethostname()))
-ensure("server_port", "8001")
-ensure("collapse_collections", "False")
-ensure("max_folders_before_split", "10")
-
-# make a reasonable guess at where the user keeps their music
-default_music_path = "Music"
-default_video_path = "Video"
-home = os.path.expanduser("~")
-
-if sys.platform == "win32":
-  default_music_path = os.path.join(home, "My Documents", "My Music")
-  default_video_path = os.path.join(home, "My Documents", "My Videos")
-elif sys.platform == "darwin":
-  default_music_path = os.path.join(home, "Music", "iTunes", "iTunes Music")
-  default_video_path = os.path.join(home, "Videos")
-elif sys.platform == "linux2":
-  default_music_path = os.path.join(home, "Music")
-  default_video_path = os.path.join(home, "Videos")
-
-ensure("music_dir", default_music_path)
-ensure("video_dir", default_video_path)
-ensure("python_path", sys.executable)
+ensure_configuration(config)
 
 # upload a zip file to the roku
 def upload_client_zip(config, the_zip):
@@ -79,13 +52,36 @@ def build_client_zip(config, client_path, target_zip):
 
   zip = zipfile.ZipFile(target_zip, "w")
 
+  # if a theme was selected, override those images
+  theme = config.get("config", "theme")
+  image_override = {}
+  if theme != "default":
+    theme_path = os.path.join(client_path, "themes", theme)
+    if os.path.exists(theme_path):
+      for base, dirs, files in os.walk(theme_path):
+        # no subdirs
+        del dirs[:]
+
+        # override the default theme images in the zip file
+        for file in files:
+          realpath = os.path.join(base, file)
+          fakepath = os.path.join("images", file)
+          image_override[fakepath] = realpath
+    else:
+      print "Theme path %s does not exist. Did you remove it while springboard was running?" % theme_path
+
   for base, dirs, files in os.walk(client_path):
+    if "themes" in dirs:
+      # don't include the themes directory
+      dirs.remove("themes")
+
     for file in files:
       # exclude the makefile
       if file == 'Makefile':
         pass
 
       fullpath = os.path.join(base, file)
+      relpath = relpath26(fullpath, client_path)
 
       f = None
       
@@ -103,17 +99,64 @@ def build_client_zip(config, client_path, target_zip):
         tf.seek(0)
         f = tf
       else:
+        # override theme images
+        if relpath in image_override:
+          fullpath = image_override[relpath]
+
         f = open(fullpath, 'rb')
         
-      relpath = relpath26(fullpath, client_path)
       zip.writestr(relpath, f.read())
       f.close()
       print "added %s to zip as %s" % (fullpath, relpath)
 
   zip.close()
 
-# build the user interface
-from Tkinter import *
+class terminalConfigPanel:
+  def __init__(self):
+    for item in config.items("config"):
+      self._make_entry(self, item[0], item[1])
+
+  def _get_themes(self):
+    theme_dir = os.path.join(os.path.pardir, "client", "themes")
+    return os.listdir(theme_dir)
+
+  def _make_entry(self, parent, name, value):
+    if not hasattr(self, 'configvars'):
+      self.configvars = {}
+    self.configvars[name] = value
+
+  def ensure_config(self):
+    print "writing configuration"
+    for name, value in self.configvars.items():
+      config.set("config", name, value)
+    write_config(config_file, config)
+
+  def launch_server(self):
+    self.ensure_config()
+    self.serverproc = self.spawn_server()
+
+  def install_client(self):
+    self.ensure_config()
+
+    client_src = os.path.join(os.path.pardir, "client")
+    client_zip = os.path.join(os.path.pardir, "zips", "client.zip")
+    build_client_zip(config, client_src, client_zip)
+
+    # upload the zip file
+    upload_client_zip(config, client_zip)
+
+  def spawn_server(self):
+    import subprocess
+    cmd = "%s mymedia.py" % config.get("config", "python_path")
+    return subprocess.Popen([cmd], shell=True)
+
+  def stop_server(self):
+    print "stopping server"
+    if sys.version_info[0:2] >= (2,6):
+      self.server.kill()
+    else:
+      terminate(self.serverproc)
+      os.waitpid(self.serverproc.pid, 0)
 
 class ConfigPanel:
   def __init__(self, root):
@@ -137,6 +180,10 @@ class ConfigPanel:
         text="Install Client", command=self.install_client)
     self.install_client.grid(row=self.row_num, column=1, sticky=E)
 
+  def _get_themes(self):
+    theme_dir = os.path.join(os.path.pardir, "client", "themes")
+    return os.listdir(theme_dir)
+
   def _make_entry(self, parent, name, value):
     if not hasattr(self, 'row_num'):
       self.row_num = 0
@@ -146,11 +193,20 @@ class ConfigPanel:
     w = Label(parent, text=name)
     w.grid(row=self.row_num, sticky=W)
 
-    w = Entry(parent)
-    w.insert(0, value)
-    w.grid(row=self.row_num, column=1, sticky=NSEW)
+    if name=="theme":
+      # make the theme combo box instead
+      v = StringVar(parent)
+      theme = config.get("config", "theme")
+      v.set(theme)
+      w = apply(OptionMenu, (parent, v, "default") + tuple(self._get_themes()))
+      w.grid(row=self.row_num, column=1, sticky=NSEW)
+      self.configvars[name] = v
 
-    self.configvars[name] = w
+    else:
+      w = Entry(parent)
+      w.insert(0, value)
+      w.grid(row=self.row_num, column=1, sticky=NSEW)
+      self.configvars[name] = w
 
     self.row_num += 1
 
@@ -203,10 +259,31 @@ class ServerPanel:
       terminate(self.server)
       os.waitpid(self.server.pid, 0)
     self.root.destroy()
+# build the user interface
+try:
+	from Tkinter import *
+	root = Tk()
+except:
+	import signal
+	#no Tkinter compiled in, command line only
+	commandLineOnly = True
+	tcp = terminalConfigPanel()
+	if installClient:
+		tcp.install_client()
+	tcp.launch_server()
 
-root = Tk()
-panel = ConfigPanel(root)
-root.mainloop()
+	def handler(signum, frame):
+		print 'Signal handler called with signal', signum
+		tcp.stop_server()
+		sys.exit()
+
+	signal.signal(signal.SIGTERM, handler)
+	while True:
+		time.sleep(1000)
+else:
+	panel = ConfigPanel(root)
+	root.mainloop()
+
 
 print "Springboard Terminating"
 

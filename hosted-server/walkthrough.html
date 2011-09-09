@@ -1,0 +1,138 @@
+<html>
+  <head>
+    <link type="text/css" rel="stylesheet" href="/stylesheets/main.css" />
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="title">You're not done yet! Next...</div>
+
+      <div class="item">
+	<a href="http://www.python.org/download">
+	  #1: Download and install python for your platform
+	</a>
+
+	<div class="content">
+	  The software that runs on your computer is written in a
+	  language called python and must be run by another program
+	  called an interpreter. There is a version of the python
+	  interpreter for most operating systems. This software is
+	  designed to work with the 2.6 series of the python
+	  interpreter (though other versions may work as well.) You
+	  will also need a python library called PIL that is used by
+	  the MyMedia server to re-size your photos before sending them
+	  to your box.
+	</div>
+
+	<div class="content">
+	  <b>Linux Users:</b> You probably already have python
+	  installed. It's pretty standard. Type python and if it
+	  starts up press Ctrl+D to quit. You probably will need to
+	  install PIL. Debian and Ubuntu users can do this by typing:
+	  <pre>sudo aptitude install python-imaging</pre>
+	</div>
+
+	<div class="content">
+	  <b>Windows Users:</b> Go to
+	  <a href="http://www.python.org/download/releases/2.6.6/">
+	    the python 2.6 release page</a> and download and run the
+	  32 bit Windows installer. Accept all of the defaults. You'll
+	  want to pick the 32 bit installer even if you're running 64
+	  bit windows because there isn't an official version of PIL
+	  for 64 bit windows. After python is installed,
+	  <a href="http://effbot.org/downloads/PIL-1.1.7.win32-py2.6.exe">
+	    download and install PIL.</a>
+	</div>
+
+	<div class="content">
+	  <b>Mac Users:</b> You already have the right version of
+	  python but you still need to install PIL.
+	  <a href="http://ethan.tira-thompson.org/Mac_OS_X_Ports.html">
+	    Download and install the base image conversion
+	    libraries</a>. Select the combo installer. Next install
+	    PIL by opening the Terminal and typing:
+
+	  <pre>sudo easy_install --find-links http://www.pythonware.com/products/pil/ Imaging</pre>
+
+	  Use the same password that you normally use for OS X
+	  software installs. It may look like nothing is happening for
+	  a couple of seconds so be patient. When the installation
+	  completes you should see text on the terminal saying that
+	  jpeg support is available. You can now close the terminal
+	  window.
+	</div>
+      </div>
+
+      <div class="item">
+	<a href="/download">
+	  #2: Download and unzip the Server Software
+	</a>
+      </div>
+
+      <div class="item">
+	#3: Start the server
+
+	<div class="content">
+	  <b>Linux Users:</b>
+	  <pre>
+	    cd (installation)/server
+	    python mymedia.py
+	  </pre>
+	</div>
+
+	<div class="content">
+	  <b>Windows Users:</b>
+	  Double click on mymedia.bat in the installation directory.
+	</div>
+
+	<div class="content">
+	  <b>Mac Users:</b> Ctrl+Click on mymedia.py in the
+	  (installation)/server directory and select Open With ->
+	  Python Launcher.
+	</div>
+      </div>
+
+      <div class="title">Finally...</div>
+
+      <div class="item">
+	#4: <a href="http://127.0.0.1:8001/">Configure Your Server</a>
+
+	<div class="content">
+	  Click on the link above to reach your server's configuration
+	  page. This is where you tell MyMedia where to find your
+	  music, videos, and photos.
+	</div>
+
+	<div class="content">
+	  Please verify that your server's IP address was
+	  auto-detected correctly. Some computers with more than one
+	  network card may not have their IP address auto-detected
+	  correctly.
+	</div>
+      </div>
+
+      <div class="item">
+	#5: Enjoy!
+
+	<div class="content">
+	  If you need help with anything related to setting up this
+	  software or if you just want to celebrate your success then
+	  drop by
+	  the <a href="http://forums.roku.com/viewtopic.php?f=28&t=25955&start=0">MyMedia
+	  Forum</a>.
+	</div>
+
+	<div class="content">
+	  If you are a developer or an artist and are interested in
+	  contributing to this open source project, check out
+	  our <a href="https://github.com/netguy204/roku_media_server">Github
+	  project page</a> and
+	  the <a href="http://groups.google.com/group/mymedia-roku-developers?hl=en">developer's
+	  mailing list.</a>
+	</div>
+
+      </div>
+    </div>
+  </body>
+</html>
+

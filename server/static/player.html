@@ -1,0 +1,160 @@
+<html>
+  <head>
+    <script src="js/jquery.js" type="text/javascript"></script>
+    <script src="js/parseuri.js" type="text/javascript"></script>
+    <script src="js/jplayer.js" type="text/javascript"></script>
+    <script>
+    $(document).ready(function() {
+	var urlstack = new Array();
+
+	function populate(container, url) {
+	    container.hide("fast");
+	    container.empty();
+	    
+	    $.get(url, function(xml) {
+		$("item", xml).each(function() {
+		    var url = parseUri($("link", this).text()).relative;
+		    var type = $("filetype", this).text() || "none";
+		    
+		    var anchor = document.createElement("a");
+		    anchor.setAttribute("href", url);
+		    anchor.innerHTML = $("title", this).text() + "<br/>";
+		    $.data(anchor, "type", type);
+		    
+		    container.append(anchor);
+		});
+	
+		container.show("fast");
+	    });
+	};
+	
+	var target = $("#target");
+	
+	$("#jplayer").jPlayer({
+	    swfPath: "js"
+	}).jPlayer("onSoundComplete", function() {
+	    $(".playing").removeClass('playing');
+	    
+	    // find the next thing to play
+	    var last = $.data(target, "now_playing");
+	    if(last) {
+		var next = $(last).next("a").get(0);
+		if(!next) {
+		    // loop back to the first
+		    next = $(last).parent().children("a").get(0);
+		}
+		playSong(next);
+	    } else {
+		$("#controls").hide("slow");
+	    }
+	});
+	
+	// start with controls hidden
+	$("#controls").hide();
+	
+	target.delegate("a", "click", function() {
+	    if($.data(this,"type") == "none") {
+		populate(target, this.href);
+		urlstack.push(this.href);
+		return false;
+	    } else {
+		playSong(this);
+		return false;
+	    }
+	});
+	
+	function playSong(song) {
+	    $("#jplayer").jPlayer("setFile", song.href)
+	    $("#jplayer").jPlayer("play");
+	    $.data(target, "now_playing", song);
+	    
+	    // highlight playing
+	    $(".playing").removeClass("playing");
+	    $(song).addClass("playing");
+	    
+	    // show the controls if they're hidden
+	    $("#controls:hidden").show("slow");
+	}
+	
+	var root = "/feed?key=music&dir=.";
+	populate(target, root);
+	urlstack.push(root);
+	
+	// take us back to the main when title is clicked
+	$(".title").click(function() {
+	    populate(target, root);
+	    urlstack.splice(0, urlstack.length); // erase the stack
+	    urlstack.push(root);
+	});
+	
+	$("#jplayer_stop").click(function() {
+	    $("#controls").hide("slow");
+	});
+    });
+    </script>
+
+    <link type="text/css/" rel="stylesheet" href="/main.css" />
+
+    <style type='text/css'>
+	div.title:hover {
+	        background-color: #6e5615;
+	}
+
+	.block {
+		background-color: #e6e6e6;
+		color: #333333;
+		width: 80%;
+		border-style:solid;
+		border-width:3px
+	}
+
+	#target {
+		font-size: 10pt;
+		font-family: serif;
+		margin: 10px;
+	}
+
+	.playing {
+		background-color: #ffffff;
+		color: #333333;
+		border-style: solid;
+		border-color: black;
+		border-width: 1px;
+	}
+
+	a.button {
+	}
+
+	img {
+		border-width: 0px;
+		padding: 5px;
+	}
+
+    </style>
+
+    <title>My Media: Music Player</title>
+  </head>
+
+
+  <body>
+    <div class="container">
+      <div class="title">My Music</div>
+      <div id="target" class="item">
+	Loading data...
+      </div>
+      
+      <div id="controls" class="item">
+	<center>
+	  <a href="#" class="button">
+	    <img src="img/play.png" id="jplayer_play" /></a>
+	  <a href="#" class="button">
+	    <img src="img/pause.png" id="jplayer_pause" /></a>
+	  <a href="#" class="button">
+	    <img src="img/stop.png" id="jplayer_stop" /></a>
+	</center>
+      </div>
+      
+      <div id="jplayer"></div>
+    </div>
+  </body>
+</html>

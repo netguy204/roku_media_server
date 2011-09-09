@@ -16,16 +16,15 @@ _el.wubo_
 
 _hoffmcs_ - server side improvements
 
-_renojim_ - video resuming. better channel error handling. overall improvements
+h1(#install). INSTALLATION
 
-_onecaribou_ - testing. contributing the DNS323 NAS installation guide.
+# "Add the private channel to your Roku":https://owner.roku.com/Account/ChannelCode/?code=mymedia
 
-_umbighouse_ - helping debug the windows client and providing excellent beta testing feedback. Windows installation tips and scripts. Channel icon and theming.
+# Start the channel and then visit "the MyMedia registration page":http://rokumm.appspot.com/ to enter the registration code you were given.
 
-Initial development by:
-Brian Taylor (el.wubo@gmail.com)
-Copyright 2010
+# Continue by downloading, installing, starting, and configuring the MyMedia server as detailed by the "installation guide":http://rokumm.appspot.com/walkthrough
 
+# Enjoy!
 
 h2. License
 
@@ -37,112 +36,52 @@ The folder icon is distributed under the creative commons. All other channel the
 
 h2. Security Warning
 
-The way the server works essentially exposes all of the mp3's in your music folder to an outside user with intimate knowledge of this program.  Definitely don't run this unless your local network is somehow isolated from the internet at large -- ie, you're behind a router.  
+The way the server works allows external devices (like your Roku) to access files in specific directories on your computer without authenticating.  Definitely don't run this unless your local network is somehow isolated from the internet at large -- ie, you're behind a router.  
 
-In other words: If your IP address isn't something like 192. ? . ? . ? or 10 . ? . ? . ? -- for the love of your data, PLEASE don't run the server.
+In other words: If your IP address isn't something like 192. ? . ? . ? or 10 . ? . ? . ? -- you're running the risk of exposing data on your computer to people who don't have your consent.
+
+Bottom line: I think I've done a reasonable job of making this secure for isolated home network use but I make no promises and imply no warranty.
 
 h2. Disclaimer
 
-I don't think it will happen but following these instructions could break your computer or your Roku. Don't hold me responsible if they do. If this breaks something for you, I'm sorry, and if you ask nice I may try to help you. No promises, no warranty, good luck.
-
-h1(#install). INSTALLATION
-
-# Download and install python for your platform
-# "Download MyMedia":http://github.com/netguy204/roku_media_server/archives/master
-# Put your Roku into developer mode
-# Run springboard.vbs to install the channel on your Roku and start the server
-
-h2. Details
-
-h3. Download and install python for your platform
-
-h4. Linux Users
-
-You probably already have python installed. It's pretty standard. Type python and if it starts up press Ctrl+D to quit and skip this section.
-
-Ubuntu users:
-
-pre. sudo aptitude install python
-
-h4. Windows Users
-
-Go to "http://www.python.org/download":http://www.python.org/download and select the Windows installer that suits your platform (32 or 64 bit.) Run it, accept all the defaults,
-
-h4. OSX
-
-You already have it!
-
-h3. Put your Roku into developer mode
-
-Here's some more legal hairy-ness. Based on the SDK agreement with Roku, I'm not sure what I'm allowed to tell you here... so you'll have to discover it for yourself.
-
-Search the web for "roku SDK" and hit the first link (the roku developers site.) Agree to everything, download the sdk, and in the documentation directory you'll find a document called the developers guide which starts out with instructions for putting your player into development mode. Do that stuff. Write down the IP address of your player.
-
-h3. Run springboard.py to install...
-
-Run the automated client/server installation tool.
-
-h4. Linux
-
-pre. cd server
-python springboard.py
-
-h4. Windows
-
-Double click on springboard.vbs or springboard_debug.bat.
-
-Or, if that doesn't work (because you put python somewhere weird):
-
-Start | Programs | Python | IDLE
-Menu: File | Open
-Navigate to where you put roku_media_player
-Open springboard.py
-Menu: Run | Run Module (or press F5)
-
-None of the included batch files or vbs scripts will work if you put python somewhere other than C:\Python26. If you installed python somewhere else then update the scripts you want to use as well.
-
-h4. OSX
-
-Check out "czarjosh's excellent HOWTO":http://joshferris.com/2010/02/21/local-media-on-your-roku/
-
-h4. All Users
-
-h5. Configuration Options
-
-* _music_dir_ - Full path to where you store all of your music
-* _video_dir_ - Full path to where you store all of your video
-* _server_ip_ - IP address (or hostname) of the computer that holds your music collection. The default value is likely to be correct.
-* _roku_ip_ - IP address of the Roku DVP (see notes above for obtaining this)
-* _collapse_collections_ - Deprecated. Set to False.
-* _max_folders_before_split_ - Makes navigating large music collections easier. 10 is a good starting value. Set to -1 to disable partitioning.
-* _python_path_ - Path to your python interpreter. The default value should be correct.
-* _server_port_ - Port number the server runs on. Use the default unless it conflicts with something else.
-
-Set all configuration variables in the tool. Click on "Install Client" to update your Roku (at the IP address you specified) and click on "Start Server" to start the server. Note that sometimes the Roku will automatically launch the client after you upload it. If this happens you'll need to go back to the home screen and then launch it again after you've started the server.
-
-You're done!
+I don't think it will happen but following these instructions could break your computer or your Roku. Don't hold me responsible if they do. If this breaks something for you, I'm sorry, and if you ask nice I may try to help you. No promises, no warranty, good luck. (No one, to my knowledge, has damaged their computer or Roku by using this software so far.)
 
 h1. Troubleshooting
 
-* If springboard.vbs doesn't start try running springboard_debug.bat. If you recognize any errors then fix them and let us know what you did so we can help others. If a window opens and closes immediately then you probably didn't install python at it's standard location (c:\python26). Either edit the .bat to point at where you installed it or go through the alternate procedure of starting springboard through IDLE.
-* Make sure you can get to your server from your server. Point a browser at "http://localhost:8001/feed":http://localhost:8001/feed . If you changed the port number in your configuration then adjust the link appropriately. If this doesn't work then the server probably isn't running. Did you start it from springboard? If so, you should see a Tk window with a big button saying "Stop Server." If you started it using the included launch_server.vbs script then press alt+ctrl+delete and make sure python is under the process tab.
+* Make sure you can get to your server from your server. Point a browser at "http://localhost:8001/feed":http://localhost:8001/feed . If you changed the port number in your configuration then adjust the link appropriately. If this doesn't work then the server probably isn't running. Did you start it? Windows users can press alt+ctrl+delete and make sure python is under the process tab.
 * Make sure you can get to your server from another computer. Change localhost in the link above to the ip address of your server. If this doesn't work then you almost definitely have a firewall in the way.
-* Make sure the new channel appears on your home screen. If it doesn't you may not have installed the client from springboard.
-* If the client seems to hang on a loading screen you probably didn't set the IP address of your server correctly in springboard. Also verify that a firewall isn't blocking the port you selected.
+* Make sure the new channel appears on your home screen. If it doesn't you need to add the private channel (link at the top of this document) and open and close the channel store to make it appear.
 
 h2. For more help
 
 There's an active and growing community of users eager to help you. Drop by the forum "http://forums.rokulabs.com/viewtopic.php?p=159473":http://forums.rokulabs.com/viewtopic.php?p=159473 or shoot me an email and hopefully we can work through whatever ails you.
 
-h1. Usage
-
-Fire up your personal music channel. You should find it on your home channel listing. The new channel is called "Music Player" and has the subtitle "Play music from your local network." It should very quickly give you a listing of the mp3's and the subdirectories in the music directory you configured. Navigate your collection using the arrow keys and the enter button and press enter to start a song. The up arrow will take you up one level in your collection and the Home button will exit the channel.
-
-Good luck!!
-
 h1. Epilogue
 
 This is a work in progress. I welcome feedback from your experiences. Let's make this readme file much better.
 
--B
+*With contributions from*
+
+(alphabetized)
+
+_all testers_ - Thank you for installing this code and providing feedback and suggestions. You make building this fun!
+
+_el.wubo_
+
+_hammerpocket_ - mac PIL install guide
+
+_hoffmcs_ - server side improvements
+
+_renojim_ - massive contributions to the functionality of the channel
+
+_onecaribou_ - testing. contributing the DNS323 NAS installation guide.
+
+_umbighouse_ - helping debug the windows client and providing excellent beta testing feedback. Windows installation tips and scripts. Channel icon and theming.
+
+_witmar_ (tdurrant420@gmail.com) - high contrast theme
+
+Initial development by:
+Brian Taylor (el.wubo@gmail.com)
+Copyright 2011
+
 

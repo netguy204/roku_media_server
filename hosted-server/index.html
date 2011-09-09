@@ -1,0 +1,25 @@
+<html>
+  <head>
+    <link type="text/css" rel="stylesheet" href="/stylesheets/main.css" />
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="title">Begin your MyMedia Registration</div>
+
+      <form action="/register" method="post">
+	<input type="hidden" name="type" value="device" />
+
+	{% if error %}
+	<div class="item">
+	  <b>Error:</b> {{ error }}
+	</div>
+	{% endif %}
+
+	<div class="item">Registration Code: <input name="code" />
+	  <input type="submit" value="Continue" /></div>
+      </form>
+      </div>
+    </div>
+  </body>
+</html>
