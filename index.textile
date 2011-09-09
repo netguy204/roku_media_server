@@ -1,7 +1,7 @@
 ---
 layout: default
 title: MyMedia
-branch: master
+branch: channel
 ---
 
 <div class="description">
@@ -12,18 +12,21 @@ h2. Getting Started
 
 Check out the "installation guide":README.html for all the details but you'll basically be doing this:
 
-# Download and install python for your platform
-# Download MyMedia
-# Put your Roku into developer mode
-# Run springboard to install the channel on your Roku and start the server
+# "Add the private channel to your Roku":https://owner.roku.com/Account/ChannelCode/?code=mymedia
 
-h2. For the Daring
+# Start the channel and then visit "the MyMedia registration page":http://rokumm.appspot.com/ to enter the registration code you were given.
 
-The features that eventually make it into the main distribution start their lives in the "developer's preview":developers_preview.html version. If you're willing to encounter and "report":http://forums.roku.com/viewtopic.php?&t=25955 a few bugs please give it a try! We need your help to iron out the wrinkles for everyone else.
+# Continue by downloading, installing, starting, and configuring the MyMedia server as detailed by the "installation guide":http://rokumm.appspot.com/walkthro
 
 h2. License
 
 p. GNU General Public License
+
+The server code in this package is to be distributed under the terms of the GPL. The client code is also GPL but with a special attribution exception for the Roku business entity (per their SDK license agreement.)
+
+Some third party code is also included in the web, simplejson, and eyeD3 folders. Each of these are distributed under their author's original license (look in their source to see what they are.)
+
+The folder icon is distributed under the creative commons. All other channel theming artwork is Copyright 2010 _umbighouse_. Channel artwork is free for non-commercial use. Contact the original author if you would like to use the art under different terms.
 
 h2. Authors
 
@@ -43,7 +46,7 @@ h2. Contact
 
 h2. Download
 
-You can download this project in either "zip":http://github.com/netguy204/roku_media_server/zipball/master or "tar":http://github.com/netguy204/roku_media_server/tarball/master formats.
+You can download this project in either "zip":http://github.com/netguy204/roku_media_server/zipball/channel or "tar":http://github.com/netguy204/roku_media_server/tarball/channel formats.
 
 You can also clone the project with "Git":http://git-scm.com by running:
 
