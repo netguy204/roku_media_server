@@ -10,7 +10,18 @@ from models import *
 class RequestCode(Handler):
     def get(self):
         code = DeviceRegistration()
-        code.code = make_code()
+
+        # produce a code and verify it's unique
+        code_str = make_code()
+        unique_code = False
+        while not unique_code:
+            try:
+                DeviceRegistration.for_code(code_str)
+                code_str = make_code() # need to try again
+            except:
+                unique_code = True
+
+        code.code = code_str
         code.put()
 
         spawn_event(self, REQUEST_CODE_USEREVENT,
@@ -63,7 +74,7 @@ class RegistrationState(Handler):
                     code=code_str).put()
 
         with_template(self, "state.xml", { 'code': code })
-        
+
 class MainPage(Handler):
     def get(self):
         with_template(self, "index.html")
