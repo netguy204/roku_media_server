@@ -24,8 +24,8 @@ class RequestCode(Handler):
         code.code = code_str
         code.put()
 
-        spawn_event(self, REQUEST_CODE_USEREVENT,
-                    code=code.code).put()
+        #spawn_event(self, REQUEST_CODE_USEREVENT,
+        #            code=code.code).put()
 
         with_template(self, 'code.xml', { 'code': code })
 
@@ -39,9 +39,9 @@ class CompleteRegistration(Handler):
         try:
             code = DeviceRegistration.for_code(code_str)
         except:
-            spawn_event(self, CODEFAILED_USEREVENT,
-                        code=code_str,
-                        regtype=regtype_str).put()
+            #spawn_event(self, CODEFAILED_USEREVENT,
+            #            code=code_str,
+            #            regtype=regtype_str).put()
 
             with_template(self, 'index.html', {
                     'error': "The code %s is not recognized" % code_str})
@@ -58,9 +58,9 @@ class CompleteRegistration(Handler):
         code.date = datetime.datetime.now()
         code.put()
 
-        spawn_event(self, REGISTER_USEREVENT,
-                    code=code_str,
-                    regtype=regtype_str).put()
+        #spawn_event(self, REGISTER_USEREVENT,
+        #            code=code_str,
+        #            regtype=regtype_str).put()
 
         self.redirect('/walkthrough')
 
@@ -70,8 +70,8 @@ class RegistrationState(Handler):
         code_str = self.request.get('code')
         code = DeviceRegistration.for_code(code_str)
 
-        spawn_event(self, REQUEST_STATUS_USEREVENT,
-                    code=code_str).put()
+        #spawn_event(self, REQUEST_STATUS_USEREVENT,
+        #            code=code_str).put()
 
         with_template(self, "state.xml", { 'code': code })
 
