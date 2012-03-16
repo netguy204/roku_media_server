@@ -244,6 +244,17 @@ def file2item(key, fname, base_dir, config, image=None):
     filetype = "mp4"
     ContentType = "movie"
 
+  elif ext in (".mkv"):
+    # this is a matroska video file
+
+    basename = os.path.split(fname)[1]
+    title = os.path.splitext(basename)[0]
+    with_srt(fname, make_addl_link, addl)
+    with_bif(fname, make_addl_link, addl)
+
+    description = "Video"
+    filetype = "mkv"
+    ContentType = "movie"
 
   elif ext == ".wmv":
     # a windows movie file
@@ -550,7 +561,7 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
     minl = minl.lower()
     maxl = maxl.lower()
 
-  media_re = re.compile("\.m3u|.m3u8|\.mp3|\.wma|\.m4v|\.mp4|\.mov|\.wmv|\.jpg|\.jpeg|\.png|\.gif")
+  media_re = re.compile("\.m3u|.m3u8|\.mp3|\.wma|\.m4v|\.mp4|\.mov|\.mkv|\.wmv|\.jpg|\.jpeg|\.png|\.gif")
 
   for base, dirs, files in os.walk(path):
     if not recurse:

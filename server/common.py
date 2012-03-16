@@ -214,6 +214,8 @@ def ext2mime(ext2):
     return "audio/x-mpegurl"
   elif ext in ("m4v", "mp4", "mov"):
     return "video/mp4"
+  elif ext in ("mkv"):
+	return "video/x-matroska"
   elif ext == "wma":
     return "audio/x-ms-wma"
   elif ext in ("jpg", "peg"):
@@ -295,7 +297,7 @@ def client_dir(config):
   return os.path.join(os.path.pardir, "client")
 
 def is_video(path):
-  return ext2mime(path) in ("video/mp4", "video/x-ms-wmv", "application/vnd.apple.mpegurl")
+  return ext2mime(path) in ("video/mp4", "video/x-ms-wmv", "application/vnd.apple.mpegurl", "video/x-matroska")
 
 def is_photo(path):
   return ext2mime(path) in ("image/jpeg", "image/png", "image/gif")
