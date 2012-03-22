@@ -42,7 +42,7 @@ h1. Troubleshooting
 
 h2. For more help
 
-There's an active and growing community of users eager to help you. Drop by the forum "http://forums.rokulabs.com/viewtopic.php?p=159473":http://forums.rokulabs.com/viewtopic.php?p=159473 or shoot me an email and hopefully we can work through whatever ails you.
+There's an active and growing community of users eager to help you. Drop by the forum "http://forums.rokulabs.com/viewtopic.php?p=330401":http://forums.rokulabs.com/viewtopic.php?p=159473 or shoot me an email and hopefully we can work through whatever ails you.
 
 h1. Epilogue
 
