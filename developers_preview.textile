@@ -24,7 +24,7 @@ In other words: If your IP address isn't something like 192. ? . ? . ? or 10 . ?
 h2. Installation
 
 # "Download":http://www.python.org/download and install python for your platform
-# "Download MyMedia":http://github.com/netguy204/roku_media_server/archives/channel
+# "Download MyMedia":https://github.com/netguy204/roku_media_server/zipball/channel
 # Put your Roku into developer mode
 # "Run springboard":#springboard to install the channel on your Roku and start the server
 
