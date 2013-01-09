@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 """
 Web application
 (from web.py)
@@ -221,7 +222,7 @@ class application:
             response.status = status
             response.headers = dict(headers)
             response.header_items = headers
-        response.data = "".join(self.wsgifunc()(env, start_response))
+        response.data = u"".join(self.wsgifunc()(env, start_response))
         return response
 
     def browser(self):
@@ -424,9 +425,9 @@ class application:
                 else:
                     continue
             elif isinstance(what, basestring):
-                what, result = utils.re_subm('^' + pat + '$', what, value)
+                what, result = utils.re_subm(u'^' + pat + '$', what, value)
             else:
-                result = utils.re_compile('^' + pat + '$').match(value)
+                result = utils.re_compile(u'^' + pat + '$').match(value)
                 
             if result: # it's a match
                 return what, [x for x in result.groups()]
@@ -529,16 +530,16 @@ class subdomain_application(application):
         'not found'
     """
     def handle(self):
-        host = web.ctx.host.split(':')[0] #strip port
+        host = web.ctx.host.split(u':')[0] #strip port
         fn, args = self._match(self.mapping, host)
         return self._delegate(fn, self.fvars, args)
         
     def _match(self, mapping, value):
         for pat, what in utils.group(mapping, 2):
             if isinstance(what, basestring):
-                what, result = utils.re_subm('^' + pat + '$', what, value)
+                what, result = utils.re_subm(u'^' + pat + u'$', what, value)
             else:
-                result = utils.re_compile('^' + pat + '$').match(value)
+                result = utils.re_compile(u'^' + pat + u'$').match(value)
 
             if result: # it's a match
                 return what, [x for x in result.groups()]

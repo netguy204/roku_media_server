@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """web.py: makes web apps (http://webpy.org)"""
 
 from __future__ import generators

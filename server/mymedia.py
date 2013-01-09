@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: UTF-8 -*-
 # Copyright 2010, Brian Taylor
 # Distribute under the terms of the GNU General Public License
 # Version 2 or better
@@ -356,15 +357,15 @@ def dir2item(key, dname, base_dir, config, image, name=None):
       image = image)
 
 def getart(path):
-  path = to_unicode(path)
+  fs_enc = sys.getfilesystemencoding()
 
   # is path a full path to a video?
   if is_video(path):
     no_ext = os.path.splitext(path)[0]
 
     # look for a corresponding image
-    for test_ext in (".jpg", ".jpeg", ".png"):
-      if os.path.exists(no_ext + test_ext):
+    for test_ext in (u".jpg", u".jpeg", u".png"):
+      if os.path.exists(no_ext + test_ext.encode(fs_enc)):
         return no_ext + test_ext
     return None
 
@@ -549,6 +550,8 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
 
   # make sure we're unicode
   path = to_unicode(path)
+  fs_enc = sys.getfilesystemencoding()
+  path = path.encode(fs_enc)
 
   number_subdirs = []
   letter_subdirs = []
@@ -590,6 +593,8 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
       if not media_re.match(os.path.splitext(file)[1].lower()):
         logging.debug("rejecting %s" % file)
         continue
+
+      base = base.encode(fs_enc)
 
       fpath = os.path.join(base, file)
 
@@ -903,13 +908,16 @@ class RssHandler:
 
     base_dir = key_to_path(config, feed.key)
 
+    fs_enc = sys.getfilesystemencoding()
+    base_dir = base_dir.encode(fs_enc)
+
     if feed.dir:
       # the user has navigated to dir
       path = os.path.join(base_dir, feed.dir)
       return getdoc(feed.key, path, base_dir, range, config, collapse_collections).to_xml()
     else:
       # if no dir was given we return the index view for this base_dir
-      return getdoc(feed.key, base_dir, base_dir, range, config).to_xml()
+      return getdoc(feed.key, base_dir.encode(fs_enc), base_dir.encode(fs_enc), range, config).to_xml().encode(fs_enc)
 
 class M3UHandler:
   def GET(self):

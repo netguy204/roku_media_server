@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 # Copyright 2010, Brian Taylor
 # Distribute under the terms of the GNU General Public License
 # Version 2 or better

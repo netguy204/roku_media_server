@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: UTF-8 -*-
 # Copyright 2010, Brian Taylor
 # Distribute under the terms of the GNU General Public License
 # Version 2 or better
@@ -288,6 +289,9 @@ def dir2item(key, dname, base_dir, config, image, name=None):
 
 def getart(path):
   path = to_unicode(path)
+  fs_enc = sys.getfilesystemencoding()
+  path = path.encode(fs_enc)
+
 
   # is path a full path to a video?
   if is_video(path):
@@ -480,6 +484,8 @@ def getdoc(key, path, base_dir, dirrange, config, recurse=False):
 
   # make sure we're unicode
   path = to_unicode(path)
+  fs_enc = sys.getfilesystemencoding()
+  path = path.encode(fs_enc)
 
   number_subdirs = []
   letter_subdirs = []

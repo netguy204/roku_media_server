@@ -10,20 +10,22 @@ import datetime
 
 # Could make this the base class; will need to add 'publish'
 class WriteXmlMixin:
-    def write_xml(self, outfile, encoding = "iso-8859-1"):
+    def write_xml(self, outfile):
         from xml.sax import saxutils
-        handler = saxutils.XMLGenerator(outfile, encoding)
+        #handler = saxutils.XMLGenerator(outfile, encoding)
+        handler = saxutils.XMLGenerator(outfile)
         handler.startDocument()
         self.publish(handler)
         handler.endDocument()
 
-    def to_xml(self, encoding = "iso-8859-1"):
+    def to_xml(self):
         try:
             import cStringIO as StringIO
         except ImportError:
             import StringIO
         f = StringIO.StringIO()
-        self.write_xml(f, encoding)
+        #self.write_xml(f, encoding)
+	self.write_xml(f)
         return f.getvalue()
 
 
