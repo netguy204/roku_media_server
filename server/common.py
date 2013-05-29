@@ -57,6 +57,12 @@ def ensure_configuration(config):
     default_music_path = os.path.join(home, "Music")
     default_video_path = os.path.join(home, "Videos")
     default_photo_path = os.path.join(home, "Pictures")
+  else:
+    # This is to handle the freebsd case (and possibly
+    # others). Suggestions on good defaults are always welcome.
+    default_music_path = home
+    default_video_path = home
+    default_photo_path = home
 
   ensure("music_dir", default_music_path)
   ensure("video_dir", default_video_path)
